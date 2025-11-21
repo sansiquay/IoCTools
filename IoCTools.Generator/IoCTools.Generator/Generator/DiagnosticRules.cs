@@ -1,6 +1,8 @@
 namespace IoCTools.Generator.Generator;
 
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 using Analysis;
@@ -325,6 +327,163 @@ internal static class DiagnosticRules
     {
         DependsOnValidator
             .ValidateDuplicateDependsOn(context, classDeclaration, classSymbol);
+    }
+
+    public static void ValidateUnnecessaryExternalDependencies(SourceProductionContext context,
+        INamedTypeSymbol classSymbol,
+        HashSet<string> allRegisteredServices,
+        Dictionary<string, List<INamedTypeSymbol>> allImplementations)
+    {
+        UnnecessaryExternalDependencyValidator.Validate(context, classSymbol, allRegisteredServices,
+            allImplementations);
+    }
+
+    public static void ValidateOptionsDependencies(SourceProductionContext context,
+        INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies)
+    {
+        OptionsDependencyValidator.Validate(context, classSymbol, hierarchyDependencies);
+    }
+
+    public static void ValidateNonServiceDependencies(SourceProductionContext context,
+        INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies)
+    {
+        NonServiceDependencyValidator.Validate(context, classSymbol, hierarchyDependencies);
+    }
+
+    public static void ValidateCollectionDependencies(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies)
+    {
+        CollectionDependencyValidator.Validate(context, classDeclaration, classSymbol, hierarchyDependencies);
+    }
+
+    public static void ValidateConfigurationRedundancy(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        SemanticModel semanticModel)
+    {
+        ConfigurationRedundancyValidator.Validate(context, classDeclaration, classSymbol, semanticModel);
+    }
+
+    public static void ValidateNullableDependencies(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies)
+    {
+        var nullableDeps = hierarchyDependencies.AllDependencies
+            .Where(d => IsNullableDependencyType(d.ServiceType))
+            .ToList();
+
+        if (nullableDeps.Count == 0) return;
+
+        var classAttributes = classSymbol.GetAttributes();
+        var fieldLookup = classSymbol.GetMembers().OfType<IFieldSymbol>()
+            .ToDictionary(f => f.Name, f => f, StringComparer.Ordinal);
+
+        foreach (var dependency in nullableDeps)
+        {
+            var dependencyType = dependency.ServiceType;
+
+            var location = FindDependencyLocation(classDeclaration, classAttributes, fieldLookup, dependencyType,
+                dependency.FieldName, dependency.Source) ?? classDeclaration.Identifier.GetLocation();
+
+            var diag = Diagnostic.Create(DiagnosticDescriptors.NullableDependencyNotAllowed,
+                location,
+                dependencyType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                classSymbol.Name);
+            context.ReportDiagnostic(diag);
+        }
+    }
+
+    private static bool IsNullableDependencyType(ITypeSymbol type) =>
+        type.NullableAnnotation == NullableAnnotation.Annotated ||
+        (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T });
+
+    private static Location? FindDependencyLocation(TypeDeclarationSyntax classDeclaration,
+        ImmutableArray<AttributeData> classAttributes,
+        IReadOnlyDictionary<string, IFieldSymbol> fieldLookup,
+        ITypeSymbol dependencyType,
+        string fieldName,
+        DependencySource source)
+    {
+        switch (source)
+        {
+            case DependencySource.DependsOn:
+                foreach (var attr in classAttributes)
+                {
+                    if (attr.AttributeClass == null) continue;
+                    if (!attr.AttributeClass.Name.StartsWith("DependsOnAttribute", StringComparison.Ordinal))
+                        continue;
+
+                    if (attr.AttributeClass.TypeArguments.Any(t =>
+                            SymbolEqualityComparer.Default.Equals(
+                                t.WithNullableAnnotation(NullableAnnotation.None),
+                                dependencyType.WithNullableAnnotation(NullableAnnotation.None))))
+                        return attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+                }
+
+                break;
+
+            case DependencySource.Inject:
+            case DependencySource.ConfigurationInjection:
+                if (fieldLookup.TryGetValue(fieldName, out var field) &&
+                    field.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is SyntaxNode node)
+                    return node.GetLocation();
+
+                break;
+        }
+
+        return classDeclaration.Identifier.GetLocation();
+    }
+
+    public static void ValidateParamsStyleAttributes(SourceProductionContext context,
+        INamedTypeSymbol classSymbol)
+    {
+        foreach (var attribute in classSymbol.GetAttributes())
+        {
+            var location = attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+            if (location == null || attribute.AttributeClass == null) continue;
+
+            // [DependsOn<...>] using named MemberNames
+            if (attribute.AttributeClass.Name.StartsWith("DependsOnAttribute", StringComparison.Ordinal) &&
+                attribute.NamedArguments.Any(arg => arg.Key == "MemberNames"))
+            {
+                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.PreferParamsStyleAttributeArguments,
+                    location,
+                    attribute.AttributeClass.Name,
+                    classSymbol.Name,
+                    "MemberNames");
+                context.ReportDiagnostic(diagnostic);
+                continue;
+            }
+
+            if (!AttributeParser.IsDependsOnConfigurationAttribute(attribute)) continue;
+
+            if (attribute.NamedArguments.Any(arg => arg.Key == "ConfigurationKeys"))
+            {
+                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.PreferParamsStyleAttributeArguments,
+                    location,
+                    attribute.AttributeClass.Name, classSymbol.Name, "ConfigurationKeys");
+                context.ReportDiagnostic(diagnostic);
+            }
+            else if (attribute.NamedArguments.Any(arg => arg.Key == "MemberNames"))
+            {
+                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.PreferParamsStyleAttributeArguments,
+                    location,
+                    attribute.AttributeClass.Name, classSymbol.Name, "MemberNames");
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
+    public static bool ValidateManualConstructorMixing(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol)
+    {
+        return ManualConstructorMixingValidator.ReportIfMixed(context, classDeclaration, classSymbol);
     }
 
     public static void ValidateDuplicatesWithinSingleDependsOn(SourceProductionContext context,

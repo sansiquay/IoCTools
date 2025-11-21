@@ -135,14 +135,16 @@ public partial class DatabaseContextService : IDatabaseContextService
     }
 
     // Additional constructor for manual configuration (generated constructor will handle DI)
-    public void Initialize()
+    public Result Initialize()
     {
-        var connectionString = _configuration.GetConnectionString("DefaultConnection")
-                               ?? throw new InvalidOperationException("Connection string not found");
+        var connectionString = _configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrEmpty(connectionString))
+            return Result.Failure("Connection string not found");
+
         _logger.LogInformation("Database context initialized with connection: {Database}",
             GetDatabaseName(connectionString));
+        return Result.Success();
     }
-
     private static string GetDatabaseName(string connectionString) =>
         // Simple parsing - in real app would use proper connection string builder
         connectionString.Contains("Database=")
@@ -810,3 +812,12 @@ public record HealthCheckResult(
 public record WorkflowConfirmation(string WorkflowId, string Status, DateTime ConfirmedAt);
 
 #endregion
+
+/// <summary>
+///     Simple Result type for operations that can succeed or fail
+/// </summary>
+public record Result(bool IsSuccess, string? ErrorMessage = null)
+{
+    public static Result Success() => new(true);
+    public static Result Failure(string errorMessage) => new(false, errorMessage);
+};

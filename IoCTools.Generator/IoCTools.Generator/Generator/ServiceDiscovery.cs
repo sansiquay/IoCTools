@@ -5,6 +5,8 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+using IoCTools.Generator.Utilities;
+
 internal static class ServiceDiscovery
 {
     public static (bool HasAny, bool IsScoped, bool IsSingleton, bool IsTransient) GetLifetimeAttributes(
@@ -64,8 +66,12 @@ internal static class ServiceDiscovery
                                 return true;
                         }
 
-        return classSymbol.GetMembers().OfType<IFieldSymbol>()
+        var hasFieldAttributes = classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field =>
                 field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectConfigurationAttribute"));
+        if (hasFieldAttributes) return true;
+
+        return classSymbol.GetAttributes()
+            .Any(AttributeParser.IsDependsOnConfigurationAttribute);
     }
 }

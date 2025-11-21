@@ -128,6 +128,10 @@ internal static partial class ConstructorGenerator
                         }
                     }
 
+            var configFields = classSymbol != null
+                ? DependencyAnalyzer.GetConfigurationInjectedFieldsForType(classSymbol, semanticModel)
+                : new List<ConfigurationInjectionInfo>();
+
             // Add configuration dependencies to namespace collection
             if (classSymbol != null)
             {
@@ -138,7 +142,6 @@ internal static partial class ConstructorGenerator
                         CollectNamespaces(serviceType, uniqueNamespaces);
 
                 // Add configuration-specific namespaces for section binding
-                var configFields = DependencyAnalyzer.GetConfigurationInjectedFieldsForType(classSymbol, semanticModel);
                 if (configFields.Any())
                 {
                     // Always add System namespace for built-in types like TimeSpan
@@ -257,11 +260,7 @@ internal static partial class ConstructorGenerator
             // Skip ConfigurationInjection dependencies as they're only constructor parameters, not stored fields
             // CRITICAL FIX: Also check if field has [InjectConfiguration] attribute - these fields already exist in source
             var configFieldNames = new HashSet<string>();
-            if (classSymbol != null)
-            {
-                var configFields = DependencyAnalyzer.GetConfigurationInjectedFieldsForType(classSymbol, semanticModel);
-                foreach (var configField in configFields) configFieldNames.Add(configField.FieldName);
-            }
+            foreach (var configField in configFields) configFieldNames.Add(configField.FieldName);
 
             // CRITICAL FIX: Use deduplicated AllDependencies instead of RawAllDependencies to prevent duplicate fields
             // This ensures duplicate [DependsOn<T>] attributes only generate one field
@@ -335,6 +334,17 @@ internal static partial class ConstructorGenerator
                 $"{accessModifier} readonly {RemoveNamespacesAndDots(d.ServiceType, namespacesForStripping)} {d.FieldName};");
 
             var fieldsStr = string.Join("\n    ", fieldDeclarations);
+
+            var generatedConfigFields = configFields.Where(f => f.GeneratedField).ToList();
+            if (generatedConfigFields.Any())
+            {
+                var configFieldDeclarations = generatedConfigFields.Select(f =>
+                    $"{accessModifier} readonly {RemoveNamespacesAndDots(f.FieldType, namespacesForStripping)} {f.FieldName};");
+                var configFieldsStr = string.Join("\n    ", configFieldDeclarations);
+                fieldsStr = string.IsNullOrWhiteSpace(fieldsStr)
+                    ? configFieldsStr
+                    : $"{fieldsStr}\n    {configFieldsStr}";
+            }
 
             // CRITICAL FIX: Use AllDependencies which already has correct inheritance ordering
             // DependencyAnalyzer already provides dependencies ordered by level and source type

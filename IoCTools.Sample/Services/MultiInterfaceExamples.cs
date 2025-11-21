@@ -50,7 +50,7 @@ public partial class UserService : IMultiUserService, IMultiUserRepository, IMul
     public async Task<User> FindByIdAsync(int id)
     {
         await Task.Delay(10); // Simulate async operation
-        return _users.GetValueOrDefault(id) ?? throw new KeyNotFoundException($"User {id} not found");
+        return _users.GetValueOrDefault(id) ?? null;
     }
 
     public async Task<User> SaveAsync(User user)
@@ -77,7 +77,7 @@ public partial class UserService : IMultiUserService, IMultiUserRepository, IMul
         string email)
     {
         if (!IsValidName(name) || !IsValidEmail(email))
-            throw new ArgumentException("Invalid user data");
+            return null;
 
         var user = new User(_nextId++, name, email);
         return await SaveAsync(user);
@@ -312,7 +312,7 @@ public partial class SelectiveDataService : IDataService, IDataValidator, IDataL
     public async Task<string> GetDataAsync(string id)
     {
         if (!ValidateId(id))
-            throw new ArgumentException("Invalid ID");
+            return null;
 
         LogAccess(id);
         await Task.Delay(10);

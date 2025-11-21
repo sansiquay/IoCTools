@@ -12,7 +12,8 @@ internal class ConfigurationInjectionInfo
         string? configurationKey,
         object? defaultValue,
         bool required,
-        bool supportsReloading)
+        bool supportsReloading,
+        bool generatedField = false)
     {
         FieldName = fieldName;
         FieldType = fieldType;
@@ -20,6 +21,7 @@ internal class ConfigurationInjectionInfo
         DefaultValue = defaultValue;
         Required = required;
         SupportsReloading = supportsReloading;
+        GeneratedField = generatedField;
     }
 
     /// <summary>
@@ -51,6 +53,12 @@ internal class ConfigurationInjectionInfo
     ///     Whether the configuration supports reloading
     /// </summary>
     public bool SupportsReloading { get; }
+
+    /// <summary>
+    ///     Indicates whether this configuration dependency was declared via [DependsOnConfiguration]
+    ///     and therefore requires the generator to emit a backing field.
+    /// </summary>
+    public bool GeneratedField { get; }
 
     /// <summary>
     ///     Determines if this is a direct value binding (primitive types)

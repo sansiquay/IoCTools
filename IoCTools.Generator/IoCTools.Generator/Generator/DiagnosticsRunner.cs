@@ -99,6 +99,32 @@ internal static class DiagnosticsRunner
                          "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
         if (hasExternalServiceAttribute) return;
 
+        // Nullable dependencies are not allowed; encourage explicit non-null dependencies or no-op implementations.
+        DiagnosticRules.ValidateNullableDependencies(context, classDeclaration, classSymbol, hierarchyDependencies);
+
+        // Info-level suggestion: prefer params-style arguments over named MemberNames/ConfigurationKeys.
+        DiagnosticRules.ValidateParamsStyleAttributes(context, classSymbol);
+
+        // Manual user-defined constructors combined with IoCTools-managed dependencies are invalid states.
+        // Report once and skip other dependency diagnostics to avoid misleading messages (e.g., unused dependencies).
+        if (DiagnosticRules.ValidateManualConstructorMixing(context, classDeclaration, classSymbol)) return;
+
+        // IOC042: External flag unnecessary when implementations exist
+        DiagnosticRules.ValidateUnnecessaryExternalDependencies(context, classSymbol, allRegisteredServices,
+            allImplementations);
+
+        // IOC043: discourage IOptions-based dependencies; prefer DependsOnConfiguration
+        DiagnosticRules.ValidateOptionsDependencies(context, classSymbol, hierarchyDependencies);
+
+        // IOC044: Non-service dependency types (primitives/structs/string/arrays thereof)
+        DiagnosticRules.ValidateNonServiceDependencies(context, classSymbol, hierarchyDependencies);
+
+        // IOC045: Unsupported collection shapes
+        DiagnosticRules.ValidateCollectionDependencies(context, classDeclaration, classSymbol, hierarchyDependencies);
+
+        // IOC040/IOC046: configuration/dependency redundancy and overlaps
+        DiagnosticRules.ValidateConfigurationRedundancy(context, classDeclaration, classSymbol, semanticModel);
+
         // IOC012/IOC013
         DiagnosticRules.ValidateLifetimeDependencies(context, classDeclaration, hierarchyDependencies,
             serviceLifetimes,

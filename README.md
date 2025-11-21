@@ -7,9 +7,9 @@
 
 ## Highlights
 
-- **Self-describing services** – `[Scoped]`, `[DependsOn<T>]`, `[RegisterAs<…>]`, `[ConditionalService]`, and `[InjectConfiguration]` live on the class, so intent never leaves the type.
+- **Self-describing services** – `[Scoped]`, `[DependsOn<T>]`, `[DependsOnConfiguration<…>]`, `[RegisterAs<…>]`, and `[ConditionalService]` live on the class, so intent never leaves the type. Use `[DependsOnConfiguration<…>]` for configuration whenever possible; fall back to `[InjectConfiguration]` only when you truly need a hand-authored field.
 - **Accurate registrations** – The generator produces `Add<YourAssembly>RegisteredServices()` extensions that register concrete types, interfaces, options bindings, conditional services, and background workers.
-- **Analyzer coverage** – 30+ diagnostics (IOC001–IOC040) keep registrations honest: missing lifetimes, redundant `RegisterAs`, conflicting `[SkipRegistration]`, invalid config keys, singleton/ scoped mismatches, etc.
+- **Analyzer coverage** – 40+ diagnostics (IOC001–IOC046) keep registrations honest: missing lifetimes, redundant `RegisterAs`, conflicting `[SkipRegistration]`, invalid config keys, singleton/ scoped mismatches, manual-constructor mixing with IoCTools dependencies, options misuse, primitive/collection dependency bans, redundant/unused dependencies (including configuration), and overlapping options/config sections.
 - **Zero reflection** – Everything happens at compile time. Startup cost stays flat, and generated code is plain C# you can inspect.
 
 IoCTools treats each service class as the single source of truth for its registration story. Lifetimes, interface exposure, configuration needs, and conditional flags live beside the implementation, so setup code isn’t forced to guess or duplicate those concerns. This separation keeps startup/bootstrap files lean while ensuring services are designed with the lifetime/registration model they actually require.
@@ -54,6 +54,36 @@ Or directly in your project file:
    var builder = WebApplication.CreateBuilder(args);
    builder.Services.AddYourAssemblyRegisteredServices(builder.Configuration);
    ```
+
+## IoCTools CLI
+
+`IoCTools.Tools.Cli` ships as a dotnet global/local tool (`dotnet ioc-tools …`). It interrogates your project with the real IoCTools generator, so you can see exactly what the build produced without spelunking through `obj/`.
+
+### Installation
+
+```bash
+# From the repo root
+dotnet pack IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj -c Release -o ./artifacts
+
+# Install globally or add to a local manifest
+dotnet tool install --global --add-source ./artifacts IoCTools.Tools.Cli
+# or
+dotnet new tool-manifest
+dotnet tool install --add-source ./artifacts IoCTools.Tools.Cli
+```
+
+### Commands
+
+| Command | What it surfaces |
+| --- | --- |
+| `fields --project <csproj> --file <class.cs> [--type Namespace.Service]` | Lists every IoCTools-aware service in the file (or filtered types), including generated `[DependsOn]` fields, `[DependsOnConfiguration]` fields, inferred names, and whether dependencies are external. |
+| `fields-path --project … --file … --type … [--output <dir>]` | Emits the absolute path to the generated constructor `.g.cs` (files land in `%TEMP%/IoCTools.Tools.Cli/<project>/<timestamp>` unless `--output` overrides). |
+| `services --project <csproj> [--output <dir>]` | Summaries of `Add<Assembly>RegisteredServices`: lifetimes, concrete/interface pairings, factory registrations, conditional predicates, and configuration bindings. |
+| `services-path --project <csproj> [--output <dir>]` | Prints the path to the generated registration extension so you can diff or open the raw file. |
+
+By default the CLI copies generator artifacts into your system temp directory under `IoCTools.Tools.Cli/<project>/<timestamp>`, so running it against other repositories will never dirty their working trees. Specify `--output` when you need the artifacts copied into a deterministic location.
+
+Key switches: `--configuration` (default `Debug`), `--framework` (for multi-targeting), `--type` (can repeat), and `--output` (deterministic artifact directory). Because the CLI drives Roslyn directly, it works immediately even when IoCTools is referenced as a project dependency and `EmitCompilerGeneratedFiles` is disabled.
 
 ## Before & After: Replacing DI Smells
 
@@ -127,6 +157,23 @@ Generated code now:
 - Registers the service once via `builder.Services.AddYourAssemblyRegisteredServices(configuration);` – IoCTools emits `services.AddScoped<IBillingService, BillingService>()` plus shared-instance factory wiring for `IBillingDiagnostics`.
 - Emits diagnostics if `[Scoped]` becomes redundant (IOC033), if `[SkipRegistration<ILegacyDiagnostics>]` can never trigger (IOC009/IOC038), or if configuration keys are invalid (IOC016–IOC017).
 
+### Class-level configuration with `[DependsOnConfiguration]`
+
+```csharp
+using IoCTools.Abstractions.Annotations;
+
+[DependsOnConfiguration<string>("Billing:BaseUrl")]
+[DependsOnConfiguration<int>("Billing:RetryCount", SupportsReloading = true)]
+public partial class BillingService : IBillingService
+{
+    // IoCTools generates the `_baseUrl` and `_retryCount` fields plus binding logic.
+}
+```
+
+Use this attribute when you want the analyzer/generator to manage configuration fields for you. You still get `[InjectConfiguration]` semantics—required/default values, reload support, options binding—plus `[DependsOn]`-style naming controls and multi-slot declarations.
+
+> **Best practice:** Always reach for `[DependsOnConfiguration<…>]` first so the generator owns the field, naming, and binding logic. Resort to `[InjectConfiguration]` only when you need a mutable/manual field (for example, lazy caching with `??=` or instrumentation).
+
 ## Naming & Generated Surface
 
 ### Dependency name derivation
@@ -138,6 +185,10 @@ Regex.Replace(fieldBaseName, "(?<!^)([A-Z])", "_$1").ToLowerInvariant();
 ```
 
 So `IEmailService` → `_emailService`, `IDetailedInvoiceAuditor` → `_detailedInvoiceAuditor`, and with snake_case `_detailed_invoice_auditor`. Diagnostics IOC035 fire when an `[Inject]` field matches this auto-generated pattern, nudging you back to `[DependsOn<…>]` when a field isn’t required.
+
+Need a hand-authored name? Every `[DependsOn<…>]` overload now offers params-style `memberNames`, so you can write `[DependsOn<ILogger<BillingService>, IHttpClientFactory>(memberNames: "logger", "client")]` instead of setting `MemberNames = new[] { … }` on the attribute. Likewise, `[DependsOnConfiguration<…>]` keeps params-style `configurationKeys` on its constructors, now alongside the naming options (`namingConvention`, `stripI`, `prefix`, `stripSettingsSuffix`).
+
+If you still use the legacy `MemberNames`/`ConfigurationKeys` named arguments, the analyzer now emits an informational hint (IOC047) pointing to the params-friendly form.
 
 ### Generated registration extension
 
@@ -169,8 +220,9 @@ public static class GeneratedServiceCollectionExtensions
 |-----------|----------|-------------|-------|
 | `[Scoped]`, `[Singleton]`, `[Transient]` | Lifetime | Declare how the service is registered. | Services own their lifetimes so startup code doesn’t. Use **one** per class; IOC036 warns otherwise. Scoped is implicit for partial classes that implement interfaces or when other service indicators exist. |
 | `[DependsOn<T1, T2, …>]` | Dependencies | Request constructor parameters without fields. | Preferred approach—constructor is generated with parameters for each type. Apply the attribute multiple times (e.g., three `[DependsOn<…>]` blocks of five types each for 15 dependencies) when you need more than the generic arity allows. |
+| `[DependsOnConfiguration<T1, …>]` | Configuration | Declare configuration dependencies without writing backing fields. | Generator emits the fields, constructor parameters, and binding logic you’d normally get from `[InjectConfiguration]`, plus `[DependsOn]`-style naming controls and multi-slot support. |
 | `[Inject]` | Dependencies | Last resort when a field must exist (custom naming, mutability). | IOC035 tells you when the default naming regex already covers the dependency. |
-| `[InjectConfiguration("Key", DefaultValue = "…", Required = bool, SupportsReloading = bool)]` | Configuration | Bind simple values or options straight into fields. | When no key is specified the section is inferred from the field type (e.g., `CacheOptions` → `Cache`). |
+| `[InjectConfiguration("Key", DefaultValue = "…", Required = bool, SupportsReloading = bool)]` | Configuration | Bind simple values or options straight into fields. | **Last resort.** Use this only when a handwritten field is unavoidable (mutable state, custom lazy assignment). Otherwise prefer `[DependsOnConfiguration<…>]`. |
 | `[RegisterAs<T1, …>(InstanceSharing.Shared\|Separate)]` | Interface control | Register only selected interfaces, optionally sharing instances. | Shared mode emits factory registrations so all listed interfaces reuse one instance. |
 | `[RegisterAsAll(RegistrationMode.All\|Exclusionary\|DirectOnly, InstanceSharing)]` | Interface control | Register every implemented interface (or concrete only). | Combine with `[SkipRegistration<T>]` to prune specific interfaces. |
 | `[SkipRegistration]` / `[SkipRegistration<T1, …>]` | Interface control | Disable registration completely or exclude individual interfaces. | IOC005/IOC037/IOC038 guard invalid combinations. |
@@ -221,14 +273,20 @@ public static class GeneratedServiceCollectionExtensions
 | IOC037 | Warning | `[SkipRegistration]` overrides other registration attributes on the same class. |
 | IOC038 | Warning | `[SkipRegistration<T>]` does nothing when `[RegisterAsAll(RegistrationMode.DirectOnly)]` is used. |
 | IOC039 | Warning | Dependency declared via `[Inject]`/`[DependsOn]` is never referenced. |
-| IOC040 | Warning | A dependency type is declared multiple times via `[Inject]` fields and/or `[DependsOn]` attributes. |
+| IOC040 | Warning | A dependency type is declared multiple times via `[Inject]`, `[DependsOn]`, or configuration bindings (including inheritance). |
+| IOC041 | Error | A class mixes IoCTools dependency annotations with a manual or primary constructor. Remove the ctor or the annotations so IoCTools can manage the constructor graph. |
+| IOC042 | Warning | `[DependsOn(..., external: true)]` used even though an implementation exists (or the type is a supported framework service). Remove `external: true` so IoCTools can validate and wire it normally. |
+| IOC043 | Warning | IOptions-based dependencies detected. Use `[DependsOnConfiguration<…>]` instead of taking `IOptions<T>` (or Snapshot/Monitor) as a constructor dependency. |
+| IOC044 | Warning | Dependency type is not a service (primitive/struct/string, including when wrapped in collections). Prefer `[DependsOnConfiguration<…>]` or a service abstraction instead. |
+| IOC045 | Warning | Collection dependency shape is unsupported. Only `IReadOnlyCollection<T>` is allowed for multi-implementation dependencies; arrays, IEnumerable/IReadOnlyList, List/HashSet, Dictionary, and custom collections warn. |
+| IOC046 | Warning | Overlapping configuration bindings (options + per-field bindings for the same section). Bind each configuration section only once. |
 
 Each diagnostic includes a remediation tip in Visual Studio / Rider / CLI build output. Treat them as code reviews from the generator.
 
 ## Key Workflows
 
 - **Dependency hygiene** – IOC039 warns when `[Inject]` or `[DependsOn]` declarations never get referenced, and IOC040 catches redundant combinations of `[Inject]` fields and `[DependsOn]` attributes before they reach generated constructors.
-- **Configuration injection**: `[InjectConfiguration]` supports complex objects, primitives, and arrays. Pair with diagnostics IOC016–IOC019 to stay honest.
+- **Configuration injection**: `[InjectConfiguration]` supports complex objects, primitives, and arrays, and `[DependsOnConfiguration<…>]` gives you the same binding behavior without writing backing fields—IoCTools generates them from the class-level attribute and still enforces IOC016–IOC019 diagnostics.
 - **Conditional services**: Use `Environment`/`NotEnvironment` for environment-specific registrations and `ConfigValue` + `Equals`/`NotEquals` for feature toggles.
 - **Background workers**: Any partial `BackgroundService` is registered through `AddHostedService<T>()`; analyzers enforce singleton lifetimes.
 - **Lifetime validation**: IOC012/IOC013 warn when a singleton captures scoped or transient services; IOC015 watches inheritance chains so longer-lived services never depend on shorter-lived implementations.
@@ -250,6 +308,7 @@ The current roadmap builds on IOC039/IOC040 by surfacing more of the generator�
 - **Debugger-friendly instrumentation** – optionally register a lightweight inspector in DEBUG builds so you can inspect the generated dependency graph at runtime without touching the `.g.cs` output.
 - **Service graph dumps** – behind an MSBuild flag (e.g., `IoCToolsDumpServiceGraph=true`), emit a compact JSON summary of each service, its generated fields, and registrations to simplify reviews and CI audits.
 - **Partial-type mapping guidance** – extend analyzers to suggest relocating `[DependsOn]` declarations to the partial that actually consumes the dependency, preventing future IOC039 hits.
+- **DependsOnConfiguration diagnostics** – add IOC04x warnings that: (1) surface duplicate slots across `[DependsOnConfiguration]` + `[InjectConfiguration]`, (2) highlight unused configuration slots, (3) flag redundant attributes when an identical key/type combo is declared twice, (4) detect conflicting `MemberNames`/`ConfigurationKeys` lengths, and (5) offer a fixer to convert eligible `[InjectConfiguration]` fields into class-level attributes.
 
 ## Configuration
 

@@ -72,13 +72,15 @@ internal static class AttributeParser
         return (namingConvention, stripI, prefix);
     }
 
-    public static (string namingConvention, bool stripI, string prefix, bool external) GetDependsOnOptionsFromAttribute(
-        AttributeData attribute)
+    public static (string namingConvention, bool stripI, string prefix, bool external, string[] memberNames)
+        GetDependsOnOptionsFromAttribute(
+            AttributeData attribute)
     {
         var namingConvention = "CamelCase";
         var stripI = true;
         var prefix = "_";
         var external = false;
+        var memberNames = Array.Empty<string>();
 
         // Check constructor arguments first
         var constructorArgs = attribute.ConstructorArguments;
@@ -117,6 +119,12 @@ internal static class AttributeParser
             if (externalValue is bool ext) external = ext;
         }
 
+        // Last parameter may be memberNames (params string[])
+        var lastArg = constructorArgs.LastOrDefault();
+        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Values is { Length: > 0 } values &&
+            lastArg.Type?.ToDisplayString() == "System.String[]")
+            memberNames = values.Select(v => v.Value?.ToString() ?? string.Empty).ToArray();
+
         // Also check named arguments as fallback (for backwards compatibility)
         foreach (var namedArg in attribute.NamedArguments)
             switch (namedArg.Key)
@@ -141,9 +149,83 @@ internal static class AttributeParser
                 case "External":
                     external = namedArg.Value.Value as bool? ?? false;
                     break;
+                case "MemberNames":
+                    if (namedArg.Value.Values is { Length: > 0 } mnames)
+                        memberNames = mnames.Select(v => v.Value?.ToString() ?? string.Empty).ToArray();
+                    break;
             }
 
-        return (namingConvention, stripI, prefix, external);
+        return (namingConvention, stripI, prefix, external, memberNames);
+    }
+
+    public static bool IsDependsOnConfigurationAttribute(AttributeData attribute) =>
+        attribute.AttributeClass?.BaseType?.ToDisplayString() ==
+            "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase" ||
+        attribute.AttributeClass?.ToDisplayString().StartsWith(
+            "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttribute<") == true;
+
+    public static (string namingConvention, bool stripI, string prefix, bool stripSettingsSuffix)
+        GetConfigurationNamingOptionsFromAttribute(AttributeData attribute)
+    {
+        var namingConvention = "CamelCase";
+        var stripI = true;
+        var prefix = "_";
+        var stripSettingsSuffix = true;
+
+        var constructorArgs = attribute.ConstructorArguments;
+
+        if (constructorArgs.Length > 0 && constructorArgs[0].Kind != TypedConstantKind.Array)
+        {
+            var enumValue = constructorArgs[0].Value;
+            if (enumValue != null)
+                namingConvention = enumValue switch
+                {
+                    0 => "CamelCase",
+                    1 => "PascalCase",
+                    2 => "SnakeCase",
+                    _ => namingConvention
+                };
+        }
+
+        if (constructorArgs.Length > 1 && constructorArgs[1].Kind != TypedConstantKind.Array)
+            stripI = constructorArgs[1].Value as bool? ?? stripI;
+
+        if (constructorArgs.Length > 2 && constructorArgs[2].Kind != TypedConstantKind.Array)
+        {
+            var prefixValue = constructorArgs[2].Value;
+            if (prefixValue != null) prefix = prefixValue.ToString() ?? prefix;
+        }
+
+        if (constructorArgs.Length > 3 && constructorArgs[3].Kind != TypedConstantKind.Array)
+            stripSettingsSuffix = constructorArgs[3].Value as bool? ?? stripSettingsSuffix;
+
+        foreach (var namedArg in attribute.NamedArguments)
+            switch (namedArg.Key)
+            {
+                case "NamingConvention":
+                    if (namedArg.Value.Value is int enumValue)
+                        namingConvention = enumValue switch
+                        {
+                            0 => "CamelCase",
+                            1 => "PascalCase",
+                            2 => "SnakeCase",
+                            _ => namingConvention
+                        };
+                    break;
+                case "StripI":
+                    if (namedArg.Value.Value is bool strip)
+                        stripI = strip;
+                    break;
+                case "Prefix":
+                    prefix = namedArg.Value.Value?.ToString() ?? prefix;
+                    break;
+                case "StripSettingsSuffix":
+                    if (namedArg.Value.Value is bool stripSettings)
+                        stripSettingsSuffix = stripSettings;
+                    break;
+            }
+
+        return (namingConvention, stripI, prefix, stripSettingsSuffix);
     }
 
     public static string GetRegistrationMode(AttributeData attribute)
@@ -300,6 +382,58 @@ internal static class AttributeParser
         fieldName = EscapeReservedKeyword(fieldName);
 
         return fieldName;
+    }
+
+    public static string GenerateConfigurationFieldName(string originalTypeName,
+        string namingConvention,
+        bool stripI,
+        string prefix,
+        bool stripSettingsSuffix)
+    {
+        var workingName = stripSettingsSuffix ? StripConfigurationSuffixes(originalTypeName) : originalTypeName;
+        if (string.IsNullOrWhiteSpace(workingName)) workingName = originalTypeName;
+        return GenerateFieldName(workingName, namingConvention, stripI, prefix);
+    }
+
+    public static string StripConfigurationSuffixes(string typeName)
+    {
+        if (string.IsNullOrWhiteSpace(typeName)) return typeName;
+
+        var suffixes = new[] { "Settings", "Configuration", "Options" };
+        foreach (var suffix in suffixes)
+            if (typeName.EndsWith(suffix, StringComparison.Ordinal))
+                return typeName.Substring(0, typeName.Length - suffix.Length);
+
+        return typeName;
+    }
+
+    public static string DeriveNameTokenFromConfigurationKey(string? configurationKey)
+    {
+        var safeKey = configurationKey ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(safeKey)) return "ConfigurationValue";
+        var segments = safeKey.Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0) segments = new[] { safeKey };
+
+        var tokens = new List<char>();
+        foreach (var segment in segments)
+        {
+            if (string.IsNullOrWhiteSpace(segment)) continue;
+
+            var capitalizeNext = true;
+            foreach (var ch in segment)
+            {
+                if (!char.IsLetterOrDigit(ch))
+                {
+                    capitalizeNext = true;
+                    continue;
+                }
+
+                tokens.Add(capitalizeNext ? char.ToUpperInvariant(ch) : ch);
+                capitalizeNext = false;
+            }
+        }
+
+        return tokens.Count > 0 ? new string(tokens.ToArray()) : "ConfigurationValue";
     }
 
     public static string ExtractLifetime(AttributeData serviceAttribute)

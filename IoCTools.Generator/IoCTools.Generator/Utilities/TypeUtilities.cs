@@ -8,6 +8,10 @@ internal static class TypeUtilities
 {
     public static string GetMeaningfulTypeName(ITypeSymbol typeSymbol)
     {
+        // Arrays: use element type to avoid empty symbol names and keep semantic naming
+        if (typeSymbol is IArrayTypeSymbol arrayType)
+            return GetMeaningfulTypeName(arrayType.ElementType) + "Array";
+
         // For collection types, extract the inner type argument for better field naming
         if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)
         {

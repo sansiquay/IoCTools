@@ -25,15 +25,18 @@ internal static class DependencyUsageValidator
         if (rawDependencies == null || rawDependencies.Count == 0) return;
 
         var grouped = rawDependencies
-            .Where(d => d.Source == DependencySource.Inject || d.Source == DependencySource.DependsOn)
+            .Where(d => d.Source == DependencySource.Inject ||
+                        d.Source == DependencySource.DependsOn ||
+                        d.Source == DependencySource.ConfigurationInjection)
             .GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default);
 
         foreach (var group in grouped)
         {
             var entries = group.ToList();
             if (entries.Count <= 1) continue;
-            if (!entries.Any(e => e.Source == DependencySource.Inject)) continue;
             if (!entries.Any(e => e.Level == 0)) continue; // Current class must participate
+            if (!entries.Any(e => e.Source == DependencySource.Inject ||
+                                  e.Source == DependencySource.ConfigurationInjection)) continue;
 
             if (group.Key is not ITypeSymbol dependencyType) continue;
             var detail = BuildSourceSummary(entries);
@@ -71,7 +74,9 @@ internal static class DependencyUsageValidator
         if (rawDependencies == null || rawDependencies.Count == 0) return;
 
         var currentDependencies = rawDependencies
-            .Where(d => d.Level == 0 && (d.Source == DependencySource.Inject || d.Source == DependencySource.DependsOn))
+            .Where(d => d.Level == 0 && (d.Source == DependencySource.Inject ||
+                                         d.Source == DependencySource.DependsOn ||
+                                         d.Source == DependencySource.ConfigurationInjection))
             .GroupBy(d => d.FieldName)
             .Select(g => g.First())
             .ToList();
@@ -110,6 +115,43 @@ internal static class DependencyUsageValidator
                     "a [DependsOn] attribute",
                     classSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
+            }
+            else if (dependency.Source == DependencySource.ConfigurationInjection)
+            {
+                if (dependency.FieldName == null) continue;
+
+                // If it is a user-declared field, reuse Inject logic; otherwise treat like generated field
+                var fieldSymbol = classSymbol.GetMembers().OfType<IFieldSymbol>()
+                    .FirstOrDefault(f => f.Name == dependency.FieldName);
+
+                if (fieldSymbol != null)
+                {
+                    if (!ShouldCheckInjectField(fieldSymbol)) continue;
+                    if (IsFieldUsed(fieldSymbol, partialDeclarations)) continue;
+
+                    var location = fieldSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()?.GetLocation() ??
+                                   classDeclaration.Identifier.GetLocation();
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
+                        location,
+                        dependency.FieldName,
+                        TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                        "[InjectConfiguration]",
+                        classSymbol.Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
+                else
+                {
+                    if (IsGeneratedFieldReferenced(dependency.FieldName, partialDeclarations, classSymbol)) continue;
+
+                    var location = classDeclaration.Identifier.GetLocation();
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
+                        location,
+                        dependency.FieldName,
+                        TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                        "[DependsOnConfiguration]",
+                        classSymbol.Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
             }
         }
     }
@@ -210,10 +252,16 @@ internal static class DependencyUsageValidator
             .Select(e => FormatFieldName(e.FieldName!, e.Level))
             .Distinct()
             .ToList();
+        var configNames = entries
+            .Where(e => e.Source == DependencySource.ConfigurationInjection && !string.IsNullOrEmpty(e.FieldName))
+            .Select(e => FormatFieldName(e.FieldName!, e.Level))
+            .Distinct()
+            .ToList();
 
         var parts = new List<string>();
         if (injectNames.Any()) parts.Add($"[Inject] fields {string.Join(", ", injectNames)}");
         if (dependsOnNames.Any()) parts.Add($"[DependsOn] attributes {string.Join(", ", dependsOnNames)}");
+        if (configNames.Any()) parts.Add($"configuration bindings {string.Join(", ", configNames)}");
 
         return string.Join(" and ", parts);
     }

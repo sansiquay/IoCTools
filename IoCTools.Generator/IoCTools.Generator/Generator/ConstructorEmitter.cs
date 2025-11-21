@@ -69,7 +69,7 @@ internal static class ConstructorEmitter
         {
             var typeName = serviceInfo.ClassSymbol.ToDisplayString();
             GeneratorDiagnostics.Report(context, "IOC995", "Constructor generation error",
-                $"Failed to generate constructor for {typeName}: {ex.Message}");
+                $"Failed to generate constructor for {typeName}: {ex}");
         }
     }
 

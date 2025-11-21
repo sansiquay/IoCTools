@@ -368,5 +368,86 @@ internal static class DiagnosticDescriptors
         "IoCTools",
         DiagnosticSeverity.Warning,
         true,
-        "Declare each dependency a single time. Prefer [DependsOn] when no custom field is required and drop extra [Inject] fields or duplicate attributes to avoid confusing constructor graphs.");
+        "Declare each dependency a single time. Prefer [DependsOn] when no custom field is required and drop extra [Inject]/[DependsOn]/configuration declarations (including inherited ones) to avoid confusing constructor graphs.");
+
+    public static readonly DiagnosticDescriptor ManualConstructorConflict = new(
+        "IOC041",
+        "Manual constructor conflicts with IoCTools dependencies",
+        "Class '{0}' declares IoCTools dependencies but also defines manual constructor '{1}'. Remove the manual constructor or drop IoCTools dependency annotations; they cannot be combined.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Let IoCTools generate the constructor for [Inject]/[InjectConfiguration]/[DependsOn] dependencies. If you need a hand-written constructor, remove the IoCTools dependency declarations or move your logic into a partial method.");
+
+    public static readonly DiagnosticDescriptor UnnecessaryExternalDependency = new(
+        "IOC042",
+        "External dependency flag is not required",
+        "Dependency '{0}' on class '{1}' is marked External, but an implementation is already available in this solution or referenced projects. Remove the External flag to let IoCTools manage it normally.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Use External only when the implementation is provided outside the solution (e.g., runtime-only or manually registered). If an implementation exists in a referenced project or is a supported framework service (ILogger, IConfiguration, IOptions, etc.), skip External.");
+
+    public static readonly DiagnosticDescriptor OptionsDependencyNotSupported = new(
+        "IOC043",
+        "IOptions<T> should use DependsOnConfiguration",
+        "Dependency '{0}' on class '{1}' uses IOptions-based types. Use [DependsOnConfiguration<...>] instead so IoCTools can bind configuration and manage options lifetimes.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Inject configuration via [DependsOnConfiguration<...>] and access the options payload directly. Avoid taking IOptions/IOptionsSnapshot/IOptionsMonitor as dependencies in IoCTools-managed constructors.");
+
+    public static readonly DiagnosticDescriptor NonServiceDependencyType = new(
+        "IOC044",
+        "Dependency type is not a service",
+        "Dependency '{0}' on class '{1}' is a primitive/value type or string. Use [DependsOnConfiguration<...>] for configuration values or depend on an interface/class service instead.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Reserve [DependsOn]/[Inject] for services (interfaces/classes). For configuration values, switch to [DependsOnConfiguration<...>] or [InjectConfiguration].");
+
+    public static readonly DiagnosticDescriptor UnsupportedCollectionDependency = new(
+        "IOC045",
+        "Collection dependency type is not supported",
+        "Dependency '{0}' on class '{1}' uses collection type '{2}'. Use IReadOnlyCollection<T> for sets of resolved services.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Use IReadOnlyCollection<T> when consuming multiple service implementations. Avoid arrays, IEnumerable<T>, IReadOnlyList<T>, List<T>, HashSet<T>, Dictionary<,>, or custom collections; wrap the allowed collection yourself if you need different semantics.");
+
+    public static readonly DiagnosticDescriptor ConfigurationOverlap = new(
+        "IOC046",
+        "Overlapping configuration bindings",
+        "Configuration section '{0}' is bound both as options '{1}' and as '{2}' on class '{3}'. Choose a single binding shape to avoid duplicate configuration sources.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Bind each configuration section exactly once. Avoid mixing options bindings with per-field configuration from the same section, and remove duplicate configuration slots across inheritance.");
+
+    public static readonly DiagnosticDescriptor PreferParamsStyleAttributeArguments = new(
+        "IOC047",
+        "Use params-style attribute arguments",
+        "Attribute '{0}' on '{1}' uses the '{2}' named argument; pass these values via the params argument instead (e.g., memberNames: value or configurationKeys: value)",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Prefer params-style constructor arguments for [DependsOn] member names and [DependsOnConfiguration] keys so analyzers and generators can align argument order and defaults consistently.");
+
+    public static readonly DiagnosticDescriptor NullableDependencyNotAllowed = new(
+        "IOC048",
+        "Dependencies must be non-nullable",
+        "Dependency '{0}' on '{1}' is declared nullable. Provide a concrete/non-null dependency or register a no-op implementation instead of using nullable dependencies.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Dependencies are expected to be required. Prefer non-nullable types and use composition (feature flags, no-op implementations, Lazy<Func>) rather than nullable dependency slots.");
+
+    public static readonly DiagnosticDescriptor MixedOptionsAndPrimitiveBindings = new(
+        "IOC049",
+        "Use a single configuration binding style per section",
+        "Configuration section '{0}' is bound to an options type '{1}' and also to primitive configuration values on '{2}'. Prefer either the options object or direct primitives—avoid mixing both.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Bind each configuration section in one style: either inject the options object once or inject primitives directly, but not both in the same inheritance chain.");
 }

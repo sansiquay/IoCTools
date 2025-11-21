@@ -27,11 +27,14 @@ using Microsoft.Extensions.Options;
 public static class SourceGeneratorTestHelper
 {
     /// <summary>
-    ///     Compiles source code with the IoCTools generator and returns results
+    ///     Compiles source code with the IoCTools generator and returns results. Optionally accepts additional referenced
+    ///     assemblies to simulate multi-project graphs.
     /// </summary>
     public static GeneratorTestResult CompileWithGenerator(string sourceCode,
         bool includeSystemReferences = true,
-        Dictionary<string, string>? analyzerBuildProperties = null)
+        Dictionary<string, string>? analyzerBuildProperties = null,
+        Assembly[]? additionalReferences = null,
+        MetadataReference[]? additionalMetadataReferences = null)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode,
             new CSharpParseOptions(LanguageVersion.Preview));
@@ -223,6 +226,24 @@ public static class SourceGeneratorTestHelper
                 OutputKind.DynamicallyLinkedLibrary,
                 allowUnsafe: false,
                 nullableContextOptions: NullableContextOptions.Enable));
+
+        var extraRefs = new List<MetadataReference>();
+
+        if (additionalReferences != null && additionalReferences.Length > 0)
+        {
+            foreach (var a in additionalReferences)
+            {
+                if (string.IsNullOrEmpty(a.Location)) continue;
+                var mr = MetadataReference.CreateFromFile(a.Location);
+                if (metadataRefs.All(m => m.Display != mr.Display)) extraRefs.Add(mr);
+            }
+        }
+
+        if (additionalMetadataReferences != null && additionalMetadataReferences.Length > 0)
+            extraRefs.AddRange(additionalMetadataReferences);
+
+        if (extraRefs.Count > 0)
+            compilation = compilation.AddReferences(extraRefs);
 
         // Run the source generator
         var generator = new DependencyInjectionGenerator();

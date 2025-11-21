@@ -27,3 +27,5 @@ IoCTools.Sample/temp_generated/
 
 # Debug artifacts
 debug_generated_content.txt
+
+artifacts/
