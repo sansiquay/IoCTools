@@ -1,12 +1,5 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
-using Utilities;
-
 /// <summary>
 ///     Determines whether a dependency type should be treated as external.
 /// </summary>

@@ -1,19 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Analysis;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
-
 internal static class CircularDependencyValidator
 {
     internal static void ValidateCircularDependenciesComplete(SourceProductionContext context,

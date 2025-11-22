@@ -1,7 +1,5 @@
 namespace IoCTools.Tools.Cli;
 
-using System.Linq;
-
 internal static class RegistrationPrinter
 {
     private const int MaxRows = 50;
@@ -39,7 +37,9 @@ internal static class RegistrationPrinter
             var factorySuffix = record.UsesFactory ? " via factory" : string.Empty;
             var conditionalSuffix = record.IsConditional && !string.IsNullOrWhiteSpace(record.ConditionExpression)
                 ? $" when {record.ConditionExpression}"
-                : record.IsConditional ? " (conditional)" : string.Empty;
+                : record.IsConditional
+                    ? " (conditional)"
+                    : string.Empty;
 
             Console.WriteLine($"  - [{lifetime}] {service} => {implementation}{factorySuffix}{conditionalSuffix}");
         }

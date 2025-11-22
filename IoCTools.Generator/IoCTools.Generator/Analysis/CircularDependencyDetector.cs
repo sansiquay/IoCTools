@@ -1,8 +1,5 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
 internal class CircularDependencyDetector
 {
     private readonly List<string> _circularDependencyPath = new();

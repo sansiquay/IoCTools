@@ -1,13 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
 internal static class OptionsDependencyValidator
 {
     internal static void Validate(SourceProductionContext context,

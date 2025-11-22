@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Models;
 
-using Microsoft.CodeAnalysis;
-
 internal class ServiceRegistration(
     INamedTypeSymbol classSymbol,
     INamedTypeSymbol interfaceSymbol,

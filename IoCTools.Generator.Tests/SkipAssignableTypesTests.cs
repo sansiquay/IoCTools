@@ -29,7 +29,7 @@ namespace Test
     }
 
     [Fact]
-    public void Default_DoesNotSkip_Mediator_RequestHandler_Without_Config()
+    public void Default_DoesNotSkip_Mediator_RequestHandler()
     {
         var code = @"
 using IoCTools.Abstractions.Annotations;
@@ -51,7 +51,7 @@ namespace Test
     }
 
     [Fact]
-    public void Default_DoesNotSkip_MediatR_RequestHandler_Without_Config()
+    public void Default_DoesNotSkip_MediatR_RequestHandler()
     {
         var code = @"
 using IoCTools.Abstractions.Annotations;
@@ -116,6 +116,25 @@ namespace IoCTools.Generator.Configuration { public static class GeneratorOption
         result.HasErrors.Should().BeFalse();
         var reg = result.GetServiceRegistrationSource();
         reg!.Content.Should().Contain("ProductsController");
+    }
+
+    [Fact]
+    public void Default_DoesNotSkip_Mediator_PipelineBehavior()
+    {
+        var code = @"
+using IoCTools.Abstractions.Annotations;
+namespace Mediator { public interface IPipelineBehavior<TMsg, TRes> {} public interface IRequest<T> {} public class Ping : IRequest<int> {} }
+
+namespace Test
+{
+    [Scoped]
+    public partial class TimingBehavior : Mediator.IPipelineBehavior<Mediator.IRequest<int>, int> { }
+}
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(code);
+        result.HasErrors.Should().BeFalse();
+        var reg = result.GetServiceRegistrationSource();
+        reg!.Content.Should().Contain("TimingBehavior");
     }
 
     [Fact]

@@ -1,16 +1,6 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using IoCTools.Generator.Analysis;
-using IoCTools.Generator.Diagnostics;
-using IoCTools.Generator.Models;
-using IoCTools.Generator.Utilities;
-
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 internal static class ConfigurationRedundancyValidator
 {
@@ -28,7 +18,8 @@ internal static class ConfigurationRedundancyValidator
     }
 
     private static List<(ConfigurationInjectionInfo Info, INamedTypeSymbol DeclaringType, int Level)>
-        CollectConfigurationBindings(INamedTypeSymbol classSymbol, SemanticModel semanticModel)
+        CollectConfigurationBindings(INamedTypeSymbol classSymbol,
+            SemanticModel semanticModel)
     {
         var result = new List<(ConfigurationInjectionInfo, INamedTypeSymbol, int)>();
         var level = 0;
@@ -36,7 +27,7 @@ internal static class ConfigurationRedundancyValidator
 
         while (current != null && current.SpecialType != SpecialType.System_Object)
         {
-            var configs = ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(current, semanticModel);
+            var configs = DependencyAnalyzer.GetConfigurationInjectedFieldsForType(current, semanticModel);
             foreach (var cfg in configs)
                 result.Add((cfg, current, level));
 
@@ -95,7 +86,7 @@ internal static class ConfigurationRedundancyValidator
                 .Where(c => !ReferenceEquals(c.Info, optionsBinding.Info))
                 .Where(c => IsSectionNested(section, c.Info.GetSectionName()))
                 .Where(c => !c.Info.IsOptionsPattern) // only flag options vs field/config bindings
-            .ToList();
+                .ToList();
 
             if (!conflicting.Any()) continue;
 
@@ -125,7 +116,7 @@ internal static class ConfigurationRedundancyValidator
         {
             var section = options.Info.GetSectionName();
             var optionsTypeName = options.Info.FieldType?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
-                                   ?? "Options";
+                                  ?? "Options";
 
             var conflicts = configs
                 .Where(c => !ReferenceEquals(c.Info, options.Info))
@@ -146,7 +137,8 @@ internal static class ConfigurationRedundancyValidator
         }
     }
 
-    private static bool IsSectionNested(string parent, string candidate)
+    private static bool IsSectionNested(string parent,
+        string candidate)
     {
         if (candidate.Equals(parent, StringComparison.OrdinalIgnoreCase)) return true;
         return candidate.StartsWith(parent + ":", StringComparison.OrdinalIgnoreCase);
@@ -155,14 +147,16 @@ internal static class ConfigurationRedundancyValidator
     private static bool IsOptionsLike(ConfigurationInjectionInfo info) =>
         info.IsOptionsPattern || (info.GeneratedField && !info.IsDirectValueBinding);
 
-    private static string DescribeSource((ConfigurationInjectionInfo Info, INamedTypeSymbol DeclaringType, int Level) entry)
+    private static string DescribeSource(
+        (ConfigurationInjectionInfo Info, INamedTypeSymbol DeclaringType, int Level) entry)
     {
         var source = entry.Info.GeneratedField ? "[DependsOnConfiguration]" : "[InjectConfiguration]";
         var locationTag = entry.Level == 0 ? "current" : "base";
         return $"{source} in {entry.DeclaringType.Name} ({locationTag})";
     }
 
-    private static Location ResolveLocation((ConfigurationInjectionInfo Info, INamedTypeSymbol DeclaringType, int Level) entry,
+    private static Location ResolveLocation(
+        (ConfigurationInjectionInfo Info, INamedTypeSymbol DeclaringType, int Level) entry,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         ITypeSymbol targetType)

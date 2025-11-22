@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Models;
 
-using Microsoft.CodeAnalysis;
-
 public class DiagnosticConfiguration
 {
     public DiagnosticSeverity NoImplementationSeverity { get; set; } = DiagnosticSeverity.Warning;

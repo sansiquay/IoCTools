@@ -1,9 +1,9 @@
 namespace IoCTools.Tools.Cli;
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using IoCTools.Generator;
+using System.Globalization;
+
+using Generator;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -11,7 +11,8 @@ internal sealed class GeneratorArtifactWriter
 {
     private readonly Dictionary<string, string> _hintToPath;
 
-    private GeneratorArtifactWriter(string outputRoot, Dictionary<string, string> hintToPath)
+    private GeneratorArtifactWriter(string outputRoot,
+        Dictionary<string, string> hintToPath)
     {
         OutputRoot = outputRoot;
         _hintToPath = hintToPath ?? throw new ArgumentNullException(nameof(hintToPath));
@@ -19,7 +20,8 @@ internal sealed class GeneratorArtifactWriter
 
     public string OutputRoot { get; }
 
-    public bool TryGetFile(string hintName, out string? path) =>
+    public bool TryGetFile(string hintName,
+        out string? path) =>
         _hintToPath.TryGetValue(hintName, out path);
 
     public static async Task<GeneratorArtifactWriter> CreateAsync(ProjectContext context,
@@ -69,13 +71,14 @@ internal sealed class GeneratorArtifactWriter
 
     private static string BuildDefaultOutputDirectory(Project project)
     {
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", System.Globalization.CultureInfo.InvariantCulture);
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
         var tempRoot = Path.Combine(Path.GetTempPath(), "IoCTools.Tools.Cli");
         var projectSegment = SanitizePathSegment(project.Name?.Trim(), "project");
         return Path.Combine(tempRoot, projectSegment, timestamp);
     }
 
-    private static string SanitizePathSegment(string? value, string fallback)
+    private static string SanitizePathSegment(string? value,
+        string fallback)
     {
         var candidate = string.IsNullOrWhiteSpace(value) ? fallback : value!;
         foreach (var invalid in Path.GetInvalidFileNameChars())

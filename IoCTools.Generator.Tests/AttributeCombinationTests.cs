@@ -911,6 +911,7 @@ public partial class ConsumerService
         var source = @"
 using IoCTools.Abstractions.Annotations;
 using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Logging;
 
 namespace Test;
 
@@ -933,6 +934,48 @@ public partial class ResultToHttpResponseMapper
         // Assert - No IOC002 or IOC033 warnings
         result.GetDiagnosticsByCode("IOC002").Should().BeEmpty();
         result.GetDiagnosticsByCode("IOC033").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Diagnostic_IOC002_NotRaised_ForDerivedServiceWithInheritedDependencies()
+    {
+        // Arrange - Base class carries dependency intent; derived class should infer Scoped lifetime without explicit attribute
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace Test;
+
+public interface IOutboxIntegrationEventRepository { }
+
+// Base defines dependency intent but no lifetime attribute
+[DependsOn<ILogger<BaseIntegrationRepository>>]
+public abstract partial class BaseIntegrationRepository
+{
+    protected BaseIntegrationRepository() { }
+}
+
+// Derived implements interface; should be implicitly Scoped because base already signals service intent
+public partial class OutboxIntegrationEventRepository : BaseIntegrationRepository, IOutboxIntegrationEventRepository
+{
+    public OutboxIntegrationEventRepository() : base() { }
+}
+
+[Singleton]
+public partial class OutboxConsumer
+{
+    [Inject] private readonly IOutboxIntegrationEventRepository _repository;
+}
+";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - implementation should be discovered as Scoped; no missing-registration warnings
+        result.GetDiagnosticsByCode("IOC002").Should().BeEmpty();
+        result.GetServiceRegistrationText()
+            .Should()
+            .Contain("AddScoped<global::Test.IOutboxIntegrationEventRepository, global::Test.OutboxIntegrationEventRepository>");
     }
 
 

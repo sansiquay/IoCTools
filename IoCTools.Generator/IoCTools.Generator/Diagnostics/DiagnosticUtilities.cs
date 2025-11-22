@@ -2,10 +2,7 @@ namespace IoCTools.Generator.Diagnostics;
 
 using Helpers;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-
-using Models;
 
 internal static class DiagnosticUtilities
 {

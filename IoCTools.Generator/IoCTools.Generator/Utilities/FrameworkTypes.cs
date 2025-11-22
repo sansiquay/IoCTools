@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Collections.Generic;
-
 internal static class FrameworkTypes
 {
     // Framework types that are commonly registered manually or by the framework

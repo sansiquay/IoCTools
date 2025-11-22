@@ -1,11 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Linq;
-
-using Generator;
-
-using Microsoft.CodeAnalysis;
-
 internal static class LifetimeUtilities
 {
     internal static string? GetServiceLifetimeFromSymbol(INamedTypeSymbol classSymbol,

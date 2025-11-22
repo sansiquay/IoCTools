@@ -1,8 +1,5 @@
 namespace IoCTools.Generator.Models;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
 /// <summary>
 ///     Service class information captured for the incremental generator pipeline.
 ///     Thin record used across discovery/emit/diagnostics stages.

@@ -1,14 +1,5 @@
 namespace IoCTools.Generator.Diagnostics;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
 internal static class ConfigurationValidator
 {
     // Types that can be bound from configuration without issues

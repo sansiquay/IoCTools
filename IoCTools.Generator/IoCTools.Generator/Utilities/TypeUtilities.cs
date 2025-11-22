@@ -1,9 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class TypeUtilities
 {
     public static string GetMeaningfulTypeName(ITypeSymbol typeSymbol)

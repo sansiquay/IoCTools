@@ -1,15 +1,6 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
-using Utilities;
 
 /// <summary>
 ///     Focused logic for discovering [InjectConfiguration] fields and parsing their options.
@@ -38,18 +29,18 @@ internal static class ConfigurationFieldAnalyzer
                     // Check for [InjectConfiguration]
                     AttributeSyntax? injectConfigAttribute = null;
                     foreach (var attributeList in fieldDeclaration.AttributeLists)
-                        foreach (var attribute in attributeList.Attributes)
+                    foreach (var attribute in attributeList.Attributes)
+                    {
+                        var attributeText = attribute.Name.ToString();
+                        if (attributeText == "InjectConfiguration" ||
+                            attributeText == "InjectConfigurationAttribute" ||
+                            attributeText.EndsWith("InjectConfiguration") ||
+                            attributeText.EndsWith("InjectConfigurationAttribute"))
                         {
-                            var attributeText = attribute.Name.ToString();
-                            if (attributeText == "InjectConfiguration" ||
-                                attributeText == "InjectConfigurationAttribute" ||
-                                attributeText.EndsWith("InjectConfiguration") ||
-                                attributeText.EndsWith("InjectConfigurationAttribute"))
-                            {
-                                injectConfigAttribute = attribute;
-                                break;
-                            }
+                            injectConfigAttribute = attribute;
+                            break;
                         }
+                    }
 
                     if (injectConfigAttribute == null) continue;
 
@@ -202,7 +193,8 @@ internal static class ConfigurationFieldAnalyzer
                     : TypeUtilities.GetMeaningfulTypeName(fieldType);
                 var generatedName = !string.IsNullOrWhiteSpace(explicitName)
                     ? explicitName!
-                    : AttributeParser.GenerateConfigurationFieldName(inferredNameToken, namingConvention, stripI, prefix,
+                    : AttributeParser.GenerateConfigurationFieldName(inferredNameToken, namingConvention, stripI,
+                        prefix,
                         stripSettingsSuffix);
                 var fieldName = EnsureUniqueFieldName(generatedName, existingFieldNames);
 
@@ -222,7 +214,7 @@ internal static class ConfigurationFieldAnalyzer
                     slotDefault,
                     slotRequired,
                     slotReload,
-                    generatedField: true));
+                    true));
             }
         }
 
@@ -247,28 +239,34 @@ internal static class ConfigurationFieldAnalyzer
     private static string?[]? GetStringArray(AttributeData attribute,
         string argumentName)
     {
-        var argument = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == argumentName);
-        if (argument.Key == null || argument.Value.Kind != TypedConstantKind.Array) return null;
+        foreach (var kvp in attribute.NamedArguments)
+            if (string.Equals(kvp.Key, argumentName, StringComparison.OrdinalIgnoreCase) &&
+                kvp.Value.Kind == TypedConstantKind.Array)
+                return kvp.Value.Values.Select(v => v.Value as string).ToArray();
 
-        return argument.Value.Values.Select(v => v.Value as string).ToArray();
+        return null;
     }
 
     private static object?[]? GetObjectArray(AttributeData attribute,
         string argumentName)
     {
-        var argument = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == argumentName);
-        if (argument.Key == null || argument.Value.Kind != TypedConstantKind.Array) return null;
+        foreach (var kvp in attribute.NamedArguments)
+            if (string.Equals(kvp.Key, argumentName, StringComparison.OrdinalIgnoreCase) &&
+                kvp.Value.Kind == TypedConstantKind.Array)
+                return kvp.Value.Values.Select(v => v.Value).ToArray();
 
-        return argument.Value.Values.Select(v => v.Value).ToArray();
+        return null;
     }
 
     private static bool[]? GetBoolArray(AttributeData attribute,
         string argumentName)
     {
-        var argument = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == argumentName);
-        if (argument.Key == null || argument.Value.Kind != TypedConstantKind.Array) return null;
+        foreach (var kvp in attribute.NamedArguments)
+            if (string.Equals(kvp.Key, argumentName, StringComparison.OrdinalIgnoreCase) &&
+                kvp.Value.Kind == TypedConstantKind.Array)
+                return kvp.Value.Values.Select(v => v.Value as bool? ?? false).ToArray();
 
-        return argument.Value.Values.Select(v => v.Value as bool? ?? false).ToArray();
+        return null;
     }
 
     private static object? GetNamedArgumentValue(AttributeData attribute,

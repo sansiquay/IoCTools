@@ -410,6 +410,236 @@ public partial class SelectiveRegistrationService : IServiceA, IServiceB
         result.GetDiagnosticsByCode("IOC032").Should().BeEmpty();
     }
 
+    #region Inheritance-aware scoped redundancy
+
+    [Fact]
+    public void ScopedAttribute_OnDerivedClass_IsRedundantWhenBaseIsScoped()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Scoped]
+public abstract partial class ScopedBase { }
+
+[Scoped]
+public partial class DerivedService : ScopedBase { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var scopedRedundancies = result.GetDiagnosticsByCode("IOC033");
+        scopedRedundancies.Should().ContainSingle();
+        scopedRedundancies[0].GetMessage().Should().Contain("Scoped");
+        scopedRedundancies[0].GetMessage().Should().Contain("ScopedBase");
+    }
+
+    [Fact]
+    public void SingletonAttribute_OnDerivedClass_IsRedundantWhenBaseIsSingleton()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Singleton]
+public abstract partial class SingletonBase { }
+
+[Singleton]
+public partial class DerivedService : SingletonBase { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC059");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("SingletonBase");
+    }
+
+    [Fact]
+    public void TransientAttribute_OnDerivedClass_IsRedundantWhenBaseIsTransient()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Transient]
+public abstract partial class TransientBase { }
+
+[Transient]
+public partial class DerivedService : TransientBase { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC060");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("TransientBase");
+    }
+
+    [Fact]
+    public void DependencySet_OnDerived_IsRedundantWhenBaseAlreadyHasSet()
+    {
+        const string source = @"
+using IoCTools.Abstractions;
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public sealed class SharedSet : IDependencySet { }
+
+[Scoped]
+[DependsOn<SharedSet>]
+public abstract partial class BaseRepo { }
+
+[Scoped]
+[DependsOn<SharedSet>]
+public partial class RepoA : BaseRepo { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC061");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("SharedSet");
+    }
+
+    [Fact]
+    public void DependencySet_SharedAcrossDerived_SuggestsMoveToBase()
+    {
+        const string source = @"
+using IoCTools.Abstractions;
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public sealed class SharedSet : IDependencySet { }
+
+public abstract partial class BaseRepo { }
+
+[Scoped]
+[DependsOn<SharedSet>]
+public partial class RepoA : BaseRepo { }
+
+[Scoped]
+[DependsOn<SharedSet>]
+public partial class RepoB : BaseRepo { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var suggestions = result.GetDiagnosticsByCode("IOC062");
+        suggestions.Should().ContainSingle();
+        suggestions[0].GetMessage().Should().Contain("BaseRepo");
+        suggestions[0].GetMessage().Should().Contain("SharedSet");
+    }
+
+    [Fact]
+    public void RegisterAs_OnDerived_IsRedundantWhenBaseHasSameInterfaces()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[RegisterAs<ITest>]
+public abstract partial class BaseService : ITest { }
+
+[RegisterAs<ITest>]
+public partial class ConcreteService : BaseService { }
+
+public interface ITest { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC063");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("BaseService");
+    }
+
+    [Fact]
+    public void RegisterAs_SharedAcrossDerived_SuggestsMoveToBase()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface ITest { }
+
+public abstract partial class BaseService { }
+
+[Scoped]
+[RegisterAs<ITest>]
+public partial class ServiceA : BaseService, ITest { }
+
+[Scoped]
+[RegisterAs<ITest>]
+public partial class ServiceB : BaseService, ITest { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var suggestions = result.GetDiagnosticsByCode("IOC064");
+        suggestions.Should().ContainSingle();
+        suggestions[0].GetMessage().Should().Contain("BaseService");
+        suggestions[0].GetMessage().Should().Contain("ITest");
+    }
+
+    [Fact]
+    public void RegisterAsAll_OnDerived_IsRedundantWhenBaseHasRegisterAsAll()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Scoped]
+[RegisterAsAll]
+public abstract partial class BaseService : IOne, ITwo { }
+
+[Scoped]
+[RegisterAsAll]
+public partial class ConcreteService : BaseService, IOne, ITwo { }
+
+public interface IOne { }
+public interface ITwo { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC065");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("BaseService");
+    }
+
+    [Fact]
+    public void ConditionalService_OnDerived_IsRedundantWhenBaseHasSameCondition()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[ConditionalService(""FeatureX"", ServiceLifetime.Scoped)]
+public abstract partial class ConditionalBase { }
+
+[ConditionalService(""FeatureX"", ServiceLifetime.Scoped)]
+public partial class ConditionalDerived : ConditionalBase { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancies = result.GetDiagnosticsByCode("IOC067");
+        redundancies.Should().ContainSingle();
+        redundancies[0].GetMessage().Should().Contain("ConditionalBase");
+    }
+
+    #endregion
+
     #region Cross-Diagnostic Interaction Tests (IOC001-IOC005 with Redundancy)
 
     [Fact]

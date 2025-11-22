@@ -1,11 +1,6 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 internal static class TypeAnalyzer
 {
@@ -32,7 +27,7 @@ internal static class TypeAnalyzer
 
             foreach (var classDeclaration in classDeclarations)
             {
-                var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol;
+                var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration);
                 if (classSymbol == null) continue;
 
                 // Collect services with attributes for processing
@@ -50,7 +45,7 @@ internal static class TypeAnalyzer
                 var hasServiceIndicators = HasServiceInferenceIndicators(classSymbol);
 
                 if (hasServiceIndicators || hasExternalServiceAttribute)
-                    serviceLifetime = GetServiceLifetime(classSymbol);
+                    serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, "Scoped");
 
                 // Collect all implementations for validation
                 foreach (var interfaceSymbol in classSymbol.AllInterfaces)
@@ -130,51 +125,22 @@ internal static class TypeAnalyzer
     /// <summary>
     ///     Gets the service lifetime for a class symbol using individual lifetime attributes
     /// </summary>
-    private static string GetServiceLifetime(INamedTypeSymbol classSymbol)
-    {
-        // Check for individual lifetime attributes
-        var hasScopedAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ScopedAttribute");
-        var hasSingletonAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.SingletonAttribute");
-        var hasTransientAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.TransientAttribute");
-
-        // Return the corresponding lifetime based on which attribute is present
-        if (hasSingletonAttribute) return "Singleton";
-        if (hasTransientAttribute) return "Transient";
-        if (hasScopedAttribute) return "Scoped";
-
-        // Default lifetime is Scoped
-        return "Scoped";
-    }
-
     /// <summary>
     ///     Checks if a class has service inference indicators
     /// </summary>
     private static bool HasServiceInferenceIndicators(INamedTypeSymbol classSymbol)
     {
         // CRITICAL: Check for individual lifetime attributes - primary service registration mechanism
-        var hasScopedAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ScopedAttribute");
-        var hasSingletonAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.SingletonAttribute");
-        var hasTransientAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.TransientAttribute");
-        var hasLifetimeAttribute = hasScopedAttribute || hasSingletonAttribute || hasTransientAttribute;
+        var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
 
         var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
             attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
 
-        var hasInjectFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
-            .Any(field => field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectAttribute"));
+        var hasInjectFields = HasInjectFieldsInHierarchy(classSymbol);
 
-        var hasInjectConfigurationFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
-            .Any(field =>
-                field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectConfigurationAttribute"));
+        var hasInjectConfigurationFields = HasInjectConfigurationFieldsInHierarchy(classSymbol);
 
-        var hasDependsOnAttribute = classSymbol.GetAttributes()
-            .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+        var hasDependsOnAttribute = HasDependsOnAttributeInHierarchy(classSymbol);
 
         var hasRegisterAsAllAttribute = classSymbol.GetAttributes()
             .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
@@ -219,6 +185,9 @@ internal static class TypeAnalyzer
 
         if (hasAttributes) return true;
 
+        var (hasInheritedLifetime, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(type);
+        if (hasInheritedLifetime) return true;
+
         if (IsPartialWithInterfaces(type)) return true;
 
         // Also check for field-level attributes like [Inject] and [InjectConfiguration]
@@ -226,17 +195,17 @@ internal static class TypeAnalyzer
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
             if (syntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
                 foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                    foreach (var attributeList in fieldDeclaration.AttributeLists)
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var attributeText = attribute.Name.ToString();
-                            if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
-                                attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute") ||
-                                attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
-                                attributeText.EndsWith("InjectConfiguration") ||
-                                attributeText.EndsWith("InjectConfigurationAttribute"))
-                                return true;
-                        }
+                foreach (var attributeList in fieldDeclaration.AttributeLists)
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    var attributeText = attribute.Name.ToString();
+                    if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
+                        attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute") ||
+                        attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
+                        attributeText.EndsWith("InjectConfiguration") ||
+                        attributeText.EndsWith("InjectConfigurationAttribute"))
+                        return true;
+                }
 
         // Also consider any IHostedService assignable type as relevant for service registration
         if (IsAssignableFromIHostedService(type)) return true;
@@ -278,6 +247,43 @@ internal static class TypeAnalyzer
             if (syntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration &&
                 typeDeclaration.Modifiers.Any(modifier => modifier.IsKind(SyntaxKind.PartialKeyword)))
                 return true;
+        return false;
+    }
+
+    private static bool HasDependsOnAttributeInHierarchy(INamedTypeSymbol classSymbol)
+    {
+        var current = classSymbol;
+        while (current != null && current.SpecialType != SpecialType.System_Object)
+        {
+            if (current.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true))
+                return true;
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    private static bool HasInjectFieldsInHierarchy(INamedTypeSymbol classSymbol)
+    {
+        var current = classSymbol;
+        while (current != null && current.SpecialType != SpecialType.System_Object)
+        {
+            if (ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(current)) return true;
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    private static bool HasInjectConfigurationFieldsInHierarchy(INamedTypeSymbol classSymbol)
+    {
+        var current = classSymbol;
+        while (current != null && current.SpecialType != SpecialType.System_Object)
+        {
+            if (ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(current)) return true;
+            current = current.BaseType;
+        }
+
         return false;
     }
 }

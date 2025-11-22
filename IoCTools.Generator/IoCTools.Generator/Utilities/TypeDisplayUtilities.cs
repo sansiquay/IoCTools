@@ -1,11 +1,6 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-
-using Microsoft.CodeAnalysis;
 
 internal static class TypeDisplayUtilities
 {

@@ -1,11 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class TypeHelpers
 {
     internal static bool IsFrameworkTypeAdapted(string typeName) => FrameworkTypeUtilities.IsFrameworkType(typeName);

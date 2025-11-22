@@ -1,18 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
-using Utilities;
-
 internal static class DependencyUsageValidator
 {
     internal static void ValidateRedundantDependencies(
@@ -82,7 +69,6 @@ internal static class DependencyUsageValidator
             .ToList();
 
         foreach (var dependency in currentDependencies)
-        {
             if (dependency.Source == DependencySource.Inject)
             {
                 if (dependency.FieldName == null) continue;
@@ -153,16 +139,13 @@ internal static class DependencyUsageValidator
                     context.ReportDiagnostic(diagnostic);
                 }
             }
-        }
     }
 
     private static bool IsInjectField(IFieldSymbol fieldSymbol) => fieldSymbol.GetAttributes()
         .Any(attr => attr.AttributeClass?.Name == "InjectAttribute");
 
-    private static bool ShouldCheckInjectField(IFieldSymbol fieldSymbol)
-    {
-        return fieldSymbol.DeclaredAccessibility == Accessibility.Private;
-    }
+    private static bool ShouldCheckInjectField(IFieldSymbol fieldSymbol) =>
+        fieldSymbol.DeclaredAccessibility == Accessibility.Private;
 
     private static bool IsFieldUsed(IFieldSymbol fieldSymbol,
         List<(TypeDeclarationSyntax TypeSyntax, SemanticModel Model)> partialDeclarations)
@@ -172,16 +155,14 @@ internal static class DependencyUsageValidator
             .ToList();
 
         foreach (var (typeSyntax, model) in partialDeclarations)
+        foreach (var identifier in typeSyntax.DescendantNodes().OfType<IdentifierNameSyntax>())
         {
-            foreach (var identifier in typeSyntax.DescendantNodes().OfType<IdentifierNameSyntax>())
-            {
-                var symbol = model.GetSymbolInfo(identifier).Symbol;
-                if (!SymbolEqualityComparer.Default.Equals(symbol, fieldSymbol)) continue;
+            var symbol = model.GetSymbolInfo(identifier).Symbol;
+            if (!SymbolEqualityComparer.Default.Equals(symbol, fieldSymbol)) continue;
 
-                var span = identifier.Span;
-                if (declarationSpans.Any(s => s.Equals(span))) continue;
-                return true;
-            }
+            var span = identifier.Span;
+            if (declarationSpans.Any(s => s.Equals(span))) continue;
+            return true;
         }
 
         return false;
@@ -192,22 +173,23 @@ internal static class DependencyUsageValidator
         INamedTypeSymbol classSymbol)
     {
         foreach (var (typeSyntax, model) in partialDeclarations)
-            foreach (var identifier in typeSyntax.DescendantNodes().OfType<IdentifierNameSyntax>())
-            {
-                if (!string.Equals(identifier.Identifier.Text, fieldName, StringComparison.Ordinal)) continue;
+        foreach (var identifier in typeSyntax.DescendantNodes().OfType<IdentifierNameSyntax>())
+        {
+            if (!string.Equals(identifier.Identifier.Text, fieldName, StringComparison.Ordinal)) continue;
 
-                var symbol = model.GetSymbolInfo(identifier).Symbol;
-                if (symbol == null) return true; // Referencing generated field before it exists in compilation model
+            var symbol = model.GetSymbolInfo(identifier).Symbol;
+            if (symbol == null) return true; // Referencing generated field before it exists in compilation model
 
-                if (symbol is IFieldSymbol fieldSymbol &&
-                    SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, classSymbol))
-                    return true;
-            }
+            if (symbol is IFieldSymbol fieldSymbol &&
+                SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, classSymbol))
+                return true;
+        }
 
         return false;
     }
 
-    private static Location? FindDependsOnAttributeLocation(INamedTypeSymbol classSymbol, ITypeSymbol dependencyType)
+    private static Location? FindDependsOnAttributeLocation(INamedTypeSymbol classSymbol,
+        ITypeSymbol dependencyType)
     {
         foreach (var attribute in classSymbol.GetAttributes())
         {
@@ -266,10 +248,8 @@ internal static class DependencyUsageValidator
         return string.Join(" and ", parts);
     }
 
-    private static string FormatFieldName(string fieldName, int level)
-    {
-        return level == 0 ? $"'{fieldName}'" : $"'{fieldName}' (base)";
-    }
+    private static string FormatFieldName(string fieldName,
+        int level) => level == 0 ? $"'{fieldName}'" : $"'{fieldName}' (base)";
 
     private static Location ResolveRedundantLocation(INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration,

@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Generator.Intent;
 
-using Microsoft.CodeAnalysis;
-
 internal static class ServiceIntentEvaluator
 {
     internal static bool HasExplicitServiceIntent(
@@ -16,6 +14,8 @@ internal static class ServiceIntentEvaluator
         bool isHostedService,
         bool isPartialWithInterfaces)
     {
+        if (DependencySetUtilities.IsDependencySet(classSymbol)) return false;
+
         // Matches the logic used by RegistrationSelector (kept centralized for clarity)
         var intent = hasLifetimeAttribute ||
                      hasConditionalServiceAttribute ||

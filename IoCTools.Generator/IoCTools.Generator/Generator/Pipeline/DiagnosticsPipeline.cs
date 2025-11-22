@@ -1,15 +1,6 @@
 namespace IoCTools.Generator.Generator.Pipeline;
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
 
 internal static class DiagnosticsPipeline
 {

@@ -1,11 +1,6 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-
-using Microsoft.CodeAnalysis;
 
 internal static class AttributeParser
 {
@@ -121,8 +116,7 @@ internal static class AttributeParser
 
         // Last parameter may be memberNames (params string[])
         var lastArg = constructorArgs.LastOrDefault();
-        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Values is { Length: > 0 } values &&
-            lastArg.Type?.ToDisplayString() == "System.String[]")
+        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Values is { Length: > 0 } values)
             memberNames = values.Select(v => v.Value?.ToString() ?? string.Empty).ToArray();
 
         // Also check named arguments as fallback (for backwards compatibility)
@@ -150,6 +144,7 @@ internal static class AttributeParser
                     external = namedArg.Value.Value as bool? ?? false;
                     break;
                 case "MemberNames":
+                case "memberNames":
                     if (namedArg.Value.Values is { Length: > 0 } mnames)
                         memberNames = mnames.Select(v => v.Value?.ToString() ?? string.Empty).ToArray();
                     break;
@@ -160,7 +155,7 @@ internal static class AttributeParser
 
     public static bool IsDependsOnConfigurationAttribute(AttributeData attribute) =>
         attribute.AttributeClass?.BaseType?.ToDisplayString() ==
-            "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase" ||
+        "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase" ||
         attribute.AttributeClass?.ToDisplayString().StartsWith(
             "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttribute<") == true;
 

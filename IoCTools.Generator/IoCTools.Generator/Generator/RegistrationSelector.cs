@@ -1,22 +1,8 @@
 namespace IoCTools.Generator.Generator;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Analysis;
-
 using CodeGeneration;
 
 using Intent;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
-using Utilities;
 
 internal static class RegistrationSelector
 {
@@ -38,6 +24,8 @@ internal static class RegistrationSelector
         string lifetime,
         SourceProductionContext context)
     {
+        if (DependencySetUtilities.IsDependencySet(classSymbol)) return Enumerable.Empty<ServiceRegistration>();
+
         var results = new List<ServiceRegistration>();
 
         // Skip all registrations if non-generic SkipRegistration attribute is present
@@ -67,6 +55,8 @@ internal static class RegistrationSelector
         SourceProductionContext context,
         string implicitLifetime)
     {
+        if (DependencySetUtilities.IsDependencySet(classSymbol)) return Enumerable.Empty<ServiceRegistration>();
+
         var results = new List<ServiceRegistration>();
 
         // Check for SkipRegistration attribute - skip all registrations if present
@@ -158,6 +148,7 @@ internal static class RegistrationSelector
         {
             if (classSymbol.IsStatic) return serviceRegistrations;
             if (classSymbol.IsAbstract) return serviceRegistrations;
+            if (DependencySetUtilities.IsDependencySet(classSymbol)) return serviceRegistrations;
 
             // Global opt-out: honor non-generic [SkipRegistration] on any service kind (including BackgroundService)
             var hasNonGenericSkipRegistration = classSymbol.GetAttributes()

@@ -1,15 +1,8 @@
 namespace IoCTools.Generator.Generator.Pipeline;
 
 using System.Collections.Immutable;
-using System.Linq;
 
-using Analysis;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
 
 internal static class ServiceClassPipeline
 {
@@ -26,6 +19,8 @@ internal static class ServiceClassPipeline
                     var typeDecl = (TypeDeclarationSyntax)ctx.Node;
                     var symbol = ctx.SemanticModel.GetDeclaredSymbol(typeDecl);
                     if (symbol == null || symbol.IsStatic || symbol.TypeKind != TypeKind.Class) return null;
+
+                    if (DependencySetUtilities.IsDependencySet(symbol)) return null;
 
                     var hasInject = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(symbol);
                     var hasInjectConfig = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(symbol);

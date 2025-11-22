@@ -1,20 +1,12 @@
 namespace IoCTools.Generator.Generator;
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 
-using Analysis;
+using Diagnostics.Validators;
 
 using IoCTools.Generator.Diagnostics.Configuration;
-using IoCTools.Generator.Utilities;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
-using Models;
 
 internal static class DiagnosticsRunner
 {
@@ -33,13 +25,23 @@ internal static class DiagnosticsRunner
         try
         {
             var ((services, compilation), configOptions) = input;
-            if (!services.Any()) return;
+            var implicitLifetime = GeneratorStyleOptions.From(configOptions, compilation).DefaultImplicitLifetime;
+
+            DependencySetValidator.Validate(context, compilation);
+
+            if (!services.Any())
+            {
+                var lifetimes = CollectLifetimesFromCompilation(compilation, implicitLifetime);
+                ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes);
+                return;
+            }
+
+            DependencySetSuggestionValidator.Suggest(context, services);
 
             var allRegisteredServices = new HashSet<string>();
             var allImplementations = new Dictionary<string, List<INamedTypeSymbol>>();
             var serviceLifetimes = new Dictionary<string, string>();
             var processedClasses = new HashSet<string>(StringComparer.Ordinal);
-            var implicitLifetime = GeneratorStyleOptions.From(configOptions, compilation).DefaultImplicitLifetime;
 
             foreach (var serviceInfo in services)
             {
@@ -52,6 +54,9 @@ internal static class DiagnosticsRunner
                         new HashSet<string>(), implicitLifetime);
             }
 
+            // IOC050/IOC051: manual registrations overlapping IoCTools
+            ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes);
+
             var diagnosticConfig = DiagnosticConfigProvider.From(configOptions);
 
             var validatedClasses = new HashSet<string>(StringComparer.Ordinal);
@@ -62,13 +67,21 @@ internal static class DiagnosticsRunner
                 if (serviceInfo.SemanticModel == null) continue;
 
                 var hierarchyDependencies = DependencyAnalyzer.GetInheritanceHierarchyDependenciesForDiagnostics(
-                    serviceInfo.ClassSymbol, serviceInfo.SemanticModel, allRegisteredServices, allImplementations);
+                    serviceInfo.ClassSymbol,
+                    serviceInfo.SemanticModel,
+                    context,
+                    serviceInfo.ClassDeclaration,
+                    allRegisteredServices,
+                    allImplementations);
 
                 if (serviceInfo.ClassDeclaration != null)
                     ValidateDependenciesComplete(context, serviceInfo.ClassDeclaration, hierarchyDependencies,
                         allRegisteredServices, allImplementations, serviceLifetimes, diagnosticConfig,
                         serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime);
             }
+
+            // IOC050/IOC051: manual registrations overlapping IoCTools (runs after lifetimes map is built)
+            ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes);
 
             var allServiceSymbols = services.Select(s => s.ClassSymbol).ToList();
             DiagnosticRules.ValidateCircularDependenciesComplete(context, allServiceSymbols, allRegisteredServices,
@@ -169,7 +182,31 @@ internal static class DiagnosticsRunner
         try
         {
             var ((services, referencedTypes, compilation), configOptions, styleOptions) = input;
-            if (!services.Any()) return;
+            if (!services.Any())
+            {
+                var implicitLifetimeLocal = styleOptions.DefaultImplicitLifetime;
+                var lifetimes = CollectLifetimesFromCompilation(compilation, implicitLifetimeLocal);
+                ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes);
+
+                // Even without discovered services, suggest opt-in opportunities on types with DI-like constructors
+                var localCompilationTypes = new List<INamedTypeSymbol>();
+                DiagnosticScan.ScanNamespaceForTypes(compilation.Assembly.GlobalNamespace, localCompilationTypes);
+                foreach (var currentType in localCompilationTypes)
+                {
+                    if (DependencySetUtilities.IsDependencySet(currentType)) continue;
+                    if (currentType.TypeKind != TypeKind.Class) continue;
+                    var syntaxRef = currentType.DeclaringSyntaxReferences.FirstOrDefault();
+                    if (syntaxRef?.GetSyntax() is not TypeDeclarationSyntax typeDecl) continue;
+                    var semanticModel = compilation.GetSemanticModel(typeDecl.SyntaxTree);
+                    MissedOpportunityValidator.Validate(context, typeDecl, currentType, semanticModel, implicitLifetimeLocal);
+                }
+
+                return;
+            }
+
+            DependencySetValidator.Validate(context, compilation);
+            DependencySetSuggestionValidator.Suggest(context, services);
+            DiagnosticRules.ValidateConfigurationBindings(context, compilation, services);
 
             var allRegisteredServices = new HashSet<string>();
             var allImplementations = new Dictionary<string, List<INamedTypeSymbol>>();
@@ -194,6 +231,7 @@ internal static class DiagnosticsRunner
             DiagnosticScan.ScanNamespaceForTypes(compilation.Assembly.GlobalNamespace, currentCompilationTypes);
             foreach (var currentType in currentCompilationTypes)
             {
+                if (DependencySetUtilities.IsDependencySet(currentType)) continue;
                 var typeName = currentType.ToDisplayString();
                 if (!currentType.IsAbstract && currentType.TypeKind == TypeKind.Class)
                 {
@@ -221,9 +259,17 @@ internal static class DiagnosticsRunner
                         foreach (var interfaceSymbol in currentType.Interfaces)
                             serviceLifetimes[interfaceSymbol.ToDisplayString()] = lifetime;
                     }
+
                     if (!allImplementations.ContainsKey(typeName))
                         allImplementations[typeName] = new List<INamedTypeSymbol>();
                     allImplementations[typeName].Add(currentType);
+                }
+
+                var syntaxRef = currentType.DeclaringSyntaxReferences.FirstOrDefault();
+                if (syntaxRef?.GetSyntax() is TypeDeclarationSyntax typeDecl)
+                {
+                    var semanticModel = compilation.GetSemanticModel(typeDecl.SyntaxTree);
+                    MissedOpportunityValidator.Validate(context, typeDecl, currentType, semanticModel, implicitLifetime);
                 }
 
                 foreach (var interfaceType in currentType.Interfaces)
@@ -233,11 +279,13 @@ internal static class DiagnosticsRunner
                         allImplementations[interfaceName] = new List<INamedTypeSymbol>();
                     allImplementations[interfaceName].Add(currentType);
                 }
+
             }
 
             // Add referenced assembly types to implementations and registrations
             foreach (var referencedType in referencedTypes)
             {
+                if (DependencySetUtilities.IsDependencySet(referencedType)) continue;
                 var typeName = referencedType.ToDisplayString();
                 if (!allImplementations.ContainsKey(typeName))
                     allImplementations[typeName] = new List<INamedTypeSymbol>();
@@ -264,12 +312,19 @@ internal static class DiagnosticsRunner
                     (!referencedType.IsAbstract && referencedType.TypeKind == TypeKind.Class))
                 {
                     allRegisteredServices.Add(typeName);
-                    var lifetime = ServiceDiscovery.GetServiceLifetimeFromAttributes(referencedType, implicitLifetime);
+                    var lifetime = ServiceDiscovery.GetServiceLifetimeFromAttributes(referencedType, implicitLifetime)!;
                     serviceLifetimes[typeName] = lifetime;
                     foreach (var interfaceSymbol in referencedType.Interfaces)
-                        serviceLifetimes[interfaceSymbol.ToDisplayString()] = lifetime;
+                    {
+                        var ifaceName = interfaceSymbol.ToDisplayString();
+                        serviceLifetimes[ifaceName] = lifetime;
+                    }
                 }
             }
+
+            // Suggest centralizing lifetimes when multiple derived implementations share a base without lifetimes
+            DiagnosticRules.SuggestSharedBaseLifetimes(context, allImplementations, allRegisteredServices,
+                implicitLifetime);
 
             var diagnosticConfig = DiagnosticConfigProvider.From(configOptions);
 
@@ -281,11 +336,19 @@ internal static class DiagnosticsRunner
                 if (serviceInfo.ClassDeclaration != null && serviceInfo.SemanticModel != null)
                 {
                     var hierarchyDependencies = DependencyAnalyzer.GetInheritanceHierarchyDependenciesForDiagnostics(
-                        serviceInfo.ClassSymbol, serviceInfo.SemanticModel, allRegisteredServices, allImplementations);
+                        serviceInfo.ClassSymbol,
+                        serviceInfo.SemanticModel,
+                        context,
+                        serviceInfo.ClassDeclaration,
+                        allRegisteredServices,
+                        allImplementations);
 
                     ValidateDependenciesComplete(context, serviceInfo.ClassDeclaration, hierarchyDependencies,
                         allRegisteredServices, allImplementations, serviceLifetimes, diagnosticConfig,
                         serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime);
+
+                    MissedOpportunityValidator.Validate(context, serviceInfo.ClassDeclaration, serviceInfo.ClassSymbol,
+                        serviceInfo.SemanticModel, implicitLifetime);
                 }
             }
 
@@ -293,10 +356,43 @@ internal static class DiagnosticsRunner
             DiagnosticRules.ValidateCircularDependenciesComplete(context, allServiceSymbols, allRegisteredServices,
                 diagnosticConfig);
             DiagnosticRules.ValidateAttributeCombinations(context, services.Select(s => s.ClassSymbol));
+
+            // IOC050/IOC051: manual registrations overlapping IoCTools (cross-assembly scenario)
+            ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes);
         }
         catch (Exception ex)
         {
             GeneratorDiagnostics.Report(context, "IOC997", "Cross-assembly diagnostic validation error", ex.Message);
         }
+    }
+
+    private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
+        string implicitLifetime)
+    {
+        var lifetimes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var queue = new Queue<INamespaceSymbol>();
+        queue.Enqueue(compilation.Assembly.GlobalNamespace);
+
+        while (queue.Count > 0)
+        {
+            var ns = queue.Dequeue();
+            foreach (var nestedNs in ns.GetNamespaceMembers()) queue.Enqueue(nestedNs);
+
+            foreach (var type in ns.GetTypeMembers())
+            {
+                if (type.IsImplicitlyDeclared || type.IsStatic) continue;
+
+                var (hasLifetime, _, _, _) = ServiceDiscovery.GetDirectLifetimeAttributes(type);
+                if (!hasLifetime) continue;
+
+                var lifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(type, implicitLifetime)!;
+                var typeName = type.ToDisplayString();
+                lifetimes[typeName] = lifetime;
+                foreach (var iface in type.Interfaces)
+                    lifetimes[iface.ToDisplayString()] = lifetime;
+            }
+        }
+
+        return lifetimes;
     }
 }

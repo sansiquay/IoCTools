@@ -1,8 +1,10 @@
-using FluentAssertions;
-using IoCTools.Tools.Cli.Tests.Infrastructure;
-using Xunit;
-
 namespace IoCTools.Tools.Cli.Tests;
+
+using FluentAssertions;
+
+using Infrastructure;
+
+using Xunit;
 
 [Collection("CLI Execution")]
 public sealed class CliFieldsCommandTests
@@ -11,10 +13,12 @@ public sealed class CliFieldsCommandTests
         TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "FieldsProject", "FieldsProject.csproj");
 
     private static string TelemetryFilePath =>
-        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "FieldsProject", "Services", "TelemetryReporter.cs");
+        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "FieldsProject", "Services",
+            "TelemetryReporter.cs");
 
     private static string PlainFilePath =>
-        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "FieldsProject", "Services", "PlainUtility.cs");
+        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "FieldsProject", "Services",
+            "PlainUtility.cs");
 
     [Fact]
     public async Task FieldsCommand_PrintsDependencies_AndConfigMetadata()
@@ -28,7 +32,8 @@ public sealed class CliFieldsCommandTests
         result.ExitCode.Should().Be(0);
         result.Stdout.Should().Contain("Service: FieldsProject.Services.TelemetryReporter");
         result.Stdout.Should().Contain("Generated Dependencies:");
-        result.Stdout.Should().Contain("Microsoft.Extensions.Logging.ILogger<FieldsProject.Services.TelemetryReporter> => _logger");
+        result.Stdout.Should()
+            .Contain("Microsoft.Extensions.Logging.ILogger<FieldsProject.Services.TelemetryReporter> => _logger");
         result.Stdout.Should().Contain("FieldsProject.Services.IMetricsClient => _metricsClient");
         result.Stdout.Should().Contain("Generated Config Fields:");
         result.Stdout.Should().Contain("key: Observability:Endpoint, required");

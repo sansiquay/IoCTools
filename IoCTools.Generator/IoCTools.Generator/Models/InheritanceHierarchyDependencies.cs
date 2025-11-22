@@ -1,10 +1,5 @@
 namespace IoCTools.Generator.Models;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal class InheritanceHierarchyDependencies(
     List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> allDependencies,
     List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> baseDependencies,
@@ -28,8 +23,7 @@ internal class InheritanceHierarchyDependencies(
     } = rawAllDependencies;
 
     public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>
-        AllDependenciesWithExternalFlag
-    { get; } = allDependenciesWithExternalFlag;
+        AllDependenciesWithExternalFlag { get; } = allDependenciesWithExternalFlag;
 
     /// <summary>
     ///     Gets inheritance chain lifetime analysis data for comprehensive lifetime validation

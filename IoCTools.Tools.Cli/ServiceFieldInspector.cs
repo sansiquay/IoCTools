@@ -1,12 +1,9 @@
 namespace IoCTools.Tools.Cli;
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using IoCTools.Generator.Analysis;
-using IoCTools.Generator.Generator;
-using IoCTools.Generator.Generator.Intent;
+using Generator.Analysis;
+using Generator.Generator;
+using Generator.Generator.Intent;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -24,6 +21,13 @@ internal sealed class ServiceFieldInspector
                 SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
                 SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
+    private readonly Project _project;
+
+    public ServiceFieldInspector(Project project)
+    {
+        _project = project ?? throw new ArgumentNullException(nameof(project));
+    }
+
     private static string FormatTypeName(ITypeSymbol symbol)
     {
         // FullyQualifiedFormat always includes namespaces for the symbol and its generic arguments.
@@ -32,14 +36,7 @@ internal sealed class ServiceFieldInspector
         return formatted.Replace("global::", string.Empty, StringComparison.Ordinal);
     }
 
-    private readonly Project _project;
-
-    public ServiceFieldInspector(Project project)
-    {
-        _project = project ?? throw new ArgumentNullException(nameof(project));
-    }
-
-    public async Task<IReadOnlyList<ServiceFieldReport>> GetFieldReportsAsync(string filePath,
+    public async Task<IReadOnlyList<ServiceFieldReport>> GetFieldReportsAsync(string? filePath,
         IReadOnlyList<string> typeFilters,
         CancellationToken cancellationToken)
     {
@@ -49,7 +46,7 @@ internal sealed class ServiceFieldInspector
 
         foreach (var (declaration, semanticModel) in semanticContext)
         {
-            var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol;
+            var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken);
             if (symbol == null) continue;
             var key = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             if (!seen.Add(key)) continue;
@@ -82,7 +79,7 @@ internal sealed class ServiceFieldInspector
                 .ToList();
 
             var report = new ServiceFieldReport(symbol.ToDisplayString(TypeFormat),
-                declaration.SyntaxTree.FilePath ?? filePath,
+                declaration.SyntaxTree.FilePath ?? filePath ?? "<unknown>",
                 dependencyFields,
                 configFields);
             matches.Add(report);
@@ -98,7 +95,7 @@ internal sealed class ServiceFieldInspector
         var semanticContext = await BuildSemanticContextAsync(filePath, cancellationToken);
         foreach (var (declaration, semanticModel) in semanticContext)
         {
-            var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken) as INamedTypeSymbol;
+            var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken);
             if (symbol == null) continue;
             if (!IsServiceCandidate(symbol, declaration)) continue;
             if (MatchesTypeName(symbol, typeName)) return symbol;
@@ -107,18 +104,29 @@ internal sealed class ServiceFieldInspector
         return null;
     }
 
-    private async Task<IReadOnlyList<(ClassDeclarationSyntax Declaration, SemanticModel SemanticModel)>> BuildSemanticContextAsync(
-        string filePath,
-        CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<(ClassDeclarationSyntax Declaration, SemanticModel SemanticModel)>>
+        BuildSemanticContextAsync(
+            string? filePath,
+            CancellationToken cancellationToken)
     {
-        var document = FindDocument(filePath);
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken)
-                            ?? throw new InvalidOperationException("Unable to create semantic model for file.");
-        var root = await document.GetSyntaxRootAsync(cancellationToken) ??
-                   throw new InvalidOperationException("Unable to read syntax tree for file.");
+        var documents = filePath == null
+            ? _project.Documents
+            : new[] { FindDocument(filePath) };
 
-        var declarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
-        return declarations.Select(d => (d, semanticModel)).ToList();
+        var results = new List<(ClassDeclarationSyntax, SemanticModel)>();
+
+        foreach (var document in documents)
+        {
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken)
+                                ?? throw new InvalidOperationException("Unable to create semantic model for file.");
+            var root = await document.GetSyntaxRootAsync(cancellationToken) ??
+                       throw new InvalidOperationException("Unable to read syntax tree for file.");
+
+            var declarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
+            results.AddRange(declarations.Select(d => (d, semanticModel)));
+        }
+
+        return results;
     }
 
     private Document FindDocument(string filePath)
@@ -132,13 +140,15 @@ internal sealed class ServiceFieldInspector
         return document;
     }
 
-    private static bool MatchesFilter(INamedTypeSymbol symbol, IReadOnlyList<string> filters)
+    private static bool MatchesFilter(INamedTypeSymbol symbol,
+        IReadOnlyList<string> filters)
     {
         if (filters == null || filters.Count == 0) return true;
         return filters.Any(filter => MatchesTypeName(symbol, filter));
     }
 
-    private static bool MatchesTypeName(INamedTypeSymbol symbol, string filter)
+    private static bool MatchesTypeName(INamedTypeSymbol symbol,
+        string filter)
     {
         if (string.IsNullOrWhiteSpace(filter)) return false;
         var comparison = StringComparison.Ordinal;
@@ -147,11 +157,13 @@ internal sealed class ServiceFieldInspector
                string.Equals(symbol.ToDisplayString(TypeFormat), filter, comparison);
     }
 
-    private static bool IsServiceCandidate(INamedTypeSymbol symbol, ClassDeclarationSyntax declaration)
+    private static bool IsServiceCandidate(INamedTypeSymbol symbol,
+        ClassDeclarationSyntax declaration)
     {
         var hasInject = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(symbol);
         var hasInjectConfig = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(symbol);
-        var hasDependsOn = symbol.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+        var hasDependsOn = symbol.GetAttributes()
+            .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
         var hasConditional = symbol.GetAttributes().Any(attr =>
             attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
         var hasRegisterAll = symbol.GetAttributes().Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
@@ -165,17 +177,18 @@ internal sealed class ServiceFieldInspector
 
         return ServiceIntentEvaluator.HasExplicitServiceIntent(symbol,
             hasInject,
-            hasInjectConfigurationFields: hasInjectConfig,
-            hasDependsOnAttribute: hasDependsOn,
-            hasConditionalServiceAttribute: hasConditional,
-            hasRegisterAsAll: hasRegisterAll,
-            hasRegisterAs: hasRegisterAs,
-            hasLifetimeAttribute: hasLifetime,
-            isHostedService: isHosted,
-            isPartialWithInterfaces: isPartialWithInterfaces);
+            hasInjectConfig,
+            hasDependsOn,
+            hasConditional,
+            hasRegisterAll,
+            hasRegisterAs,
+            hasLifetime,
+            isHosted,
+            isPartialWithInterfaces);
     }
 
-    private static bool PathsEqual(string left, string right)
+    private static bool PathsEqual(string left,
+        string right)
     {
         var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);

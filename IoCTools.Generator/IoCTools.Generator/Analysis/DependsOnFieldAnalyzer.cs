@@ -1,12 +1,5 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
-using Utilities;
-
 /// <summary>
 ///     Focused logic for [DependsOn] attribute processing and field-name generation.
 /// </summary>

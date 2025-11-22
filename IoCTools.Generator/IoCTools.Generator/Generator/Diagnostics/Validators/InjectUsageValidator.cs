@@ -1,15 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System;
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Utilities;
-
 internal static class InjectUsageValidator
 {
     internal static void ValidatePreferDependsOn(SourceProductionContext context,

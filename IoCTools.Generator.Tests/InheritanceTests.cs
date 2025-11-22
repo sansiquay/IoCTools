@@ -953,6 +953,182 @@ public partial class DerivedClass : BaseClass, IDerivedInterface, ISpecialInterf
     }
 
     [Fact]
+    public void Inheritance_BaseScoped_DerivedWithoutLifetime_InheritsScopedLifetime()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IService { }
+
+[Scoped]
+public abstract partial class ScopedBase : IService { }
+
+public partial class DerivedService : ScopedBase, IService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var registrationSource = result.GetServiceRegistrationSource();
+        registrationSource.Should().NotBeNull();
+        registrationSource!.Content.Should().Contain("AddScoped<global::Test.DerivedService");
+        registrationSource.Content.Should().Contain("AddScoped<global::Test.IService");
+
+        result.GetDiagnosticsByCode("IOC004").Should().BeEmpty();
+        result.GetDiagnosticsByCode("IOC021").Should().BeEmpty();
+
+        var redundancyDiagnostics = result.GetDiagnosticsByCode("IOC033");
+        redundancyDiagnostics
+            .Where(d => d.GetMessage().Contains("DerivedService"))
+            .Should()
+            .BeEmpty();
+    }
+
+    [Fact]
+    public void Inheritance_BaseScoped_DerivedSingleton_WarnsLifetimeMismatch()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IService { }
+
+[Scoped]
+public abstract partial class ScopedBase : IService { }
+
+[Singleton]
+public partial class DerivedService : ScopedBase, IService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var diagnostics = result.GetDiagnosticsByCode("IOC015");
+        diagnostics.Should().ContainSingle();
+        diagnostics[0].GetMessage().Should().Contain("DerivedService");
+        diagnostics[0].GetMessage().Should().Contain("Scoped");
+    }
+
+    [Fact]
+    public void Inheritance_BaseSingleton_DerivedSingleton_RaisesRedundantLifetimeWarning()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IService { }
+
+[Singleton]
+public abstract partial class SingletonBase : IService { }
+
+[Singleton]
+public partial class DerivedService : SingletonBase, IService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancy = result.GetDiagnosticsByCode("IOC048");
+        redundancy.Should().ContainSingle();
+        redundancy[0].GetMessage().Should().Contain("Singleton");
+        redundancy[0].GetMessage().Should().Contain("SingletonBase");
+    }
+
+    [Fact]
+    public void Inheritance_BaseSingleton_DerivedScoped_AllowsMoreScoped_NoWarning()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IService { }
+
+[Singleton]
+public abstract partial class SingletonBase : IService { }
+
+[Scoped]
+public partial class DerivedService : SingletonBase, IService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.GetDiagnosticsByCode("IOC015").Should().BeEmpty();
+        result.GetDiagnosticsByCode("IOC048").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Inheritance_BaseScoped_MiddleNone_DerivedSingleton_WarnsMismatch()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Scoped]
+public abstract partial class BaseService { }
+
+public partial class MidService : BaseService { }
+
+[Singleton]
+public partial class DerivedService : MidService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var diagnostics = result.GetDiagnosticsByCode("IOC015");
+        diagnostics.Should().ContainSingle();
+        diagnostics[0].GetMessage().Should().Contain("DerivedService");
+        diagnostics[0].GetMessage().Should().Contain("Scoped");
+    }
+
+    [Fact]
+    public void Inheritance_BaseTransient_DerivedTransient_RaisesRedundantLifetimeWarning()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IService { }
+
+[Transient]
+public abstract partial class TransientBase : IService { }
+
+[Transient]
+public partial class DerivedService : TransientBase, IService { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        var redundancy = result.GetDiagnosticsByCode("IOC048");
+        redundancy.Should().ContainSingle();
+        redundancy[0].GetMessage().Should().Contain("Transient");
+        redundancy[0].GetMessage().Should().Contain("TransientBase");
+    }
+
+    [Fact]
+    public void Inheritance_DerivedWithMultipleLifetimeAttributes_WarnsMultiple()
+    {
+        const string source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[Scoped]
+public abstract partial class ScopedBase { }
+
+[Scoped]
+[Singleton]
+public partial class DerivedService : ScopedBase { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.GetDiagnosticsByCode("IOC036").Should().ContainSingle();
+    }
+
+    [Fact]
     public void Inheritance_SkipRegistrationWithInheritance_SkipsCorrectly()
     {
         // Arrange - Test SkipRegistration with inherited interfaces

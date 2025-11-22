@@ -230,14 +230,12 @@ public static class SourceGeneratorTestHelper
         var extraRefs = new List<MetadataReference>();
 
         if (additionalReferences != null && additionalReferences.Length > 0)
-        {
             foreach (var a in additionalReferences)
             {
                 if (string.IsNullOrEmpty(a.Location)) continue;
                 var mr = MetadataReference.CreateFromFile(a.Location);
                 if (metadataRefs.All(m => m.Display != mr.Display)) extraRefs.Add(mr);
             }
-        }
 
         if (additionalMetadataReferences != null && additionalMetadataReferences.Length > 0)
             extraRefs.AddRange(additionalMetadataReferences);

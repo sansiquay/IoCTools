@@ -1,10 +1,5 @@
 namespace IoCTools.Generator.CodeGeneration;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static partial class ConstructorGenerator
 {
     private static string GetParameterNameFromFieldName(string fieldName)

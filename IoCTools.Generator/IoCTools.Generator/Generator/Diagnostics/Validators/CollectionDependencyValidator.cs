@@ -1,12 +1,6 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
 using Microsoft.CodeAnalysis;
-
-using Models;
 
 internal static class CollectionDependencyValidator
 {
@@ -16,7 +10,7 @@ internal static class CollectionDependencyValidator
     };
 
     internal static void Validate(SourceProductionContext context,
-        Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax classDeclaration,
+        TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         InheritanceHierarchyDependencies hierarchyDependencies)
     {
@@ -30,7 +24,7 @@ internal static class CollectionDependencyValidator
                 var display = dep.ServiceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
                 var isArray = IsArrayType(dep.ServiceType) ||
-                              display.EndsWith("[]", System.StringComparison.Ordinal);
+                              display.EndsWith("[]", StringComparison.Ordinal);
 
                 if (isArray)
                 {
@@ -51,15 +45,13 @@ internal static class CollectionDependencyValidator
                 if (isDirectAllowed) continue;
 
                 var implementsAllowed = named.AllInterfaces.Any(i =>
-                    AllowedCollectionDefs.Contains(i.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+                    AllowedCollectionDefs.Contains(
+                        i.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
 
                 var isCollection = def.StartsWith("global::System.Collections.Generic.") ||
-                                  def.StartsWith("global::System.Collections.");
+                                   def.StartsWith("global::System.Collections.");
 
-                if (isCollection || implementsAllowed)
-                {
-                    Report(context, classSymbol, named.ToDisplayString(), def);
-                }
+                if (isCollection || implementsAllowed) Report(context, classSymbol, named.ToDisplayString(), def);
             }
 
         // Syntax fallback only when semantic pass found no arrays
@@ -67,7 +59,9 @@ internal static class CollectionDependencyValidator
             WarnForArrayTypeArguments(context, classSymbol, classDeclaration);
     }
 
-    private static void Report(SourceProductionContext context, INamedTypeSymbol classSymbol, string displayedType,
+    private static void Report(SourceProductionContext context,
+        INamedTypeSymbol classSymbol,
+        string displayedType,
         string displayedDef)
     {
         var location = classSymbol.Locations.FirstOrDefault();
@@ -79,26 +73,27 @@ internal static class CollectionDependencyValidator
         context.ReportDiagnostic(diagnostic);
     }
 
-    private static void WarnForArrayTypeArguments(SourceProductionContext context, INamedTypeSymbol classSymbol,
-        Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax classDeclaration)
+    private static void WarnForArrayTypeArguments(SourceProductionContext context,
+        INamedTypeSymbol classSymbol,
+        TypeDeclarationSyntax classDeclaration)
     {
         // Syntax-based detection across all partial declarations
         var attrSyntaxes = classDeclaration.AttributeLists.SelectMany(al => al.Attributes);
         foreach (var attrSyntax in attrSyntaxes)
         {
             var nameText = attrSyntax.Name.ToString();
-            if (nameText.IndexOf("DependsOn", System.StringComparison.Ordinal) < 0) continue;
+            if (nameText.IndexOf("DependsOn", StringComparison.Ordinal) < 0) continue;
 
-            Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax? gName = null;
-            if (attrSyntax.Name is Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax direct)
+            GenericNameSyntax? gName = null;
+            if (attrSyntax.Name is GenericNameSyntax direct)
                 gName = direct;
-            else if (attrSyntax.Name is Microsoft.CodeAnalysis.CSharp.Syntax.QualifiedNameSyntax qn &&
-                     qn.Right is Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax right)
+            else if (attrSyntax.Name is QualifiedNameSyntax qn &&
+                     qn.Right is GenericNameSyntax right)
                 gName = right;
 
             if (gName != null)
                 foreach (var arg in gName.TypeArgumentList.Arguments)
-                    if (arg is Microsoft.CodeAnalysis.CSharp.Syntax.ArrayTypeSyntax arrayTypeSyntax)
+                    if (arg is ArrayTypeSyntax arrayTypeSyntax)
                     {
                         var location = attrSyntax.GetLocation();
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnsupportedCollectionDependency,
@@ -112,8 +107,8 @@ internal static class CollectionDependencyValidator
             // Also inspect typeof() arguments for array types
             if (attrSyntax.ArgumentList != null)
                 foreach (var arg in attrSyntax.ArgumentList.Arguments)
-                    if (arg.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.TypeOfExpressionSyntax tof &&
-                        tof.Type is Microsoft.CodeAnalysis.CSharp.Syntax.ArrayTypeSyntax arrTypeSyntax)
+                    if (arg.Expression is TypeOfExpressionSyntax tof &&
+                        tof.Type is ArrayTypeSyntax arrTypeSyntax)
                     {
                         var location = arg.GetLocation();
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnsupportedCollectionDependency,
@@ -130,8 +125,7 @@ internal static class CollectionDependencyValidator
     {
         if (type is IArrayTypeSymbol) return true;
         var display = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        if (display.EndsWith("[]", System.StringComparison.Ordinal)) return true;
+        if (display.EndsWith("[]", StringComparison.Ordinal)) return true;
         return type.Kind == SymbolKind.ArrayType;
     }
-
 }

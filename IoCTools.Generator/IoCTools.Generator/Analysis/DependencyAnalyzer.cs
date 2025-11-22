@@ -1,14 +1,5 @@
 namespace IoCTools.Generator.Analysis;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
-
 internal static class DependencyAnalyzer
 {
     public static InheritanceHierarchyDependencies GetInheritanceHierarchyDependencies(INamedTypeSymbol classSymbol,
@@ -55,7 +46,7 @@ internal static class DependencyAnalyzer
             if (!isExternalService || level == 0)
             {
                 var configDependencies =
-                    ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(currentType, semanticModel);
+                    GetConfigurationInjectedFieldsForType(currentType, semanticModel);
 
                 foreach (var configDep in configDependencies)
                     if (configDep.IsOptionsPattern)
@@ -114,9 +105,8 @@ internal static class DependencyAnalyzer
 
             if (shouldIncludeDependsOn)
             {
-                var rawDependsOnDependencies =
-                    DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(currentType);
-                currentDependencies.AddRange(rawDependsOnDependencies.Select(d =>
+                var expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, null, null);
+                currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
                     (d.ServiceType, d.FieldName, DependencySource.DependsOn, d.IsExternal)));
             }
 
@@ -151,7 +141,7 @@ internal static class DependencyAnalyzer
         while (checkType != null && checkType.SpecialType != SpecialType.System_Object)
         {
             var configDependencies =
-                ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(checkType, semanticModel);
+                GetConfigurationInjectedFieldsForType(checkType, semanticModel);
             // Need IConfiguration if:
             // 1. Regular config fields (not options pattern, not supports reloading)
             // 2. Primitive SupportsReloading fields (direct value binding with SupportsReloading = true)
@@ -241,6 +231,8 @@ internal static class DependencyAnalyzer
     public static InheritanceHierarchyDependencies GetInheritanceHierarchyDependenciesForDiagnostics(
         INamedTypeSymbol classSymbol,
         SemanticModel semanticModel,
+        SourceProductionContext? context = null,
+        TypeDeclarationSyntax? classDeclaration = null,
         HashSet<string>? allRegisteredServices = null,
         Dictionary<string, List<INamedTypeSymbol>>? allImplementations = null)
     {
@@ -269,7 +261,7 @@ internal static class DependencyAnalyzer
 
             // Get [InjectConfiguration] field dependencies for diagnostics
             var configDependencies =
-                ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(currentType, semanticModel);
+                GetConfigurationInjectedFieldsForType(currentType, semanticModel);
             foreach (var configDep in configDependencies)
                 if (configDep.IsOptionsPattern)
                     // Options pattern fields are injected as regular dependencies
@@ -282,9 +274,9 @@ internal static class DependencyAnalyzer
                         DependencySource.ConfigurationInjection, false));
 
             // Always get [DependsOn] dependencies for diagnostics (unlike constructor generation)
-            var rawDependsOnDependencies = DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(
-                currentType, allRegisteredServices, allImplementations);
-            currentDependencies.AddRange(rawDependsOnDependencies.Select(d =>
+            var expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, allRegisteredServices,
+                allImplementations, context, classDeclaration);
+            currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
                 (d.ServiceType, d.FieldName, DependencySource.DependsOn, d.IsExternal)));
 
             // Add to appropriate collections
@@ -521,5 +513,14 @@ internal static class DependencyAnalyzer
     public static List<ConfigurationInjectionInfo> GetConfigurationInjectedFieldsForType(
         INamedTypeSymbol typeSymbol,
         SemanticModel semanticModel)
-        => ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(typeSymbol, semanticModel);
+    {
+        var directConfigs = ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(typeSymbol,
+            semanticModel);
+
+        var setExpansion = DependencySetExpander.ExpandForType(typeSymbol, semanticModel, null, null);
+        foreach (var config in setExpansion.Configurations)
+            directConfigs.Add(config.Config);
+
+        return directConfigs;
+    }
 }

@@ -1,7 +1,6 @@
-using System.Text;
-using IoCTools.Tools.Cli.Tests.Infrastructure;
-
 namespace IoCTools.Tools.Cli.Tests.Infrastructure;
+
+using System.Text;
 
 internal static class CliTestHost
 {
@@ -42,5 +41,7 @@ internal static class CliTestHost
 
 internal sealed record CliInvocationResult(int ExitCode, string Stdout, string Stderr)
 {
-    public string FirstOutputLine => Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? string.Empty;
+    public string FirstOutputLine =>
+        Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ??
+        string.Empty;
 }

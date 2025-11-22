@@ -1,23 +1,11 @@
 namespace IoCTools.Generator.Generator;
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-using Analysis;
-
 using Diagnostics.Validators;
 
-using IoCTools.Generator.Diagnostics;
-
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
-using Utilities;
 
 internal static class DiagnosticRules
 {
@@ -186,6 +174,48 @@ internal static class DiagnosticRules
         }
     }
 
+    public static void SuggestSharedBaseLifetimes(SourceProductionContext context,
+        Dictionary<string, List<INamedTypeSymbol>> allImplementations,
+        HashSet<string> allRegisteredServices,
+        string implicitLifetime)
+    {
+        // We only care about concrete implementations that currently are not registered because they lack any lifetime.
+        var candidates = allImplementations.Values
+            .SelectMany(x => x)
+            .OfType<INamedTypeSymbol>()
+            .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
+            .Where(symbol => symbol.TypeKind == TypeKind.Class)
+            .Where(symbol => symbol.BaseType != null && symbol.BaseType.SpecialType != SpecialType.System_Object)
+            .Where(symbol => !ServiceDiscovery.GetLifetimeAttributes(symbol).HasAny)
+            .Where(symbol => !allRegisteredServices.Contains(symbol.ToDisplayString()))
+            .Where(symbol => symbol.Interfaces.Any());
+
+        var groups = candidates.GroupBy<INamedTypeSymbol, INamedTypeSymbol>(
+            symbol => symbol.BaseType!,
+            SymbolEqualityComparer.Default);
+
+        foreach (var group in groups)
+        {
+            // Require at least two derived services to avoid noisy suggestions.
+            var derivedNeedingLifetime = group.ToList();
+            if (derivedNeedingLifetime.Count < 2) continue;
+
+            var baseType = group.Key;
+            if (ServiceDiscovery.GetLifetimeAttributes(baseType).HasAny) continue; // already has a lifetime
+
+            var baseLocation = baseType.Locations.FirstOrDefault(loc => loc.IsInSource);
+            if (baseLocation == null) continue; // can't offer a fix if the base isn't in source
+
+            var suggestedLifetime = string.IsNullOrWhiteSpace(implicitLifetime) ? "Scoped" : implicitLifetime;
+
+            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SharedBaseMissingLifetimeSuggestion,
+                baseLocation,
+                baseType.Name,
+                suggestedLifetime);
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
     private static List<IFieldSymbol> GetConfigurationFieldsFromHierarchy(INamedTypeSymbol classSymbol)
     {
         var result = new List<IFieldSymbol>();
@@ -286,14 +316,12 @@ internal static class DiagnosticRules
         if (key!.Contains("::"))
             return new ConfigurationKeyValidationResult
             {
-                IsValid = false,
-                ErrorMessage = "contains double colons (::)"
+                IsValid = false, ErrorMessage = "contains double colons (::)"
             };
         if (key!.StartsWith(":") || key.EndsWith(":"))
             return new ConfigurationKeyValidationResult
             {
-                IsValid = false,
-                ErrorMessage = "cannot start or end with a colon (:)"
+                IsValid = false, ErrorMessage = "cannot start or end with a colon (:)"
             };
         if (key.Any(c => c == '\0' || c == '\r' || c == '\n' || c == '\t'))
             return new ConfigurationKeyValidationResult
@@ -340,33 +368,30 @@ internal static class DiagnosticRules
 
     public static void ValidateOptionsDependencies(SourceProductionContext context,
         INamedTypeSymbol classSymbol,
-        InheritanceHierarchyDependencies hierarchyDependencies)
-    {
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
         OptionsDependencyValidator.Validate(context, classSymbol, hierarchyDependencies);
-    }
 
     public static void ValidateNonServiceDependencies(SourceProductionContext context,
         INamedTypeSymbol classSymbol,
-        InheritanceHierarchyDependencies hierarchyDependencies)
-    {
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
         NonServiceDependencyValidator.Validate(context, classSymbol, hierarchyDependencies);
-    }
 
     public static void ValidateCollectionDependencies(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
-        InheritanceHierarchyDependencies hierarchyDependencies)
-    {
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
         CollectionDependencyValidator.Validate(context, classDeclaration, classSymbol, hierarchyDependencies);
-    }
 
     public static void ValidateConfigurationRedundancy(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
-        SemanticModel semanticModel)
-    {
+        SemanticModel semanticModel) =>
         ConfigurationRedundancyValidator.Validate(context, classDeclaration, classSymbol, semanticModel);
-    }
+
+    public static void ValidateConfigurationBindings(SourceProductionContext context,
+        Compilation compilation,
+        ImmutableArray<ServiceClassInfo> services) =>
+        ConfigurationBindingPresenceValidator.Validate(context, compilation, services);
 
     public static void ValidateNullableDependencies(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
@@ -400,7 +425,7 @@ internal static class DiagnosticRules
 
     private static bool IsNullableDependencyType(ITypeSymbol type) =>
         type.NullableAnnotation == NullableAnnotation.Annotated ||
-        (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T });
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T };
 
     private static Location? FindDependencyLocation(TypeDeclarationSyntax classDeclaration,
         ImmutableArray<AttributeData> classAttributes,
@@ -481,10 +506,8 @@ internal static class DiagnosticRules
 
     public static bool ValidateManualConstructorMixing(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
-        INamedTypeSymbol classSymbol)
-    {
-        return ManualConstructorMixingValidator.ReportIfMixed(context, classDeclaration, classSymbol);
-    }
+        INamedTypeSymbol classSymbol) =>
+        ManualConstructorMixingValidator.ReportIfMixed(context, classDeclaration, classSymbol);
 
     public static void ValidateDuplicatesWithinSingleDependsOn(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

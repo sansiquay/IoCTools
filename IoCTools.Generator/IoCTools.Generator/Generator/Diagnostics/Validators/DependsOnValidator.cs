@@ -1,17 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
-using Utilities;
-
 internal static class DependsOnValidator
 {
     internal static void ValidateDuplicateDependsOn(SourceProductionContext context,

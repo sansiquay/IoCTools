@@ -1,14 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Analysis;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
 internal static class ServiceRegistrationScan
 {
     internal static void ScanNamespaceForServices(INamespaceSymbol namespaceSymbol,
@@ -19,6 +10,12 @@ internal static class ServiceRegistrationScan
         {
             if (typeSymbol is INamedTypeSymbol namedType && !namedType.IsStatic)
             {
+                if (DependencySetUtilities.IsDependencySet(namedType))
+                {
+                    ScanNestedTypesForServices(typeSymbol, services, compilation);
+                    continue;
+                }
+
                 var hasConditionalServiceAttribute = namedType.GetAttributes().Any(attr =>
                     attr.AttributeClass?.ToDisplayString() ==
                     "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");

@@ -145,6 +145,7 @@ public partial class DatabaseContextService : IDatabaseContextService
             GetDatabaseName(connectionString));
         return Result.Success();
     }
+
     private static string GetDatabaseName(string connectionString) =>
         // Simple parsing - in real app would use proper connection string builder
         connectionString.Contains("Database=")
@@ -820,4 +821,4 @@ public record Result(bool IsSuccess, string? ErrorMessage = null)
 {
     public static Result Success() => new(true);
     public static Result Failure(string errorMessage) => new(false, errorMessage);
-};
+}

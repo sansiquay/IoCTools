@@ -1,9 +1,6 @@
 namespace IoCTools.Generator;
 
-using Generator;
 using Generator.Pipeline;
-
-using Microsoft.CodeAnalysis;
 
 [Generator]
 public sealed class DependencyInjectionGenerator : IIncrementalGenerator

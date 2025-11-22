@@ -1,10 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class DependencyLifetimeResolver
 {
     internal static (string? lifetime, string? implementationName)
@@ -19,15 +14,15 @@ internal static class DependencyLifetimeResolver
 
         if (allImplementations != null)
             foreach (var kvp in allImplementations)
-                foreach (var implementation in kvp.Value)
+            foreach (var implementation in kvp.Value)
+            {
+                var implTypeName = implementation.ToDisplayString();
+                if (implTypeName == dependencyTypeName)
                 {
-                    var implTypeName = implementation.ToDisplayString();
-                    if (implTypeName == dependencyTypeName)
-                    {
-                        var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
-                        if (implLifetime != null) return (implLifetime, implementation.Name);
-                    }
+                    var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
+                    if (implLifetime != null) return (implLifetime, implementation.Name);
                 }
+            }
 
         if (TypeHelpers.IsConstructedGenericTypeSimple(dependencyTypeName))
         {
@@ -60,19 +55,19 @@ internal static class DependencyLifetimeResolver
                 {
                     var implementations = kvp.Value;
                     foreach (var impl in implementations)
-                        foreach (var implementedInterface in impl.AllInterfaces)
+                    foreach (var implementedInterface in impl.AllInterfaces)
+                    {
+                        var implementedInterfaceName = implementedInterface.ToDisplayString();
+                        if (TypeHelpers.IsMatchingGenericInterface(dependencyTypeName, implementedInterfaceName))
                         {
-                            var implementedInterfaceName = implementedInterface.ToDisplayString();
-                            if (TypeHelpers.IsMatchingGenericInterface(dependencyTypeName, implementedInterfaceName))
-                            {
-                                var implTypeName = impl.ToDisplayString();
-                                if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                    return (implLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
-                                var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
-                                if (symbolLifetime != null)
-                                    return (symbolLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
-                            }
+                            var implTypeName = impl.ToDisplayString();
+                            if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
+                                return (implLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                            var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
+                            if (symbolLifetime != null)
+                                return (symbolLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
                         }
+                    }
                 }
 
                 foreach (var kvp in allImplementations)

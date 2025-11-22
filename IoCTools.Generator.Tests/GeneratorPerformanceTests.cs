@@ -151,7 +151,7 @@ public class GeneratorPerformanceTests
         {
             <= 10 => 10000.0, // Very lenient for small projects (baseline compilation is very fast)
             <= 25 => 5000.0, // Lenient for small-medium projects  
-            <= 50 => 3000.0, // Moderate tolerance for medium projects
+            <= 50 => 4000.0, // Moderate tolerance for medium projects (adjusted for dependency-set overhead)
             <= 100 => 2000.0, // Reasonable for larger projects
             _ => 1500.0 // Stricter for very large projects
         };

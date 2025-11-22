@@ -1,9 +1,9 @@
 namespace IoCTools.Tools.Cli;
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using IoCTools.Tools.Cli.CommandLine;
+
+using CommandLine;
+
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,10 +11,12 @@ using Microsoft.CodeAnalysis.MSBuild;
 
 internal sealed class ProjectContext : IAsyncDisposable
 {
-    private readonly MSBuildWorkspace _workspace;
     private static bool _msbuildRegistered;
+    private readonly MSBuildWorkspace _workspace;
 
-    private ProjectContext(MSBuildWorkspace workspace, Project project, CSharpCompilation compilation)
+    private ProjectContext(MSBuildWorkspace workspace,
+        Project project,
+        CSharpCompilation compilation)
     {
         _workspace = workspace;
         Project = project;
@@ -28,7 +30,14 @@ internal sealed class ProjectContext : IAsyncDisposable
     public CSharpCompilation Compilation { get; }
     public string ProjectDirectory { get; }
 
-    public static async Task<ProjectContext> CreateAsync(CommonOptions options, CancellationToken cancellationToken)
+    public ValueTask DisposeAsync()
+    {
+        _workspace.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    public static async Task<ProjectContext> CreateAsync(CommonOptions options,
+        CancellationToken cancellationToken)
     {
         var projectPath = Path.GetFullPath(options.ProjectPath);
         if (NeedsRestore(projectPath))
@@ -45,7 +54,8 @@ internal sealed class ProjectContext : IAsyncDisposable
             properties["TargetFramework"] = options.Framework!;
 
         var workspace = MSBuildWorkspace.Create(properties);
-        workspace.WorkspaceFailed += (_, args) =>
+        workspace.WorkspaceFailed += (_,
+            args) =>
         {
             if (!string.IsNullOrWhiteSpace(args.Diagnostic.Message))
                 Console.Error.WriteLine($"[msbuild] {args.Diagnostic.Message}");
@@ -66,13 +76,8 @@ internal sealed class ProjectContext : IAsyncDisposable
         _msbuildRegistered = true;
     }
 
-    public ValueTask DisposeAsync()
-    {
-        _workspace.Dispose();
-        return ValueTask.CompletedTask;
-    }
-
-    private static async Task RestoreProjectAsync(string projectPath, CancellationToken cancellationToken)
+    private static async Task RestoreProjectAsync(string projectPath,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(projectPath))
             throw new ArgumentException("Project path is required for restore.", nameof(projectPath));

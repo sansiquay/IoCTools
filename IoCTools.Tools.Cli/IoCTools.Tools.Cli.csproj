@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>ioc-tools</ToolCommandName>
-    <AssemblyName>IoCTools.Tools.Cli</AssemblyName>
-    <RootNamespace>IoCTools.Tools.Cli</RootNamespace>
-    <PackageId>IoCTools.Tools.Cli</PackageId>
-    <Version>1.2.0</Version>
-    <Description>Developer-facing CLI that surfaces IoCTools generator metadata from the command line.</Description>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>ioc-tools</ToolCommandName>
+        <AssemblyName>IoCTools.Tools.Cli</AssemblyName>
+        <RootNamespace>IoCTools.Tools.Cli</RootNamespace>
+        <PackageId>IoCTools.Tools.Cli</PackageId>
+        <Version>1.3.0</Version>
+        <Description>Developer-facing CLI for IoCTools: fields, services, explain, graph, why, doctor, compare, profile, config-audit.</Description>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Build.Locator" Version="1.10.12" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.5.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.5.0" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Locator" Version="1.10.12"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.5.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.5.0"/>
+    </ItemGroup>
 
 </Project>

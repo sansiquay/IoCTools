@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
 using System.Text.RegularExpressions;
 
 internal static class Glob

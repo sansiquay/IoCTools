@@ -1,14 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using IoCTools.Generator.Analysis;
-using IoCTools.Generator.Diagnostics;
-using IoCTools.Generator.Utilities;
-
-using Microsoft.CodeAnalysis;
-
 internal static class UnnecessaryExternalDependencyValidator
 {
     internal static void Validate(SourceProductionContext context,
@@ -17,7 +8,7 @@ internal static class UnnecessaryExternalDependencyValidator
         Dictionary<string, List<INamedTypeSymbol>> allImplementations)
     {
         var dependsOnAttributes = classSymbol.GetAttributes()
-            .Where(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn", System.StringComparison.Ordinal) == true)
+            .Where(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn", StringComparison.Ordinal) == true)
             .Where(attr => !AttributeParser.IsDependsOnConfigurationAttribute(attr))
             .ToList();
 
@@ -60,8 +51,10 @@ internal static class UnnecessaryExternalDependencyValidator
             attr.AttributeClass?.ToDisplayString() != "IoCTools.Abstractions.Annotations.ExternalServiceAttribute"));
     }
 
-    private static void Report(SourceProductionContext context, AttributeData attribute,
-        INamedTypeSymbol classSymbol, string dependencyDisplay)
+    private static void Report(SourceProductionContext context,
+        AttributeData attribute,
+        INamedTypeSymbol classSymbol,
+        string dependencyDisplay)
     {
         var location = attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation() ??
                        classSymbol.Locations.FirstOrDefault();

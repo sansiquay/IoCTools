@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Models;
 
-using Microsoft.CodeAnalysis;
-
 /// <summary>
 ///     Represents configuration injection information for a field
 /// </summary>

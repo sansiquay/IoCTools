@@ -1,9 +1,5 @@
 namespace IoCTools.Generator.Diagnostics.Helpers;
 
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class DiagnosticDescriptorFactory
 {
     public static DiagnosticDescriptor WithSeverity(DiagnosticDescriptor baseDescriptor,

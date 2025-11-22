@@ -1,12 +1,6 @@
 namespace IoCTools.Generator.CodeGeneration;
 
-using System.Collections.Generic;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Utilities;
 
 internal static partial class ConstructorGenerator
 {

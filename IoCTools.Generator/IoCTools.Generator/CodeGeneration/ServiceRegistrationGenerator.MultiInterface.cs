@@ -1,16 +1,5 @@
 namespace IoCTools.Generator.CodeGeneration;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Generator;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
-
 internal static partial class ServiceRegistrationGenerator
 {
     internal static IEnumerable<ServiceRegistration> GetMultiInterfaceRegistrations(INamedTypeSymbol classSymbol,
@@ -151,31 +140,31 @@ internal static partial class ServiceRegistrationGenerator
             case "DirectOnly":
                 break;
             case "All":
+            {
+                var allInterfaces = GetAllInterfaces(classSymbol);
+                foreach (var iface in allInterfaces)
                 {
-                    var allInterfaces = GetAllInterfaces(classSymbol);
-                    foreach (var iface in allInterfaces)
-                    {
-                        var name = iface.ToDisplayString();
-                        if (skippedInterfaces.Contains(name)) continue;
-                        if (classSymbol.TypeParameters.Length > 0 && iface.TypeParameters.Length == 0) continue;
-                        interfacesToRegister.Add(iface);
-                    }
-
-                    break;
+                    var name = iface.ToDisplayString();
+                    if (skippedInterfaces.Contains(name)) continue;
+                    if (classSymbol.TypeParameters.Length > 0 && iface.TypeParameters.Length == 0) continue;
+                    interfacesToRegister.Add(iface);
                 }
+
+                break;
+            }
             case "Exclusionary":
+            {
+                var allInterfaces = GetAllInterfaces(classSymbol);
+                foreach (var iface in allInterfaces)
                 {
-                    var allInterfaces = GetAllInterfaces(classSymbol);
-                    foreach (var iface in allInterfaces)
-                    {
-                        var name = iface.ToDisplayString();
-                        if (skippedInterfaces.Contains(name)) continue;
-                        if (classSymbol.TypeParameters.Length > 0 && iface.TypeParameters.Length == 0) continue;
-                        interfacesToRegister.Add(iface);
-                    }
-
-                    break;
+                    var name = iface.ToDisplayString();
+                    if (skippedInterfaces.Contains(name)) continue;
+                    if (classSymbol.TypeParameters.Length > 0 && iface.TypeParameters.Length == 0) continue;
+                    interfacesToRegister.Add(iface);
                 }
+
+                break;
+            }
         }
 
         return interfacesToRegister;

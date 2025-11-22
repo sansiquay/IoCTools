@@ -6,16 +6,16 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.2.0</Version>
-        <PackageVersion>1.2.0</PackageVersion>
-        <AssemblyVersion>1.2.0.0</AssemblyVersion>
-        <FileVersion>1.2.0.0</FileVersion>
+        <Version>1.3.0</Version>
+        <PackageVersion>1.3.0</PackageVersion>
+        <AssemblyVersion>1.3.0.0</AssemblyVersion>
+        <FileVersion>1.3.0.0</FileVersion>
         <Title>IoC Tools Abstractions Package</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/nate123456/IoCTools</PackageProjectUrl>
         <RepositoryUrl>https://github.com/nate123456/IoCTools</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageReleaseNotes>v1.2.0: Updates nullable annotations and sample-facing interfaces to align with the redundant registration diagnostics and ensure warning-free builds alongside the analyzer release.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.3.0: Dependency set support, expanded configuration diagnostics (IOC057), richer CLI tooling (explain/graph/why/doctor/compare/profile/config-audit), and broader test coverage.</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>

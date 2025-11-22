@@ -1,14 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-using IoCTools.Generator.Generator;
-using IoCTools.Generator.Utilities;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
 internal static class ManualConstructorMixingValidator
 {
     /// <summary>
@@ -27,7 +18,7 @@ internal static class ManualConstructorMixingValidator
         var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
         var hasInjectConfiguration = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(classSymbol);
         var hasDependsOn = classSymbol.GetAttributes()
-            .Any(a => a.AttributeClass?.Name?.StartsWith("DependsOn", System.StringComparison.Ordinal) == true);
+            .Any(a => a.AttributeClass?.Name?.StartsWith("DependsOn", StringComparison.Ordinal) == true);
 
         if (!hasInjectFields && !hasInjectConfiguration && !hasDependsOn) return false;
 

@@ -1,15 +1,5 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
-using System.Linq;
-
-using IoCTools.Generator.Diagnostics;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
-
 internal static class NonServiceDependencyValidator
 {
     internal static void Validate(SourceProductionContext context,
@@ -50,11 +40,11 @@ internal static class NonServiceDependencyValidator
         {
             var def = named.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var isEnumerable = def is "global::System.Collections.Generic.IEnumerable<T>" or
-                               "global::System.Collections.Generic.ICollection<T>" or
-                               "global::System.Collections.Generic.IList<T>" or
-                               "global::System.Collections.Generic.List<T>" or
-                               "global::System.Collections.Generic.IReadOnlyList<T>" or
-                               "global::System.Collections.Generic.IReadOnlyCollection<T>";
+                "global::System.Collections.Generic.ICollection<T>" or
+                "global::System.Collections.Generic.IList<T>" or
+                "global::System.Collections.Generic.List<T>" or
+                "global::System.Collections.Generic.IReadOnlyList<T>" or
+                "global::System.Collections.Generic.IReadOnlyCollection<T>";
             if (isEnumerable && named.TypeArguments.Length == 1)
             {
                 var inner = named.TypeArguments[0];

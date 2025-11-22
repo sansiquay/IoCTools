@@ -1,11 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class InterfaceDiscovery
 {
     internal static List<INamedTypeSymbol> GetAllInterfacesForService(INamedTypeSymbol classSymbol)

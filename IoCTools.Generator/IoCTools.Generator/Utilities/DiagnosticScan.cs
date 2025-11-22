@@ -1,16 +1,8 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
-using Analysis;
-
-using Generator;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 internal static class DiagnosticScan
 {
@@ -26,8 +18,9 @@ internal static class DiagnosticScan
         var typeDeclarations = root.DescendantNodes().OfType<TypeDeclarationSyntax>();
         foreach (var typeDeclaration in typeDeclarations)
         {
-            var classSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
+            var classSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration);
             if (classSymbol == null) continue;
+            if (DependencySetUtilities.IsDependencySet(classSymbol)) continue;
             if (classSymbol.TypeKind == TypeKind.Interface) continue;
 
             var classKey = classSymbol.ToDisplayString();

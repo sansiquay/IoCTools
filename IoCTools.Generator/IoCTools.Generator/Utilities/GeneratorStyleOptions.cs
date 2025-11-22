@@ -1,10 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 /// <summary>
@@ -160,7 +155,6 @@ internal sealed class GeneratorStyleOptions
             result = null;
             return false;
         }
-
     }
 
     private static IEnumerable<string> SplitTypes(string? value)

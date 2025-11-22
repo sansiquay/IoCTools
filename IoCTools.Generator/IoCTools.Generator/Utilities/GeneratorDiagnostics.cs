@@ -1,7 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using Microsoft.CodeAnalysis;
-
 internal static class GeneratorDiagnostics
 {
     public static void Report(SourceProductionContext context,

@@ -1,14 +1,17 @@
-using FluentAssertions;
-using IoCTools.Tools.Cli.Tests.Infrastructure;
-using Xunit;
-
 namespace IoCTools.Tools.Cli.Tests;
+
+using FluentAssertions;
+
+using Infrastructure;
+
+using Xunit;
 
 [Collection("CLI Execution")]
 public sealed class CliServicesCommandTests
 {
     private static string RegistrationProject =>
-        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "RegistrationProject", "RegistrationProject.csproj");
+        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "RegistrationProject",
+            "RegistrationProject.csproj");
 
     private static string EmptyProject =>
         TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "EmptyProject", "EmptyProject.csproj");

@@ -1,9 +1,5 @@
 namespace IoCTools.Tools.Cli;
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -26,7 +22,7 @@ internal static class RegistrationSummaryBuilder
                 continue;
 
             var methodName = GetMethodName(memberAccess.Name);
-            RegistrationRecord? record = methodName switch
+            var record = methodName switch
             {
                 var name when name.StartsWith("Add", StringComparison.Ordinal) =>
                     ParseServiceInvocation(name, memberAccess.Name, invocation),
@@ -38,7 +34,10 @@ internal static class RegistrationSummaryBuilder
 
             var conditionalParent = invocation.Ancestors().OfType<IfStatementSyntax>().FirstOrDefault();
             if (conditionalParent != null)
-                record = record with { IsConditional = true, ConditionExpression = conditionalParent.Condition.ToString() };
+                record = record with
+                {
+                    IsConditional = true, ConditionExpression = conditionalParent.Condition.ToString()
+                };
 
             records.Add(record);
         }
@@ -131,7 +130,6 @@ internal static class RegistrationSummaryBuilder
     private static string? TryExtractFactoryType(SeparatedSyntaxList<ArgumentSyntax> arguments)
     {
         foreach (var argument in arguments)
-        {
             if (argument.Expression is LambdaExpressionSyntax lambda)
             {
                 var bodyExpression = lambda.Body switch
@@ -145,7 +143,6 @@ internal static class RegistrationSummaryBuilder
                 var type = ExtractTypeFromFactoryInvocation(bodyExpression);
                 if (type != null) return type;
             }
-        }
 
         return null;
     }

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace IoCTools.Generator.Tests;
 
 public class ImplicitLifetimeConfigurationTests
@@ -28,10 +26,7 @@ public partial class Consumer
     public void ImplicitLifetime_ConfiguredSingleton_SuppressesSingletonWarnings(string configuredValue)
     {
         var result = SourceGeneratorTestHelper.CompileWithGenerator(PartialServiceSource, true,
-            new Dictionary<string, string>
-            {
-                ["IoCToolsDefaultServiceLifetime"] = configuredValue
-            });
+            new Dictionary<string, string> { ["IoCToolsDefaultServiceLifetime"] = configuredValue });
 
         var registrationText = result.GetServiceRegistrationText();
         registrationText.Should().Contain("AddSingleton", "implicit singleton lifetime should be applied");
@@ -45,10 +40,7 @@ public partial class Consumer
     public void ImplicitLifetime_ConfiguredTransient_TriggersSingletonDependsOnTransient()
     {
         var result = SourceGeneratorTestHelper.CompileWithGenerator(PartialServiceSource, true,
-            new Dictionary<string, string>
-            {
-                ["IoCToolsDefaultServiceLifetime"] = "Transient"
-            });
+            new Dictionary<string, string> { ["IoCToolsDefaultServiceLifetime"] = "Transient" });
 
         result.GetDiagnosticsByCode("IOC012").Should().BeEmpty();
         result.GetDiagnosticsByCode("IOC013").Should().ContainSingle();
@@ -58,10 +50,7 @@ public partial class Consumer
     public void ImplicitLifetime_ConfiguredScoped_MatchesOriginalBehavior()
     {
         var result = SourceGeneratorTestHelper.CompileWithGenerator(PartialServiceSource, true,
-            new Dictionary<string, string>
-            {
-                ["IoCToolsDefaultServiceLifetime"] = "Scoped"
-            });
+            new Dictionary<string, string> { ["IoCToolsDefaultServiceLifetime"] = "Scoped" });
 
         result.GetDiagnosticsByCode("IOC012").Should().ContainSingle();
     }

@@ -1,8 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
-using System.Collections.Generic;
-
 internal static class FrameworkTypeUtilities
 {
     private static readonly HashSet<string> Exact = new(StringComparer.Ordinal)

@@ -458,27 +458,27 @@ public partial class ComplexRegistrationPatternService : IDisposable, ICloneable
 {
     [Inject] private readonly ILogger<ComplexRegistrationPatternService> _logger;
 
-
     /// <summary>
-    /// Attempts to clone the service using Result pattern for error handling.
-    /// This is the preferred method for internal code that can handle Result types.
-    /// </summary>
-    /// <returns>Result indicating success with cloned object, or failure with diagnostic error</returns>
-    public CloneResult TryClone()
-    {
-        return CloneResult.Failure("DI_SERVICE_CLONE_NOT_SUPPORTED",
-            "Services with dependency injection cannot be cloned. Use the DI container to resolve instances.");
-    }
-
-    /// <summary>
-    /// ICloneable implementation - maintains interface contract by throwing exception.
-    /// Internal code should prefer TryClone() for Result-based error handling.
+    ///     ICloneable implementation - maintains interface contract by throwing exception.
+    ///     Internal code should prefer TryClone() for Result-based error handling.
     public object Clone() =>
         throw new NotSupportedException(
             "Services with dependency injection cannot be cloned. Use the DI container to resolve instances.");
 
     public void Dispose()
     {
+    }
+
+
+    /// <summary>
+    ///     Attempts to clone the service using Result pattern for error handling.
+    ///     This is the preferred method for internal code that can handle Result types.
+    /// </summary>
+    /// <returns>Result indicating success with cloned object, or failure with diagnostic error</returns>
+    public CloneResult TryClone()
+    {
+        return CloneResult.Failure("DI_SERVICE_CLONE_NOT_SUPPORTED",
+            "Services with dependency injection cannot be cloned. Use the DI container to resolve instances.");
     }
 }
 
@@ -527,16 +527,14 @@ public partial class DiagnosticDemonstrationService
 }
 
 /// <summary>
-/// Result type for clone operations that cannot use standard Result pattern due to interface constraints
+///     Result type for clone operations that cannot use standard Result pattern due to interface constraints
 /// </summary>
 public class CloneResult
 {
-    public bool IsSuccess { get; }
-    public object? Value { get; }
-    public string ErrorCode { get; }
-    public string ErrorMessage { get; }
-
-    private CloneResult(bool isSuccess, object? value, string errorCode, string errorMessage)
+    private CloneResult(bool isSuccess,
+        object? value,
+        string errorCode,
+        string errorMessage)
     {
         IsSuccess = isSuccess;
         Value = value;
@@ -544,6 +542,13 @@ public class CloneResult
         ErrorMessage = errorMessage;
     }
 
+    public bool IsSuccess { get; }
+    public object? Value { get; }
+    public string ErrorCode { get; }
+    public string ErrorMessage { get; }
+
     public static CloneResult Success(object value) => new(true, value, string.Empty, string.Empty);
-    public static CloneResult Failure(string errorCode, string errorMessage) => new(false, null, errorCode, errorMessage);
+
+    public static CloneResult Failure(string errorCode,
+        string errorMessage) => new(false, null, errorCode, errorMessage);
 }

@@ -1,9 +1,6 @@
 namespace IoCTools.Generator.Utilities;
 
-using System;
 using System.IO;
-
-using Microsoft.CodeAnalysis;
 
 internal static class ProjectUtilities
 {

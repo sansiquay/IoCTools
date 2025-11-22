@@ -1,9 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Linq;
-
-using Microsoft.CodeAnalysis;
-
 internal static class TypeNameUtilities
 {
     internal static string? ExtractServiceNameFromType(string dependencyType)

@@ -1,13 +1,16 @@
 namespace IoCTools.Tools.Cli;
 
-using IoCTools.Tools.Cli.CommandLine;
+using System.Diagnostics;
+
+using CommandLine;
 
 public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
         using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, eventArgs) =>
+        Console.CancelKeyPress += (_,
+            eventArgs) =>
         {
             eventArgs.Cancel = true;
             cts.Cancel();
@@ -30,6 +33,13 @@ public static class Program
                 "fields-path" => await RunFieldsPathAsync(remaining, cts.Token),
                 "services" => await RunServicesAsync(remaining, cts.Token),
                 "services-path" => await RunServicesPathAsync(remaining, cts.Token),
+                "explain" => await RunExplainAsync(remaining, cts.Token),
+                "graph" => await RunGraphAsync(remaining, cts.Token),
+                "why" => await RunWhyAsync(remaining, cts.Token),
+                "doctor" => await RunDoctorAsync(remaining, cts.Token),
+                "compare" => await RunCompareAsync(remaining, cts.Token),
+                "profile" => await RunProfileAsync(remaining, cts.Token),
+                "config-audit" => await RunConfigAuditAsync(remaining, cts.Token),
                 "help" => UsagePrinter.ExitWithUsage(),
                 _ => UsagePrinter.ExitUnknown(command)
             };
@@ -54,7 +64,8 @@ public static class Program
         string.Equals(value, "-h", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "help", StringComparison.OrdinalIgnoreCase);
 
-    private static async Task<int> RunFieldsAsync(string[] args, CancellationToken token)
+    private static async Task<int> RunFieldsAsync(string[] args,
+        CancellationToken token)
     {
         var parse = CommandLineParser.ParseFields(args);
         if (!parse.Success)
@@ -80,7 +91,8 @@ public static class Program
             {
                 Console.WriteLine("  Generated Dependencies:");
                 foreach (var field in report.DependencyFields)
-                    Console.WriteLine($"    - {field.TypeName} => {field.FieldName}{(field.IsExternal ? " (external)" : string.Empty)}");
+                    Console.WriteLine(
+                        $"    - {field.TypeName} => {field.FieldName}{(field.IsExternal ? " (external)" : string.Empty)}");
             }
             else
             {
@@ -97,7 +109,8 @@ public static class Program
                     var configKey = string.IsNullOrWhiteSpace(field.ConfigurationKey)
                         ? "inferred section"
                         : field.ConfigurationKey;
-                    Console.WriteLine($"    - {field.TypeName} => {field.FieldName} (key: {configKey}, {requirement}{reload})");
+                    Console.WriteLine(
+                        $"    - {field.TypeName} => {field.FieldName} (key: {configKey}, {requirement}{reload})");
                 }
             }
             else
@@ -111,7 +124,8 @@ public static class Program
         return 0;
     }
 
-    private static async Task<int> RunFieldsPathAsync(string[] args, CancellationToken token)
+    private static async Task<int> RunFieldsPathAsync(string[] args,
+        CancellationToken token)
     {
         var parse = CommandLineParser.ParseFieldsPath(args);
         if (!parse.Success)
@@ -137,7 +151,8 @@ public static class Program
         return 0;
     }
 
-    private static async Task<int> RunServicesAsync(string[] args, CancellationToken token)
+    private static async Task<int> RunServicesAsync(string[] args,
+        CancellationToken token)
     {
         var parse = CommandLineParser.ParseServices(args);
         if (!parse.Success)
@@ -158,7 +173,8 @@ public static class Program
         return 0;
     }
 
-    private static async Task<int> RunServicesPathAsync(string[] args, CancellationToken token)
+    private static async Task<int> RunServicesPathAsync(string[] args,
+        CancellationToken token)
     {
         var parse = CommandLineParser.ParseServices(args);
         if (!parse.Success)
@@ -175,6 +191,127 @@ public static class Program
         }
 
         Console.WriteLine(path);
+        return 0;
+    }
+
+    private static async Task<int> RunExplainAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseExplain(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        var inspector = new ServiceFieldInspector(context.Project);
+        var reports = await inspector.GetFieldReportsAsync(null, new[] { options.TypeName }, token);
+        var target = reports.FirstOrDefault(r => string.Equals(r.TypeName, options.TypeName, StringComparison.Ordinal));
+        if (target == null)
+            return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
+
+        ExplainPrinter.Write(target);
+        return 0;
+    }
+
+    private static async Task<int> RunGraphAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseGraph(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
+        var hint = HintNameBuilder.GetExtensionHint(context.Project);
+        if (!artifacts.TryGetFile(hint, out var path))
+        {
+            Console.WriteLine("No generated registration extension was produced for this project.");
+            return 0;
+        }
+
+        var summary = RegistrationSummaryBuilder.Build(path!);
+        GraphPrinter.Write(summary, options.Format, options.TypeName);
+        return 0;
+    }
+
+    private static async Task<int> RunWhyAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseWhy(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        var inspector = new ServiceFieldInspector(context.Project);
+        var reports = await inspector.GetFieldReportsAsync(null, new[] { options.TypeName }, token);
+        var target = reports.FirstOrDefault(r => string.Equals(r.TypeName, options.TypeName, StringComparison.Ordinal));
+        if (target == null)
+            return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
+
+        WhyPrinter.Write(target, options.Dependency);
+        return 0;
+    }
+
+    private static async Task<int> RunDoctorAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseDoctor(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+
+        var diagnostics = await DiagnosticRunner.RunAsync(context, token);
+        DoctorPrinter.Write(diagnostics, options.FixableOnly);
+        return diagnostics.Any(d => d.Severity == "Error") ? 1 : 0;
+    }
+
+    private static async Task<int> RunCompareAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseCompare(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
+        CompareRunner.WriteSnapshot(artifacts, options.OutputDirectory);
+        if (options.BaselineDirectory != null)
+            CompareRunner.Compare(options.BaselineDirectory, options.OutputDirectory);
+        return 0;
+    }
+
+    private static async Task<int> RunProfileAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseProfile(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        var sw = Stopwatch.StartNew();
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        sw.Stop();
+        ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName);
+        return 0;
+    }
+
+    private static async Task<int> RunConfigAuditAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseConfigAudit(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        var inspector = new ServiceFieldInspector(context.Project);
+        var reports = await inspector.GetFieldReportsAsync(null, Array.Empty<string>(), token);
+        ConfigAuditPrinter.Write(reports, options.SettingsPath);
         return 0;
     }
 }

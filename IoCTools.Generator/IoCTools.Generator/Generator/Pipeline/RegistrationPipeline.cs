@@ -1,11 +1,5 @@
 namespace IoCTools.Generator.Generator.Pipeline;
 
-using Microsoft.CodeAnalysis;
-
-using Models;
-
-using Utilities;
-
 internal static class RegistrationPipeline
 {
     internal static void Attach(

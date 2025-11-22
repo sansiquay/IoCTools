@@ -1,16 +1,5 @@
 namespace IoCTools.Generator.CodeGeneration;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Diagnostics;
-
-using Generator;
-
-using Microsoft.CodeAnalysis;
-
-using Models;
-
 internal static partial class ServiceRegistrationGenerator
 {
     private static bool IsRegisterAsAttribute(AttributeData attr)

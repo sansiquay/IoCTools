@@ -1,9 +1,5 @@
 namespace IoCTools.Generator.Diagnostics;
 
-using System;
-
-using Microsoft.CodeAnalysis;
-
 internal static class DiagnosticDescriptors
 {
     public static readonly DiagnosticDescriptor NoImplementationFound = new(
@@ -334,6 +330,33 @@ internal static class DiagnosticDescriptors
         true,
         "Remove redundant lifetime attributes so only one of [Scoped], [Singleton], or [Transient] remains on the class.");
 
+    public static readonly DiagnosticDescriptor ManualRegistrationDuplicatesIoCTools = new(
+        "IOC050",
+        "Manual registration duplicates IoCTools registration",
+        "Service '{0}' is registered manually with lifetime '{1}' but IoCTools already registers it with the same lifetime. Remove the manual registration and rely on IoCTools attributes ({2}).",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid duplicate manual registrations when IoCTools already emits the same service/implementation.");
+
+    public static readonly DiagnosticDescriptor ManualRegistrationLifetimeMismatch = new(
+        "IOC051",
+        "Manual registration lifetime differs from IoCTools",
+        "Service '{0}' is registered manually with lifetime '{1}' but IoCTools registers it with lifetime '{2}'. Align lifetimes or remove the manual registration.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Keep manual registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.");
+
+    public static readonly DiagnosticDescriptor InheritedLifetimeRedundant = new(
+        "IOC048",
+        "Lifetime attribute duplicates inherited lifetime",
+        "Class '{0}' declares lifetime '{1}' but already inherits the same lifetime from base class '{2}'. Remove the redundant lifetime attribute or change it to a different lifetime if intended.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid repeating the same lifetime attribute on derived classes when the base class already establishes the lifetime.");
+
     public static readonly DiagnosticDescriptor SkipRegistrationOverridesOtherAttributes = new(
         "IOC037",
         "SkipRegistration overrides other registration attributes",
@@ -442,12 +465,228 @@ internal static class DiagnosticDescriptors
         true,
         "Dependencies are expected to be required. Prefer non-nullable types and use composition (feature flags, no-op implementations, Lazy<Func>) rather than nullable dependency slots.");
 
-    public static readonly DiagnosticDescriptor MixedOptionsAndPrimitiveBindings = new(
+    public static readonly DiagnosticDescriptor DependencySetMetadataOnly = new(
         "IOC049",
+        "Dependency sets must be metadata-only",
+        "Type '{0}' implements IDependencySet and cannot declare members like methods, properties, fields, events, or nested types. Move those members elsewhere so the set stays metadata-only.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "IDependencySet types are declaration-only containers for dependencies. Keep them free of executable members or state.");
+
+    public static readonly DiagnosticDescriptor DependencySetCycleDetected = new(
+        "IOC050",
+        "Dependency set cycle detected",
+        "Dependency set '{0}' forms a cycle: {1}. Remove one of the set references to break the cycle.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Dependency sets must not reference each other in cycles (e.g., SetA -> SetB -> SetA). Flattening stops when a cycle exists, so fix the graph to proceed.");
+
+    public static readonly DiagnosticDescriptor DependencySetNameCollision = new(
+        "IOC051",
+        "Dependency set expansion collided with an existing dependency",
+        "Type '{0}' is pulled from dependency sets with conflicting member names ('{1}' vs '{2}') on '{3}'. Align the member names or remove the duplicate dependency.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "When dependency sets flatten into a consumer, duplicate dependency types must share the same generated field/parameter name. Rename the slots or deduplicate the dependency in the sets.");
+
+    public static readonly DiagnosticDescriptor DependencySetRegistrationDetected = new(
+        "IOC052",
+        "Dependency sets must not be registered as services",
+        "Type '{0}' implements IDependencySet but is marked for registration via '{1}'. Remove lifetime/registration attributes; sets are metadata-only and are never registered.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "IDependencySet is a metadata-only construct. Do not combine it with lifetimes, RegisterAs/All, ConditionalService, ManualService, or ExternalService attributes.");
+
+    public static readonly DiagnosticDescriptor DependencySetExtractionSuggestion = new(
+        "IOC053",
+        "Repeated dependency cluster could be a dependency set",
+        "Dependencies {0} repeat across multiple services. Extract them into an IDependencySet and reference it with [DependsOn<{1}>].",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When three or more dependencies appear together on several services, consider introducing an IDependencySet to reduce duplication and tighten diagnostics.");
+
+    public static readonly DiagnosticDescriptor DependencySetNearMatchSuggestion = new(
+        "IOC054",
+        "Service nearly matches an existing dependency set",
+        "Service '{0}' already has most of dependency set '{1}' ({2}/{3} members). Consider using the set plus the few additional dependencies to reduce noise.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Adopt existing dependency sets when a service already matches most of their members; add or remove the small delta locally.");
+
+    public static readonly DiagnosticDescriptor DependencySetSharedBaseSuggestion = new(
+        "IOC055",
+        "Shared dependency cluster on related services",
+        "Services derived from '{0}' share common dependencies {1}. Move them into a base-oriented IDependencySet (or the base class) for reuse.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When multiple derived services share the same dependencies, centralize them in a base set to cut duplication and align lifetimes.");
+
+    public static readonly DiagnosticDescriptor MixedOptionsAndPrimitiveBindings = new(
+        "IOC056",
         "Use a single configuration binding style per section",
         "Configuration section '{0}' is bound to an options type '{1}' and also to primitive configuration values on '{2}'. Prefer either the options object or direct primitives—avoid mixing both.",
         "IoCTools",
         DiagnosticSeverity.Info,
         true,
         "Bind each configuration section in one style: either inject the options object once or inject primitives directly, but not both in the same inheritance chain.");
+
+    public static readonly DiagnosticDescriptor ConfigurationBindingMissing = new(
+        "IOC057",
+        "Configuration binding not found",
+        "Configuration section '{0}' for options type '{1}' is not bound in this project. Add Configure<{1}>(), AddOptions<{1}>().Bind… or implement IConfigureOptions<{1}>.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Ensure options are bound: services.Configure<{1}>(configuration.GetSection(\"{0}\")), services.AddOptions<{1}>().BindConfiguration(\"{0}\"), or add an IConfigureOptions<{1}>/IConfigureNamedOptions<{1}> implementation.");
+
+    public static readonly DiagnosticDescriptor SharedBaseMissingLifetimeSuggestion = new(
+        "IOC058",
+        "Apply lifetime attribute to shared base class",
+        "Services deriving from '{0}' lack lifetime attributes. Add [{1}] to the base class to register all derived services in one place.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When many services share a base type, prefer a single lifetime attribute on the base to avoid duplicating [Scoped]/[Singleton]/[Transient] on every derived class.");
+
+    public static readonly DiagnosticDescriptor RedundantSingletonLifetimeAttribute = new(
+        "IOC059",
+        "Singleton lifetime attribute is redundant",
+        "Class '{0}' inherits [Singleton] from '{1}'. Remove redundant [Singleton] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "When a base class is already marked [Singleton], derived classes do not need to repeat the attribute unless changing lifetime.");
+
+    public static readonly DiagnosticDescriptor RedundantTransientLifetimeAttribute = new(
+        "IOC060",
+        "Transient lifetime attribute is redundant",
+        "Class '{0}' inherits [Transient] from '{1}'. Remove redundant [Transient] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "When a base class is already marked [Transient], derived classes do not need to repeat the attribute unless changing lifetime.");
+
+    public static readonly DiagnosticDescriptor RedundantDependencySetInInheritance = new(
+        "IOC061",
+        "Dependency set already applied in base class",
+        "Class '{0}' already inherits dependency set '{1}' from '{2}'. Remove redundant [DependsOn<{1}>] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Place dependency sets once on the base type when all descendants need them; avoid duplicating the same [DependsOn<Set>] on derived classes.");
+
+    public static readonly DiagnosticDescriptor DependencySetBaseSuggestion = new(
+        "IOC062",
+        "Move shared dependency set to base class",
+        "Services derived from '{0}' all reference dependency set '{1}'. Move [DependsOn<{1}>] to the base to reduce duplication.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When several derived services reference the same dependency set, place the [DependsOn<Set>] on their shared base class instead of repeating it.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
+        "IOC063",
+        "RegisterAs attribute is redundant on derived class",
+        "Class '{0}' inherits RegisterAs interfaces {1} from '{2}'. Remove redundant [RegisterAs] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Put [RegisterAs] on the base class once when all derived types share the same interface list; derived classes need it only when narrowing or extending the list.");
+
+    public static readonly DiagnosticDescriptor RegisterAsBaseSuggestion = new(
+        "IOC064",
+        "Move shared RegisterAs to base class",
+        "Services derived from '{0}' all specify [RegisterAs({1})]. Move the attribute to the base class to reduce duplication.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When multiple derived classes repeat the same RegisterAs interfaces, place the attribute on their shared base type instead.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsAllInheritance = new(
+        "IOC065",
+        "RegisterAsAll attribute is redundant on derived class",
+        "Class '{0}' inherits [RegisterAsAll] intent from '{1}'. Remove redundant [RegisterAsAll] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Only one [RegisterAsAll] is needed in an inheritance chain; place it on the base when all descendants should register all implemented interfaces.");
+
+    public static readonly DiagnosticDescriptor RedundantConditionalServiceInheritance = new(
+        "IOC067",
+        "ConditionalService attribute is redundant on derived class",
+        "Class '{0}' repeats [ConditionalService] with the same condition as '{1}'. Remove the redundant attribute or change the condition.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Use [ConditionalService] on the base when derived types share the same predicate; only override when the condition differs.");
+
+    public static readonly DiagnosticDescriptor ConstructorCouldUseDependsOn = new(
+        "IOC068",
+        "Constructor parameters could be expressed with [DependsOn] and lifetime attribute",
+        "Class '{0}' has a manual constructor with injectable parameters but no IoCTools attributes. Consider adding [Scoped]/[Singleton]/[Transient] and [DependsOn<{1}>].",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Classes with DI-like constructors can opt into IoCTools by adding a lifetime attribute and [DependsOn<T>] to enable generator support and diagnostics.");
+
+    public static readonly DiagnosticDescriptor RegisterAsMissingLifetime = new(
+        "IOC069",
+        "RegisterAs requires a lifetime attribute",
+        "Class '{0}' uses [RegisterAs] but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Registration attributes still need a lifetime indicator; add a lifetime attribute once on the class.");
+
+    public static readonly DiagnosticDescriptor DependsOnMissingLifetime = new(
+        "IOC070",
+        "DependsOn/Inject used without lifetime",
+        "Class '{0}' declares dependencies but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "When a class has [DependsOn] or [Inject], add a lifetime so it will be registered and validated.");
+
+    public static readonly DiagnosticDescriptor ConditionalMissingLifetime = new(
+        "IOC071",
+        "ConditionalService missing lifetime",
+        "Class '{0}' uses [ConditionalService] but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Conditional services still require an explicit lifetime; add one to enable registration.");
+
+    public static readonly DiagnosticDescriptor HostedServiceMissingLifetime = new(
+        "IOC072",
+        "Hosted service should be Singleton",
+        "Class '{0}' implements IHostedService/BackgroundService but has no lifetime attribute. Add [Singleton].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Hosted services are typically singletons; add [Singleton] to enable generator registration and diagnostics.");
+
+    public static readonly DiagnosticDescriptor ManualRegistrationCouldUseAttributes = new(
+        "IOC073",
+        "Manual registration could use IoCTools attributes",
+        "'{0}' is registered manually as {1} but the implementation '{2}' lacks IoCTools lifetime attributes. Consider adding [Scoped]/[Singleton]/[Transient] (and [RegisterAs]) instead of manual registration.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.");
+
+    public static readonly DiagnosticDescriptor MissingRegisterAsAllForMultiInterface = new(
+        "IOC074",
+        "Multi-interface class could use RegisterAsAll",
+        "Class '{0}' implements multiple interfaces but only has a lifetime attribute. Consider adding [RegisterAsAll] to register all interfaces automatically.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When a class implements multiple interfaces, [RegisterAsAll] makes intent explicit and prevents partial registrations.");
 }

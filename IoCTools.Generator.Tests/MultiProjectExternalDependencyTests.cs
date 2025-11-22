@@ -1,16 +1,17 @@
 namespace IoCTools.Generator.Tests;
 
 using System.Reflection;
-using System.IO;
+
+using Abstractions.Annotations;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Emit;
-using IoCTools.Abstractions.Annotations;
 
 public class MultiProjectExternalDependencyTests
 {
-    private static MetadataReference BuildLibraryReference(string source, string assemblyName, MetadataReference[]? additional = null)
+    private static MetadataReference BuildLibraryReference(string source,
+        string assemblyName,
+        MetadataReference[]? additional = null)
     {
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
         var references = new List<MetadataReference>

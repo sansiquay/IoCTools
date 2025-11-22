@@ -7,7 +7,7 @@ using Enumerations;
 /// <summary>
 ///     Declares configuration dependencies at the class level, mirroring the ergonomics of [DependsOn].
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public abstract class DependsOnConfigurationAttributeBase : Attribute
 {
     protected DependsOnConfigurationAttributeBase(params Type[] configurationTypes)
@@ -30,7 +30,7 @@ public abstract class DependsOnConfigurationAttributeBase : Attribute
     public bool StripSettingsSuffix { get; set; } = true;
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys) : base(typeof(TValue1))
@@ -53,7 +53,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1> : DependsOnConfigur
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -78,7 +78,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2> : DependsO
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -103,7 +103,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3> :
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4> :
     DependsOnConfigurationAttributeBase
 {
@@ -129,7 +129,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5> :
     DependsOnConfigurationAttributeBase
 {
@@ -155,7 +155,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6> :
     DependsOnConfigurationAttributeBase
 {
@@ -181,7 +181,7 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
 public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7> :
     DependsOnConfigurationAttributeBase
 {
@@ -209,8 +209,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8>
     : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -237,8 +238,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -265,8 +267,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -293,8 +296,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -321,8 +325,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -349,8 +354,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -379,8 +385,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -409,8 +416,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -439,8 +447,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16> : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)
@@ -469,8 +478,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16, TValue17> :
     DependsOnConfigurationAttributeBase
 {
@@ -500,8 +510,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16, TValue17, TValue18> :
     DependsOnConfigurationAttributeBase
 {
@@ -531,8 +542,9 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
     TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16, TValue17, TValue18, TValue19> :
     DependsOnConfigurationAttributeBase
 {
@@ -564,9 +576,11 @@ public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, T
     }
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7, TValue8,
-    TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16, TValue17, TValue18, TValue19, TValue20>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true)]
+public sealed class DependsOnConfigurationAttribute<TValue1, TValue2, TValue3, TValue4, TValue5, TValue6, TValue7,
+    TValue8,
+    TValue9, TValue10, TValue11, TValue12, TValue13, TValue14, TValue15, TValue16, TValue17, TValue18, TValue19,
+    TValue20>
     : DependsOnConfigurationAttributeBase
 {
     public DependsOnConfigurationAttribute(params string?[] configurationKeys)

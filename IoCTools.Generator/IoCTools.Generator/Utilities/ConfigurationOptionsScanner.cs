@@ -1,17 +1,5 @@
 namespace IoCTools.Generator.Utilities;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using Analysis;
-
-using Generator;
-
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-using Models;
-
 internal static class ConfigurationOptionsScanner
 {
     public static List<ConfigurationOptionsRegistration> GetConfigurationOptionsToRegister(

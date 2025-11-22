@@ -1,9 +1,6 @@
 namespace IoCTools.Generator.Diagnostics.Configuration;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-
-using Models;
 
 internal static class DiagnosticConfigProvider
 {

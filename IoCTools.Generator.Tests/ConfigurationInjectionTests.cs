@@ -1,7 +1,6 @@
-using System.Linq;
-using Xunit.Sdk;
-
 namespace IoCTools.Generator.Tests;
+
+using Xunit.Sdk;
 
 /// <summary>
 ///     COMPREHENSIVE CONFIGURATION INJECTION TESTS
@@ -44,299 +43,6 @@ public partial class DefaultValueService
             "configuration.GetValue<global::System.TimeSpan>(\"Cache:TTL\", global::System.TimeSpan.Parse(\"00:05:00\"))");
         constructorContent.Should().Contain("configuration.GetValue<string>(\"App:Name\", \"MyApp\")");
         constructorContent.Should().Contain("configuration.GetValue<bool>(\"Features:EnableDebug\", false)");
-    }
-
-    #endregion
-
-    #region DependsOnConfiguration Tests
-
-    [Fact]
-    public void DependsOnConfiguration_GeneratesBackingFieldsAndAssignments()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
-[Scoped]
-public partial class BillingService
-{
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        if (result.HasErrors)
-        {
-            var diagnostics = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
-            throw new XunitException($"Unexpected diagnostics: {diagnostics}");
-        }
-
-        var constructorContent = result.GetConstructorSourceText("BillingService");
-        constructorContent.Should().Contain("private readonly string _billingBaseUrl;");
-        constructorContent.Should()
-            .Contain("this._billingBaseUrl = configuration.GetValue<string>(\"Billing:BaseUrl\")");
-        constructorContent.Should().Contain("BillingService(IConfiguration configuration)");
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_WithInjectConfigurationFields_GeneratesUnifiedBindings()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using Microsoft.Extensions.Logging;
-
-namespace Test;
-
-[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
-[Scoped]
-public partial class MixedConfigService
-{
-    [InjectConfiguration(""Billing:RetryCount"")] private readonly int _retryCount;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        result.HasErrors.Should().BeFalse(
-            $"Unexpected diagnostics: {string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()))}");
-
-        var constructorContent = result.GetConstructorSourceText("MixedConfigService");
-        constructorContent.Should().Contain("private readonly string _billingBaseUrl;");
-        constructorContent.Should().Contain("this._billingBaseUrl = configuration.GetValue<string>(\"Billing:BaseUrl\")");
-        constructorContent.Should().Contain("this._retryCount = configuration.GetValue<int>(\"Billing:RetryCount\")");
-        constructorContent.Should().Contain("MixedConfigService(IConfiguration configuration");
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_OptionsAndPrimitiveSameSection_EmitsIOC049()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<BillingOptions>(""Billing"")]
-[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
-public partial class BillingService
-{
-}
-
-public class BillingOptions
-{
-    public string BaseUrl { get; set; } = string.Empty;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        if (result.HasErrors)
-        {
-            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
-            throw new XunitException($"Unexpected diagnostics: {diags}");
-        }
-
-        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_OptionsInBase_PrimitiveInDerived_EmitsIOC049()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<BillingOptions>(""Billing"")]
-public abstract partial class BillingBase
-{
-}
-
-public partial class BillingService : BillingBase
-{
-    [InjectConfiguration(""Billing:RetryCount"")] private readonly int _retryCount;
-}
-
-public class BillingOptions
-{
-    public int RetryCount { get; set; }
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        if (result.HasErrors)
-        {
-            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
-            throw new XunitException($"Unexpected diagnostics: {diags}");
-        }
-
-        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_PrimitiveInBase_OptionsInDerived_EmitsIOC049()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
-public abstract partial class BillingBase
-{
-}
-
-[DependsOnConfiguration<BillingOptions>(""Billing"")]
-public partial class BillingService : BillingBase
-{
-}
-
-public class BillingOptions
-{
-    public string BaseUrl { get; set; } = string.Empty;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        if (result.HasErrors)
-        {
-            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
-            throw new XunitException($"Unexpected diagnostics: {diags}");
-        }
-
-        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_OptionsAndPrimitiveDifferentSection_NoIOC049()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<BillingOptions>(""Billing"")]
-[DependsOnConfiguration<string>(""Logging:Level"")]
-public partial class BillingService
-{
-}
-
-public class BillingOptions
-{
-    public string BaseUrl { get; set; } = string.Empty;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        result.HasErrors.Should().BeFalse();
-        result.GetDiagnosticsByCode("IOC049").Should().BeEmpty();
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_OptionsRoot_PrimitiveNested_EmitsIOC049()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<BillingOptions>(""Billing"")]
-[DependsOnConfiguration<string>(""Billing:Inner:BaseUrl"")]
-public partial class BillingService
-{
-}
-
-public class BillingOptions
-{
-    public string InnerBaseUrl { get; set; } = string.Empty;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        result.HasErrors.Should().BeFalse();
-        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle();
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_WithMemberNamesAndFieldAttributes_RespectsCustomNames()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace Test;
-
-[DependsOnConfiguration<string>(""Billing:BaseUrl"", MemberNames = new[] { ""_baseUrlCustom"" })]
-[Scoped]
-public partial class CustomNamedService
-{
-    [InjectConfiguration(""Billing:ApiKey"")] private readonly string _apiKey;
-}
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-
-        if (result.HasErrors)
-        {
-            var diagnostics = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
-            throw new XunitException($"Unexpected diagnostics: {diagnostics}");
-        }
-
-        var constructorContent = result.GetConstructorSourceText("CustomNamedService");
-        constructorContent.Should().Contain("private readonly string _baseUrlCustom;");
-        constructorContent.Should().Contain("this._baseUrlCustom = configuration.GetValue<string>(\"Billing:BaseUrl\")");
-        constructorContent.Should().Contain("this._apiKey = configuration.GetValue<string>(\"Billing:ApiKey\") ??");
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_IOptionsPairing_UsesProvidedKey()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using Microsoft.Extensions.Options;
-
-namespace Test;
-
-public class ServiceOptions
-{
-    public string ConnectionString { get; set; } = string.Empty;
-}
-
-[DependsOnConfiguration<IOptions<ServiceOptions>>(""Service:Options"")]
-public partial class UsesOptions { }
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.HasErrors.Should().BeFalse(string.Join(" | ", result.CompilationDiagnostics));
-
-        var ctor = result.GetConstructorSourceText("UsesOptions");
-        ctor.Should().Contain("IOptions<ServiceOptions> service");
-    }
-
-    [Fact]
-    public void DependsOnConfiguration_MultiSlot_KeysAlignWithGenerics()
-    {
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using Microsoft.Extensions.Options;
-
-namespace Test;
-
-public class A { public string Value { get; set; } = string.Empty; }
-public class B { public int Count { get; set; } }
-
-[DependsOnConfiguration<IOptions<A>, IOptions<B>>(""Alpha"", ""Beta"")]
-public partial class UsesMultipleOptions { }
-";
-
-        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.HasErrors.Should().BeFalse(string.Join(" | ", result.CompilationDiagnostics));
-
-        var ctor = result.GetConstructorSourceText("UsesMultipleOptions");
-        ctor.Should().Contain("IOptions<A> alpha");
-        ctor.Should().Contain("IOptions<B> beta");
     }
 
     #endregion
@@ -633,6 +339,301 @@ public partial class CompleteIntegrationService
         // - [Inject] fields work alongside [InjectConfiguration]
         // - All parameter types properly generated
         // - Field assignments for all dependency sources
+    }
+
+    #endregion
+
+    #region DependsOnConfiguration Tests
+
+    [Fact]
+    public void DependsOnConfiguration_GeneratesBackingFieldsAndAssignments()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
+[Scoped]
+public partial class BillingService
+{
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        if (result.HasErrors)
+        {
+            var diagnostics = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
+            throw new XunitException($"Unexpected diagnostics: {diagnostics}");
+        }
+
+        var constructorContent = result.GetConstructorSourceText("BillingService");
+        constructorContent.Should().Contain("private readonly string _billingBaseUrl;");
+        constructorContent.Should()
+            .Contain("this._billingBaseUrl = configuration.GetValue<string>(\"Billing:BaseUrl\")");
+        constructorContent.Should().Contain("BillingService(IConfiguration configuration)");
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_WithInjectConfigurationFields_GeneratesUnifiedBindings()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace Test;
+
+[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
+[Scoped]
+public partial class MixedConfigService
+{
+    [InjectConfiguration(""Billing:RetryCount"")] private readonly int _retryCount;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.HasErrors.Should().BeFalse(
+            $"Unexpected diagnostics: {string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()))}");
+
+        var constructorContent = result.GetConstructorSourceText("MixedConfigService");
+        constructorContent.Should().Contain("private readonly string _billingBaseUrl;");
+        constructorContent.Should()
+            .Contain("this._billingBaseUrl = configuration.GetValue<string>(\"Billing:BaseUrl\")");
+        constructorContent.Should().Contain("this._retryCount = configuration.GetValue<int>(\"Billing:RetryCount\")");
+        constructorContent.Should().Contain("MixedConfigService(IConfiguration configuration");
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_OptionsAndPrimitiveSameSection_EmitsIOC056()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<BillingOptions>(""Billing"")]
+[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
+public partial class BillingService
+{
+}
+
+public class BillingOptions
+{
+    public string BaseUrl { get; set; } = string.Empty;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        if (result.HasErrors)
+        {
+            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
+            throw new XunitException($"Unexpected diagnostics: {diags}");
+        }
+
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_OptionsInBase_PrimitiveInDerived_EmitsIOC056()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<BillingOptions>(""Billing"")]
+public abstract partial class BillingBase
+{
+}
+
+public partial class BillingService : BillingBase
+{
+    [InjectConfiguration(""Billing:RetryCount"")] private readonly int _retryCount;
+}
+
+public class BillingOptions
+{
+    public int RetryCount { get; set; }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        if (result.HasErrors)
+        {
+            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
+            throw new XunitException($"Unexpected diagnostics: {diags}");
+        }
+
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_PrimitiveInBase_OptionsInDerived_EmitsIOC056()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<string>(""Billing:BaseUrl"")]
+public abstract partial class BillingBase
+{
+}
+
+[DependsOnConfiguration<BillingOptions>(""Billing"")]
+public partial class BillingService : BillingBase
+{
+}
+
+public class BillingOptions
+{
+    public string BaseUrl { get; set; } = string.Empty;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        if (result.HasErrors)
+        {
+            var diags = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
+            throw new XunitException($"Unexpected diagnostics: {diags}");
+        }
+
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_OptionsAndPrimitiveDifferentSection_NoIOC056()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<BillingOptions>(""Billing"")]
+[DependsOnConfiguration<string>(""Logging:Level"")]
+public partial class BillingService
+{
+}
+
+public class BillingOptions
+{
+    public string BaseUrl { get; set; } = string.Empty;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.HasErrors.Should().BeFalse();
+        result.GetDiagnosticsByCode("IOC056").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_OptionsRoot_PrimitiveNested_EmitsIOC056()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<BillingOptions>(""Billing"")]
+[DependsOnConfiguration<string>(""Billing:Inner:BaseUrl"")]
+public partial class BillingService
+{
+}
+
+public class BillingOptions
+{
+    public string InnerBaseUrl { get; set; } = string.Empty;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.HasErrors.Should().BeFalse();
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_WithMemberNamesAndFieldAttributes_RespectsCustomNames()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+[DependsOnConfiguration<string>(""Billing:BaseUrl"", MemberNames = new[] { ""_baseUrlCustom"" })]
+[Scoped]
+public partial class CustomNamedService
+{
+    [InjectConfiguration(""Billing:ApiKey"")] private readonly string _apiKey;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        if (result.HasErrors)
+        {
+            var diagnostics = string.Join(" | ", result.CompilationDiagnostics.Select(d => d.ToString()));
+            throw new XunitException($"Unexpected diagnostics: {diagnostics}");
+        }
+
+        var constructorContent = result.GetConstructorSourceText("CustomNamedService");
+        constructorContent.Should().Contain("private readonly string _baseUrlCustom;");
+        constructorContent.Should()
+            .Contain("this._baseUrlCustom = configuration.GetValue<string>(\"Billing:BaseUrl\")");
+        constructorContent.Should().Contain("this._apiKey = configuration.GetValue<string>(\"Billing:ApiKey\") ??");
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_IOptionsPairing_UsesProvidedKey()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Options;
+
+namespace Test;
+
+public class ServiceOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+}
+
+[DependsOnConfiguration<IOptions<ServiceOptions>>(""Service:Options"")]
+public partial class UsesOptions { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        result.HasErrors.Should().BeFalse(string.Join(" | ", result.CompilationDiagnostics));
+
+        var ctor = result.GetConstructorSourceText("UsesOptions");
+        ctor.Should().Contain("IOptions<ServiceOptions> service");
+    }
+
+    [Fact]
+    public void DependsOnConfiguration_MultiSlot_KeysAlignWithGenerics()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Options;
+
+namespace Test;
+
+public class A { public string Value { get; set; } = string.Empty; }
+public class B { public int Count { get; set; } }
+
+[DependsOnConfiguration<IOptions<A>, IOptions<B>>(""Alpha"", ""Beta"")]
+public partial class UsesMultipleOptions { }
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        result.HasErrors.Should().BeFalse(string.Join(" | ", result.CompilationDiagnostics));
+
+        var ctor = result.GetConstructorSourceText("UsesMultipleOptions");
+        ctor.Should().Contain("IOptions<A> alpha");
+        ctor.Should().Contain("IOptions<B> beta");
     }
 
     #endregion
