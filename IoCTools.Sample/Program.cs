@@ -90,16 +90,13 @@ internal class Program
                 services.AddHttpClient(); // Required for HTTP client factory
 
                 // Configure Options pattern for configuration injection examples
-                services.Configure<AppSettings>(context.Configuration.GetSection("App"));
-                services.Configure<ValidationSettings>(context.Configuration.GetSection("ValidationSettings"));
-                services.Configure<HotReloadSettings>(context.Configuration.GetSection("HotReload"));
+                // Note: AppSettings, ValidationSettings, HotReloadSettings, and NotificationSchedulerSettings
+                // are bound by IoCTools via [InjectConfiguration] attributes - no manual binding needed
                 services.Configure<EmailProcessorSettings>(
                     context.Configuration.GetSection("BackgroundServices:EmailProcessor"));
                 services.Configure<DataCleanupSettings>(context.Configuration.GetSection("DataCleanupSettings"));
                 services.Configure<HealthMonitorSettings>(context.Configuration.GetSection("HealthMonitorSettings"));
                 services.Configure<FileWatcherSettings>(context.Configuration.GetSection("FileWatcherSettings"));
-                services.Configure<NotificationSchedulerSettings>(
-                    context.Configuration.GetSection("NotificationSchedulerSettings"));
 
                 // Use the generated service registration method
                 try
