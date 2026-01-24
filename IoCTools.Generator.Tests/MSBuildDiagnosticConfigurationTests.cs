@@ -394,6 +394,132 @@ namespace TestNamespace
 
     #endregion
 
+    #region Additional Diagnostic Severity Configuration Tests
+
+    /// <summary>
+    ///     Source code that creates a circular dependency (A depends on B, B depends on A)
+    /// </summary>
+    private static string GetCircularDependencySource() => @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestNamespace
+{
+    public interface IDependencyA { }
+    public interface IDependencyB { }
+
+    [Scoped]
+    public partial class ServiceA : IDependencyA
+    {
+        [Inject] private readonly IDependencyB _dependencyB;
+    }
+
+    [Scoped]
+    public partial class ServiceB : IDependencyB
+    {
+        [Inject] private readonly IDependencyA _dependencyA;
+    }
+}";
+
+    /// <summary>
+    ///     Source code that creates Singleton→Scoped lifetime violation
+    /// </summary>
+    private static string GetLifetimeViolationSource() => @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestNamespace
+{
+    public interface IScopedService { }
+
+    [Scoped]
+    public partial class ScopedService : IScopedService { }
+
+    [Singleton]
+    public partial class ViolatingSingleton
+    {
+        [Inject] private readonly IScopedService _scopedService;
+    }
+}";
+
+    /// <summary>
+    ///     Source code that creates an invalid configuration key (empty string)
+    /// </summary>
+    private static string GetInvalidConfigurationKeySource() => @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestNamespace
+{
+    [Scoped]
+    public partial class InvalidConfigService
+    {
+        [InjectConfiguration("""")]
+        private readonly string _invalidConfig;
+    }
+}";
+
+    [Fact]
+    public void MSBuildDiagnostics_DefaultBehavior_CircularDependency_ReportsError()
+    {
+        // Test default behavior for IOC003 - Circular dependency
+        var sourceCode = GetCircularDependencySource();
+        var properties = new Dictionary<string, string>(); // No MSBuild properties = default behavior
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+        var ioc003Diagnostics = diagnostics.Where(d => d.Id == "IOC003").ToList();
+
+        ioc003Diagnostics.Should().ContainSingle();
+        ioc003Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_DefaultBehavior_LifetimeViolation_ReportsError()
+    {
+        // Test default behavior for IOC012 - Singleton→Scoped
+        var sourceCode = GetLifetimeViolationSource();
+        var properties = new Dictionary<string, string>(); // No MSBuild properties = default behavior
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+        var ioc012Diagnostics = diagnostics.Where(d => d.Id == "IOC012").ToList();
+
+        ioc012Diagnostics.Should().ContainSingle();
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_DefaultBehavior_InvalidConfigurationKey_ReportsError()
+    {
+        // Test default behavior for IOC016 - Invalid configuration key
+        var sourceCode = GetInvalidConfigurationKeySource();
+        var properties = new Dictionary<string, string>(); // No MSBuild properties = default behavior
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+        var ioc016Diagnostics = diagnostics.Where(d => d.Id == "IOC016").ToList();
+
+        ioc016Diagnostics.Should().ContainSingle();
+        ioc016Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void MSBuildDiagnostics_NoImplementationSeverity_InvalidValues_FallbackToError(string severityValue)
+    {
+        var sourceCode = GetMissingImplementationSource();
+        var properties = new Dictionary<string, string> { ["build_property.IoCToolsNoImplementationSeverity"] = severityValue };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
+        ioc001Diagnostics.Should().ContainSingle();
+        // Invalid severity values should fallback to default Error severity
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    #endregion
+
     #region Documentation and Usage Examples
 
     [Fact]
