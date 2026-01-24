@@ -8,7 +8,7 @@ IoCTools is a .NET source generator library that simplifies dependency injection
 
 **Core Components:**
 - **IoCTools.Abstractions**: Individual lifetime attributes (`[Scoped]`, `[Singleton]`, `[Transient]`) plus dependency injection annotations (`InjectAttribute`, `DependsOn`, etc.)
-- **IoCTools.Generator**: Advanced source generator with intelligent service registration, full inheritance support, and comprehensive diagnostics (IOC001-IOC031)
+- **IoCTools.Generator**: Advanced source generator with intelligent service registration, full inheritance support, and comprehensive diagnostics (IOC001-IOC086)
 - **IoCTools.Sample**: Comprehensive demonstration project with complete feature coverage across 18 service example files
 
 **Sample Application Coverage:**
@@ -27,7 +27,7 @@ The sample project provides complete coverage of all IoCTools features:
 - External service integration with cross-assembly awareness
 - Mixed dependency patterns (field + configuration injection)
 - Unregistered service examples with enhanced diagnostics
-- Comprehensive diagnostic examples (IOC001-IOC031) with configurable severity
+- Comprehensive diagnostic examples (IOC001-IOC086) with configurable severity
 - Performance optimizations and architectural best practices
 
 ## Development Commands
@@ -61,7 +61,7 @@ dotnet test  # Runs 57+ comprehensive test files covering all generator scenario
 The comprehensive sample application serves as an extensive integration test suite with 18 service example files demonstrating every feature and edge case.
 
 ### Diagnostics and Validation
-IoCTools includes a comprehensive diagnostic system (IOC001-IOC031) that validates dependency injection configuration at build time with cross-assembly awareness. The diagnostic system provides configurable MSBuild severity levels and catches common DI mistakes before runtime.
+IoCTools includes a comprehensive diagnostic system (IOC001-IOC086) that validates dependency injection configuration at build time with cross-assembly awareness. The diagnostic system provides configurable MSBuild severity levels and catches common DI mistakes before runtime.
 
 **Quick Diagnostic Test:**
 ```bash
@@ -98,6 +98,97 @@ Add these MSBuild properties to your project file:
 - **IOC080**: Missing partial keyword on classes using code-generating attributes (`[Inject]`, `[DependsOn]`, etc.)
 - **Enhanced Error Messages**: All diagnostics now reference individual lifetime attributes (`[Scoped]`, `[Singleton]`, `[Transient]`)
 
+### Diagnostic Severity Reference
+
+| Code | Severity | Title |
+|------|----------|-------|
+| IOC001 | Error | No implementation found for interface |
+| IOC002 | Error | Implementation exists but not registered |
+| IOC003 | Error | Circular dependency detected |
+| IOC004 | Error | RegisterAsAll attribute requires Service attribute |
+| IOC005 | Warning | SkipRegistration attribute has no effect without RegisterAsAll |
+| IOC006 | Warning | Duplicate dependency type in DependsOn attributes |
+| IOC007 | Warning | DependsOn type conflicts with Inject field |
+| IOC008 | Warning | Duplicate type in single DependsOn attribute |
+| IOC009 | Warning | SkipRegistration for interface not registered by RegisterAsAll |
+| IOC010 | Warning | Background service with non-Singleton lifetime (deprecated, use IOC014) |
+| IOC011 | Error | Background service class must be partial |
+| IOC012 | Error | Singleton service depends on Scoped service |
+| IOC013 | Warning | Singleton service depends on Transient service |
+| IOC014 | Error | Background service with non-Singleton lifetime |
+| IOC015 | Error | Service lifetime mismatch in inheritance chain |
+| IOC016 | Error | Invalid configuration key |
+| IOC017 | Warning | Unsupported configuration type |
+| IOC018 | Error | InjectConfiguration requires partial class |
+| IOC019 | Warning | InjectConfiguration on static field not supported |
+| IOC020 | Warning | Conditional service has conflicting conditions |
+| IOC021 | Error | ConditionalService attribute requires Service attribute |
+| IOC022 | Warning | ConditionalService attribute has no conditions |
+| IOC023 | Warning | ConfigValue specified without Equals or NotEquals |
+| IOC024 | Warning | Equals or NotEquals specified without ConfigValue |
+| IOC025 | Warning | ConfigValue is empty or whitespace |
+| IOC026 | Warning | Multiple ConditionalService attributes on same class |
+| IOC027 | Info | Potential duplicate service registration |
+| IOC028 | Error | RegisterAs attribute requires service indicators |
+| IOC029 | Error | RegisterAs specifies unimplemented interface |
+| IOC030 | Warning | RegisterAs contains duplicate interface |
+| IOC031 | Error | RegisterAs specifies non-interface type |
+| IOC032 | Warning | RegisterAs attribute is redundant |
+| IOC033 | Warning | Scoped lifetime attribute is redundant |
+| IOC034 | Warning | RegisterAsAll already registers every interface |
+| IOC035 | Warning | Inject field can be simplified to DependsOn |
+| IOC036 | Warning | Multiple lifetime attributes declared |
+| IOC037 | Warning | SkipRegistration overrides other registration attributes |
+| IOC038 | Warning | SkipRegistration for interfaces has no effect in RegisterAsAll(DirectOnly) |
+| IOC039 | Warning | Dependency declared but never used |
+| IOC040 | Warning | Redundant dependency declarations |
+| IOC041 | Error | Manual constructor conflicts with IoCTools dependencies |
+| IOC042 | Warning | External dependency flag is not required |
+| IOC043 | Warning | IOptions\<T\> should use DependsOnConfiguration |
+| IOC044 | Warning | Dependency type is not a service |
+| IOC045 | Warning | Collection dependency type is not supported |
+| IOC046 | Warning | Overlapping configuration bindings |
+| IOC047 | Info | Use params-style attribute arguments |
+| IOC048 | Warning | Dependencies must be non-nullable |
+| IOC049 | Error | Dependency sets must be metadata-only |
+| IOC050 | Error | Dependency set cycle detected |
+| IOC051 | Error | Dependency set expansion collided with an existing dependency |
+| IOC052 | Warning | Dependency sets must not be registered as services |
+| IOC053 | Info | Repeated dependency cluster could be a dependency set |
+| IOC054 | Info | Service nearly matches an existing dependency set |
+| IOC055 | Info | Shared dependency cluster on related services |
+| IOC056 | Info | Use a single configuration binding style per section |
+| IOC057 | Warning | Configuration binding not found |
+| IOC058 | Info | Apply lifetime attribute to shared base class |
+| IOC059 | Warning | Singleton lifetime attribute is redundant |
+| IOC060 | Warning | Transient lifetime attribute is redundant |
+| IOC061 | Warning | Dependency set already applied in base class |
+| IOC062 | Info | Move shared dependency set to base class |
+| IOC063 | Warning | RegisterAs attribute is redundant on derived class |
+| IOC064 | Info | Move shared RegisterAs to base class |
+| IOC065 | Warning | RegisterAsAll attribute is redundant on derived class |
+| IOC067 | Warning | ConditionalService attribute is redundant on derived class |
+| IOC068 | Info | Constructor parameters could be expressed with [DependsOn] and lifetime attribute |
+| IOC069 | Warning | RegisterAs requires a lifetime attribute |
+| IOC070 | Warning | DependsOn/Inject used without lifetime |
+| IOC071 | Warning | ConditionalService missing lifetime |
+| IOC072 | Warning | Hosted service lifetime should be implicit |
+| IOC074 | Info | Multi-interface class could use RegisterAsAll |
+| IOC075 | Warning | Inconsistent lifetimes across inherited services |
+| IOC076 | Warning | Property redundantly wraps IoCTools dependency field |
+| IOC077 | Error | Manual field shadows IoCTools-generated dependency |
+| IOC078 | Warning | MemberNames entry is suppressed by existing field |
+| IOC079 | Warning | Prefer DependsOnConfiguration over IConfiguration |
+| IOC080 | Error | Service class must be partial |
+| IOC081 | Warning | Manual registration duplicates IoCTools registration |
+| IOC082 | Error | Manual registration lifetime differs from IoCTools |
+| IOC083 | Error | Manual options registration duplicates IoCTools binding |
+| IOC084 | Warning | Lifetime attribute duplicates inherited lifetime |
+| IOC085 | Warning | Member name matches default |
+| IOC086 | Warning | Manual registration could use IoCTools attributes |
+
+**Note:** This table reflects the current diagnostic severities as defined in `DiagnosticDescriptors.cs`. Severities can be configured per-project using MSBuild properties (see "Configure Diagnostic Severity" above).
+
 Comprehensive diagnostic examples are available in `DiagnosticExamples.cs` within the sample application.
 
 ## Architecture
@@ -111,7 +202,7 @@ The main source generator is located in `IoCTools.Generator/DependencyInjectionG
 4. **Registration Methods**: Generates extension methods with cross-assembly type discovery
 5. **Enhanced Lifetime Management**: Individual lifetime attributes (`[Scoped]`, `[Singleton]`, `[Transient]`) with comprehensive validation and inheritance chain analysis
 6. **Advanced Generic Support**: Handles generic services with intelligent collection wrapper generation and automatic `IEnumerable<T>` injection
-7. **Comprehensive Diagnostic Validation**: Cross-assembly aware compile-time validation (IOC001-IOC031) with configurable MSBuild severity levels
+7. **Comprehensive Diagnostic Validation**: Cross-assembly aware compile-time validation (IOC001-IOC086) with configurable MSBuild severity levels
 8. **Configuration Integration**: Enhanced configuration binding with primitive type support
 9. **IHostedService Integration**: Unified detection and registration of background services
 
@@ -176,7 +267,7 @@ IoCTools/
 ├── IoCTools.Generator/              # Advanced source generator with intelligent service registration
 │   ├── Analysis/                    # DependencyAnalyzer, TypeAnalyzer with enhanced logic
 │   ├── CodeGeneration/              # ServiceRegistrationGenerator, ConstructorGenerator
-│   ├── Diagnostics/                 # Comprehensive IOC001-IOC031 diagnostic system
+│   ├── Diagnostics/                 # Comprehensive IOC001-IOC086 diagnostic system
 │   ├── Models/                      # ServiceRegistration, ConditionalServiceRegistration
 │   ├── Utilities/                   # Helper classes for symbol analysis
 │   └── IoCTools.Generator/          # Main generator with intelligent detection & cross-assembly validation
@@ -233,7 +324,7 @@ The sample application serves multiple purposes:
 **Key Sample Navigation:**
 - **Start Here**: `ArchitecturalEnhancementsExamples.cs` for modern patterns and architectural enhancements
 - **Core Patterns**: `BasicUsageExamples.cs` for fundamental usage with individual lifetime attributes
-- **Diagnostics**: `DiagnosticExamples.cs` for comprehensive validation understanding (IOC001-IOC031)
+- **Diagnostics**: `DiagnosticExamples.cs` for comprehensive validation understanding (IOC001-IOC086)
 - **Advanced Scenarios**: `InheritanceExamples.cs` for complex inheritance with enhanced constructor generation
 - **Registration Patterns**: `RegisterAsExamples.cs` for selective interface registration with InstanceSharing modes
 - **Collections**: `CollectionInjectionExamples.cs` for intelligent collection dependency injection
@@ -319,7 +410,7 @@ while (currentType != null && currentType.SpecialType != SpecialType.System_Obje
 - **Diagnostic Testing**: Deliberately problematic examples verify diagnostic system behavior
 
 **7. Enhanced Diagnostic System Architecture**
-- **Comprehensive Coverage**: IOC001-IOC031 covering all common DI mistakes and architectural issues
+- **Comprehensive Coverage**: IOC001-IOC086 covering all common DI mistakes and architectural issues
 - **Configurable MSBuild Severity**: Full integration allows per-project diagnostic customization with granular control
 - **Cross-Assembly Awareness**: Validates dependencies across project boundaries with intelligent fix suggestions
 - **Real-time Feedback**: Build-time validation catches issues before runtime with modern lifetime attribute references
