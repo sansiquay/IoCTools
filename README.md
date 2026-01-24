@@ -428,12 +428,14 @@ public static class GeneratedServiceCollectionExtensions
 | IOC063 | Warning | `[RegisterAs]` attribute is redundant on derived class (inherited from base). |
 | IOC064 | Info | Move shared `[RegisterAs]` to base class to reduce duplication. |
 | IOC065 | Warning | `[RegisterAsAll]` attribute is redundant on derived class. |
+| IOC066 | — | Reserved (move shared `[RegisterAsAll]` to base class suggestion). |
 | IOC067 | Warning | `[ConditionalService]` attribute is redundant on derived class (same condition as base). |
 | IOC068 | Info | Class has a manual constructor with injectable parameters but no IoCTools attributes. Consider opting in. |
 | IOC069 | Warning | `[RegisterAs]` requires a lifetime attribute. |
 | IOC070 | Warning | `[DependsOn]`/`[Inject]` used without lifetime. Add `[Scoped]`, `[Singleton]`, or `[Transient]`. |
 | IOC071 | Warning | `[ConditionalService]` missing lifetime. Add a lifetime attribute. |
 | IOC072 | Warning | Hosted service declares explicit lifetime. Remove it (IHostedService is registered implicitly). |
+| IOC073 | — | Reserved (previously had collision, now unused). |
 | IOC074 | Info | Multi-interface class could use `[RegisterAsAll]` to register all interfaces. |
 | IOC075 | Warning | Inconsistent lifetimes across inherited services. Move lifetime to base class. |
 | IOC076 | Warning | Property redundantly wraps IoCTools dependency field. Access the field directly. |
