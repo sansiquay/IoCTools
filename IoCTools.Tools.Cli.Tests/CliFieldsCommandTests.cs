@@ -33,7 +33,7 @@ public sealed class CliFieldsCommandTests
         result.Stdout.Should().Contain("Service: FieldsProject.Services.TelemetryReporter");
         result.Stdout.Should().Contain("Generated Dependencies:");
         result.Stdout.Should()
-            .Contain("Microsoft.Extensions.Logging.ILogger<FieldsProject.Services.TelemetryReporter> => _logger");
+            .Contain("ILogger<FieldsProject.Services.TelemetryReporter> => _logger");
         result.Stdout.Should().Contain("FieldsProject.Services.IMetricsClient => _metricsClient");
         result.Stdout.Should().Contain("Generated Config Fields:");
         result.Stdout.Should().Contain("key: Observability:Endpoint, required");
@@ -108,6 +108,46 @@ public sealed class CliFieldsCommandTests
 
         result.ExitCode.Should().Be(1);
         result.Stderr.Should().Contain("was not found");
+    }
+
+    [Fact]
+    public async Task FieldsCommand_WithSourceFlag_OutputsGeneratedConstructor()
+    {
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project", FieldsProjectPath,
+            "--file", TelemetryFilePath,
+            "--type", "FieldsProject.Services.TelemetryReporter",
+            "--source",
+            "--output", tempDir);
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("public partial class TelemetryReporter");
+        result.Stdout.Should().Contain("public TelemetryReporter(");
+        result.Stdout.Should().Contain("_logger = logger;");
+        result.Stdout.Should().Contain("_metricsClient = metricsClient;");
+    }
+
+    [Fact]
+    public async Task FieldsCommand_WithSourceFlag_NoMatchingTypes_ShowsMessage()
+    {
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project", FieldsProjectPath,
+            "--file", PlainFilePath,
+            "--source",
+            "--output", tempDir);
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("No IoCTools-enabled services found in file.");
     }
 }
 

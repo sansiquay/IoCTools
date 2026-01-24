@@ -6,6 +6,12 @@ internal static class TypeSkipEvaluator
         Compilation compilation,
         GeneratorStyleOptions options)
     {
+        // Fast-path: Mediator handler interfaces by simple name (handles generics and avoids metadata lookup issues)
+        if (classSymbol.AllInterfaces.Any(i =>
+                i.Name is "IRequestHandler" or "INotificationHandler" or "IStreamRequestHandler" or
+                "IPipelineBehavior"))
+            return true;
+
         // Project-level exceptions always allow registration
         var fullName = classSymbol.ToDisplayString();
         if (options.SkipAssignableExceptions.Contains(fullName) ||

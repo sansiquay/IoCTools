@@ -82,6 +82,36 @@ public static class Program
             return 0;
         }
 
+        if (options.OutputSource)
+        {
+            // Output the generated constructor source code for matching types
+            var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
+            var foundAny = false;
+
+            foreach (var report in reports)
+            {
+                var symbol = await inspector.FindServiceSymbolAsync(options.FilePath, report.TypeName, token);
+                if (symbol == null) continue;
+
+                var hintName = HintNameBuilder.GetConstructorHint(symbol);
+                if (artifacts.TryGetFile(hintName, out var path))
+                {
+                    if (foundAny) Console.WriteLine();
+                    Console.WriteLine($"// {report.TypeName}");
+                    var source = await File.ReadAllTextAsync(path!, token);
+                    Console.WriteLine(source);
+                    foundAny = true;
+                }
+            }
+
+            if (!foundAny)
+            {
+                Console.WriteLine("// No generated constructor source found for the specified types.");
+            }
+
+            return 0;
+        }
+
         foreach (var report in reports)
         {
             Console.WriteLine($"Service: {report.TypeName}");
@@ -168,9 +198,45 @@ public static class Program
             return 0;
         }
 
-        var summary = RegistrationSummaryBuilder.Build(path!);
-        RegistrationPrinter.Write(summary);
+        if (options.OutputSource)
+        {
+            var source = await File.ReadAllTextAsync(path!, token);
+            if (options.TypeFilter != null)
+            {
+                var filtered = ExtractTypeRegistrations(source, options.TypeFilter);
+                Console.WriteLine(filtered ?? $"// No registrations found for type '{options.TypeFilter}'");
+            }
+            else
+            {
+                Console.WriteLine(source);
+            }
+        }
+        else
+        {
+            var summary = RegistrationSummaryBuilder.Build(path!);
+            RegistrationPrinter.Write(summary);
+        }
         return 0;
+    }
+
+    private static string? ExtractTypeRegistrations(string source, string typeFilter)
+    {
+        // Extract lines containing the type filter from registration code
+        var lines = source.Split('\n');
+        var matches = new List<string>();
+        var typeName = typeFilter.Contains('.') ? typeFilter.Split('.')[^1] : typeFilter;
+
+        foreach (var line in lines)
+        {
+            if (line.Contains(typeName, StringComparison.Ordinal) &&
+                (line.Contains("Add", StringComparison.Ordinal) ||
+                 line.Contains("services.", StringComparison.Ordinal)))
+            {
+                matches.Add(line.TrimEnd('\r'));
+            }
+        }
+
+        return matches.Count > 0 ? string.Join(Environment.NewLine, matches) : null;
     }
 
     private static async Task<int> RunServicesPathAsync(string[] args,

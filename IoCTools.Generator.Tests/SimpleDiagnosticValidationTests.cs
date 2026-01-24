@@ -130,9 +130,9 @@ public interface IUnknownService { }";
 
         // Warning severity for best practices
         DiagnosticDescriptors.NoImplementationFound.DefaultSeverity.Should()
-            .Be(DiagnosticSeverity.Warning);
+            .Be(DiagnosticSeverity.Error);
         DiagnosticDescriptors.ImplementationNotRegistered.DefaultSeverity.Should()
-            .Be(DiagnosticSeverity.Warning);
+            .Be(DiagnosticSeverity.Error);
         DiagnosticDescriptors.SingletonDependsOnTransient.DefaultSeverity.Should()
             .Be(DiagnosticSeverity.Warning);
     }

@@ -15,22 +15,22 @@ internal static partial class ServiceRegistrationGenerator
                               m.IsKind(SyntaxKind.ConstKeyword)))
                 continue;
             foreach (var attrList in field.AttributeLists)
-            foreach (var attr in attrList.Attributes)
-            {
-                var name = attr.Name.ToString();
-                if (name == "InjectConfiguration" || name == "InjectConfigurationAttribute" ||
-                    name.EndsWith("InjectConfiguration") || name.EndsWith("InjectConfigurationAttribute"))
-                    return true;
-            }
+                foreach (var attr in attrList.Attributes)
+                {
+                    var name = attr.Name.ToString();
+                    if (name == "InjectConfiguration" || name == "InjectConfigurationAttribute" ||
+                        name.EndsWith("InjectConfiguration") || name.EndsWith("InjectConfigurationAttribute"))
+                        return true;
+                }
         }
 
         foreach (var attrList in typeDeclaration.AttributeLists)
-        foreach (var attr in attrList.Attributes)
-        {
-            var name = attr.Name.ToString();
-            if (name.Contains("DependsOnConfiguration"))
-                return true;
-        }
+            foreach (var attr in attrList.Attributes)
+            {
+                var name = attr.Name.ToString();
+                if (name.Contains("DependsOnConfiguration"))
+                    return true;
+            }
 
         return false;
     }

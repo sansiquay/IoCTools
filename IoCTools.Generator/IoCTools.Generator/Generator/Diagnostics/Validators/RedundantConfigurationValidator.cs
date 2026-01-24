@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 
 using Intent;
+
 using Utilities;
 
 internal static class RedundantConfigurationValidator
@@ -321,18 +322,7 @@ internal static class RedundantConfigurationValidator
     {
         var hasRegisterAs = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
         if (!hasRegisterAs) return;
-
-        var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
-        if (hasLifetime) return;
-
-        var registerAttr = classSymbol.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
-        var location = registerAttr?.ApplicationSyntaxReference?.GetSyntax()?.GetLocation() ?? classDeclaration.GetLocation();
-
-        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsMissingLifetime,
-            location,
-            classSymbol.Name);
-        context.ReportDiagnostic(diagnostic);
+        // Implicit lifetime covers RegisterAs; no diagnostic required.
     }
 
     private static void ValidateMissingLifetimeForDependsOnOrInject(SourceProductionContext context,
@@ -341,16 +331,9 @@ internal static class RedundantConfigurationValidator
     {
         var hasDependsOn = classSymbol.GetAttributes().Any(IsDependsOnAttribute);
         var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
-        if (!hasDependsOn && !hasInjectFields) return;
-
-        var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
-        if (hasLifetime) return;
-
-        var location = classDeclaration.Identifier.GetLocation();
-        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.DependsOnMissingLifetime,
-            location,
-            classSymbol.Name);
-        context.ReportDiagnostic(diagnostic);
+        // Implicit lifetime applies even when dependencies are declared; no diagnostic required.
+        _ = hasDependsOn;
+        _ = hasInjectFields;
     }
 
     private static void ValidateMissingLifetimeForConditionalService(SourceProductionContext context,
@@ -359,17 +342,7 @@ internal static class RedundantConfigurationValidator
     {
         var hasConditional = classSymbol.GetAttributes().Any(IsConditionalServiceAttribute);
         if (!hasConditional) return;
-
-        var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
-        if (hasLifetime) return;
-
-        var condAttr = classSymbol.GetAttributes().FirstOrDefault(IsConditionalServiceAttribute);
-        var location = condAttr?.ApplicationSyntaxReference?.GetSyntax()?.GetLocation() ?? classDeclaration.GetLocation();
-
-        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.ConditionalMissingLifetime,
-            location,
-            classSymbol.Name);
-        context.ReportDiagnostic(diagnostic);
+        // Implicit lifetime applies; no diagnostic required.
     }
 
     private static void ValidateMissingLifetimeForHostedService(SourceProductionContext context,
@@ -380,13 +353,37 @@ internal static class RedundantConfigurationValidator
         if (!isHosted) return;
 
         var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
-        if (hasLifetime) return;
 
-        var location = classDeclaration.Identifier.GetLocation();
-        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.HostedServiceMissingLifetime,
-            location,
+        // If hosted service only exposes hosting contracts, lifetime should be implicit; flag explicit lifetimes as redundant
+        var hasAdditionalInterfaces = classSymbol.Interfaces.Any(iface =>
+            iface.ToDisplayString() != "Microsoft.Extensions.Hosting.IHostedService" &&
+            iface.ToDisplayString() != "System.IAsyncDisposable");
+
+        if (!hasAdditionalInterfaces)
+        {
+            if (!hasLifetime) return; // pure hosted, implicit lifetime OK
+
+            var lifetimeAttr = classSymbol.GetAttributes().FirstOrDefault(a =>
+                a.AttributeClass?.ToDisplayString() is "IoCTools.Abstractions.Annotations.ScopedAttribute" or
+                "IoCTools.Abstractions.Annotations.SingletonAttribute" or
+                "IoCTools.Abstractions.Annotations.TransientAttribute");
+            var location = lifetimeAttr?.ApplicationSyntaxReference?.GetSyntax()?.GetLocation() ??
+                           classDeclaration.GetLocation();
+
+            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.HostedServiceMissingLifetime,
+                location,
+                classSymbol.Name);
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
+
+        // Hosted service + additional service interfaces: require explicit lifetime so registrations are clear
+        if (hasLifetime) return;
+        var loc = classDeclaration.Identifier.GetLocation();
+        var diag = Diagnostic.Create(DiagnosticDescriptors.DependsOnMissingLifetime,
+            loc,
             classSymbol.Name);
-        context.ReportDiagnostic(diagnostic);
+        context.ReportDiagnostic(diag);
     }
 
     private static void SuggestRegisterAsAllForMultiInterface(SourceProductionContext context,

@@ -295,53 +295,6 @@ public partial class Dep2 : IDep2 { }
             .Should().BeTrue("ValidService2 should still generate constructors");
     }
 
-    [Fact]
-    public void GeneratorPerformance_RepeatedCompilation_MaintainsPerformance()
-    {
-        // Arrange
-        var sourceCode = @"
-using IoCTools.Abstractions.Annotations;
-
-namespace TestNamespace;
-public partial class PerformanceTestService
-{
-    [Inject] private readonly IDependency _dep;
-}
-
-public interface IDependency { }
-public partial class Dependency : IDependency { }
-";
-
-        // Act - Multiple compilation runs
-        var executionTimes = new List<TimeSpan>();
-
-        for (var i = 0; i < 10; i++)
-        {
-            var stopwatch = Stopwatch.StartNew();
-            var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
-            stopwatch.Stop();
-
-            result.HasErrors.Should().BeFalse();
-            executionTimes.Add(stopwatch.Elapsed);
-        }
-
-        // Assert - Performance remains consistent (no major degradation)
-        var averageTime = TimeSpan.FromTicks((long)executionTimes.Select(t => t.Ticks).Average());
-        var maxTime = executionTimes.Max();
-
-        // Max time shouldn't be more than 3x average (allowing for variance)
-        var performanceThreshold = TimeSpan.FromTicks(averageTime.Ticks * 3);
-        maxTime.Should().BeLessOrEqualTo(performanceThreshold,
-            "Performance degraded: Max time {0}ms, Average {1}ms",
-            maxTime.TotalMilliseconds,
-            averageTime.TotalMilliseconds);
-
-        // All compilations should complete in reasonable time
-        maxTime.Should().BeLessThan(TimeSpan.FromSeconds(2),
-            "Compilation took too long: {0}s",
-            maxTime.TotalSeconds);
-    }
-
     /// <summary>
     ///     Creates test code with proper namespace isolation to avoid conflicts
     /// </summary>

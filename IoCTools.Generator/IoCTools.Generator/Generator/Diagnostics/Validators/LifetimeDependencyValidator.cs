@@ -170,28 +170,28 @@ internal static class LifetimeDependencyValidator
 
         if (!foundImplementations)
             foreach (var kvp in allImplementations)
-            foreach (var implementation in kvp.Value)
-            {
-                if (!processed.Add(implementation.ToDisplayString())) continue;
-                var interfaces = implementation.AllInterfaces.Select(i => i.ToDisplayString());
-                if (!interfaces.Contains(innerType)) continue;
-                var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
-                    implicitLifetime);
-                if (implLifetime == null) continue;
-                if (serviceLifetime == "Singleton" && implLifetime == "Scoped")
+                foreach (var implementation in kvp.Value)
                 {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
+                    if (!processed.Add(implementation.ToDisplayString())) continue;
+                    var interfaces = implementation.AllInterfaces.Select(i => i.ToDisplayString());
+                    if (!interfaces.Contains(innerType)) continue;
+                    var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
+                        implicitLifetime);
+                    if (implLifetime == null) continue;
+                    if (serviceLifetime == "Singleton" && implLifetime == "Scoped")
+                    {
+                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
+                            classDeclaration.GetLocation(), classSymbol.Name,
+                            $"{dependencyTypeName} -> {implementation.Name}");
+                        context.ReportDiagnostic(diagnostic);
+                    }
+                    else if (serviceLifetime == "Singleton" && implLifetime == "Transient")
+                    {
+                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
+                            classDeclaration.GetLocation(), classSymbol.Name,
+                            $"{dependencyTypeName} -> {implementation.Name}");
+                        context.ReportDiagnostic(diagnostic);
+                    }
                 }
-                else if (serviceLifetime == "Singleton" && implLifetime == "Transient")
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
-            }
     }
 }

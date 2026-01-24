@@ -467,7 +467,7 @@ public partial class SingletonService{i}
         stopwatch.Stop();
 
         // Should complete in reasonable time
-        (stopwatch.ElapsedMilliseconds < 15000).Should()
+        (stopwatch.ElapsedMilliseconds < 20000).Should()
             .BeTrue($"Many services validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should detect all violations

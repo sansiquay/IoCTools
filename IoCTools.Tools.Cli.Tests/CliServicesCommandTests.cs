@@ -66,4 +66,60 @@ public sealed class CliServicesCommandTests
         var contents = await File.ReadAllTextAsync(path);
         contents.Should().Contain("public static class GeneratedServiceCollectionExtensions");
     }
+
+    [Fact]
+    public async Task ServicesCommand_WithSourceFlag_OutputsFullGeneratedSource()
+    {
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        var result = await CliTestHost.RunAsync(
+            "services",
+            "--project", RegistrationProject,
+            "--output", tempDir,
+            "--source");
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("public static class GeneratedServiceCollectionExtensions");
+        result.Stdout.Should().Contain("AddRegistrationProjectRegisteredServices");
+        result.Stdout.Should().Contain("services.AddSingleton<AnalyticsProcessor>();");
+    }
+
+    [Fact]
+    public async Task ServicesCommand_WithSourceAndTypeFilter_OutputsFilteredSource()
+    {
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        var result = await CliTestHost.RunAsync(
+            "services",
+            "--project", RegistrationProject,
+            "--output", tempDir,
+            "--source",
+            "--type", "AnalyticsProcessor");
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("AnalyticsProcessor");
+        result.Stdout.Should().NotContain("NotificationDispatcher");
+    }
+
+    [Fact]
+    public async Task ServicesCommand_WithSourceAndNonMatchingType_ShowsNotFoundMessage()
+    {
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        var result = await CliTestHost.RunAsync(
+            "services",
+            "--project", RegistrationProject,
+            "--output", tempDir,
+            "--source",
+            "--type", "NonExistentService");
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("No registrations found for type");
+    }
 }

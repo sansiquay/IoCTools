@@ -11,7 +11,8 @@ internal sealed class DependencySetExpansionResult
     }
 
     public List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)>
-        Dependencies { get; }
+        Dependencies
+    { get; }
 
     public List<(ConfigurationInjectionInfo Config, INamedTypeSymbol? OriginSet)> Configurations { get; }
 }

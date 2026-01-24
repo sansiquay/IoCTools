@@ -47,7 +47,7 @@ namespace Test
         var result = SourceGeneratorTestHelper.CompileWithGenerator(code);
         result.HasErrors.Should().BeFalse();
         var reg = result.GetServiceRegistrationSource();
-        reg!.Content.Should().Contain("CreateUserHandler");
+        reg.Should().BeNull("Mediator handlers are skipped for registration");
     }
 
     [Fact]
@@ -69,7 +69,7 @@ namespace Test
         var result = SourceGeneratorTestHelper.CompileWithGenerator(code);
         result.HasErrors.Should().BeFalse();
         var reg = result.GetServiceRegistrationSource();
-        reg!.Content.Should().Contain("CreateUserHandler");
+        reg.Should().BeNull("Mediator/MediatR handlers are skipped for registration");
     }
 
     [Fact]
@@ -134,7 +134,7 @@ namespace Test
         var result = SourceGeneratorTestHelper.CompileWithGenerator(code);
         result.HasErrors.Should().BeFalse();
         var reg = result.GetServiceRegistrationSource();
-        reg!.Content.Should().Contain("TimingBehavior");
+        reg.Should().BeNull("Mediator pipeline behaviors are skipped for registration");
     }
 
     [Fact]

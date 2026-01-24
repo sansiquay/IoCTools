@@ -47,15 +47,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Test;
 
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""loggerA"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""loggerA"")]
 public interface InfraA : IDependencySet {}
 
 [DependsOn<InfraA>]
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""loggerB"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""loggerB"")]
 public interface InfraB : IDependencySet {}
 
 [DependsOn<InfraB>]
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""loggerC"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""loggerC"")]
 public interface InfraC : IDependencySet {}
 
 [DependsOn<InfraC>]

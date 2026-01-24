@@ -18,8 +18,10 @@ internal static class CommandLineParser
             ? filterValues.Select(v => v.Trim()).Where(v => v.Length > 0)
                 .Distinct(StringComparer.Ordinal).ToArray()
             : Array.Empty<string>();
+        var outputSource = map.ContainsKey("source");
+        var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
 
-        return ParseResult<FieldsCommandOptions>.Ok(new FieldsCommandOptions(common, file, filters));
+        return ParseResult<FieldsCommandOptions>.Ok(new FieldsCommandOptions(common, file, filters, outputSource, output));
     }
 
     internal static ParseResult<FieldsPathCommandOptions> ParseFieldsPath(string[] args)
@@ -55,7 +57,9 @@ internal static class CommandLineParser
 
         var common = BuildCommon(projectValues[^1], map);
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
-        return ParseResult<ServicesCommandOptions>.Ok(new ServicesCommandOptions(common, output));
+        var outputSource = map.ContainsKey("source");
+        var typeFilter = map.TryGetValue("type", out var typeValues) ? typeValues[^1] : null;
+        return ParseResult<ServicesCommandOptions>.Ok(new ServicesCommandOptions(common, output, outputSource, typeFilter));
     }
 
     internal static ParseResult<ExplainCommandOptions> ParseExplain(string[] args)
@@ -198,6 +202,7 @@ internal static class CommandLineParser
                 "--baseline" => "baseline",
                 "--settings" => "settings",
                 "--fixable-only" => "fixable-only",
+                "--source" or "-s" => "source",
                 _ => token
             };
 
@@ -207,7 +212,7 @@ internal static class CommandLineParser
                 return false;
             }
 
-            var isFlag = key is "fixable-only";
+            var isFlag = key is "fixable-only" or "source";
 
             if (value == null && !isFlag)
             {
@@ -265,7 +270,7 @@ internal sealed record ParseResult<T>(bool Success, T? Value, string? Error)
 
 internal sealed record CommonOptions(string ProjectPath, string Configuration, string? Framework);
 
-internal sealed record FieldsCommandOptions(CommonOptions Common, string FilePath, IReadOnlyList<string> TypeFilters);
+internal sealed record FieldsCommandOptions(CommonOptions Common, string FilePath, IReadOnlyList<string> TypeFilters, bool OutputSource, string? OutputDirectory);
 
 internal sealed record FieldsPathCommandOptions(
     CommonOptions Common,
@@ -273,7 +278,7 @@ internal sealed record FieldsPathCommandOptions(
     string TypeName,
     string? OutputDirectory);
 
-internal sealed record ServicesCommandOptions(CommonOptions Common, string? OutputDirectory);
+internal sealed record ServicesCommandOptions(CommonOptions Common, string? OutputDirectory, bool OutputSource, string? TypeFilter);
 
 internal sealed record ExplainCommandOptions(CommonOptions Common, string TypeName, string? OutputDirectory);
 

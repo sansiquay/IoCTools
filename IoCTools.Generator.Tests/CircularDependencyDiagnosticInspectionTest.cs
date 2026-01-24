@@ -48,7 +48,7 @@ public partial class ServiceB : IB
         foreach (var diagnostic in ioc003Diagnostics)
         {
             diagnostic.Id.Should().Be("IOC003");
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
 
             var message = diagnostic.GetMessage();
@@ -90,7 +90,7 @@ public partial class SelfService : ISelfService
         Debug.WriteLine($"Self-Reference IOC003 Message: {message}");
 
         diagnostic.Id.Should().Be("IOC003");
-        diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+        diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
         message.Should().Contain("Circular dependency detected");
         message.Should().Contain("SelfService");
     }

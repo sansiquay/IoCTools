@@ -62,14 +62,14 @@ internal static class ServiceDiscovery
         foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)
             if (declaringSyntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
                 foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                foreach (var attributeList in fieldDeclaration.AttributeLists)
-                foreach (var attribute in attributeList.Attributes)
-                {
-                    var attributeText = attribute.Name.ToString();
-                    if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
-                        attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute"))
-                        return true;
-                }
+                    foreach (var attributeList in fieldDeclaration.AttributeLists)
+                        foreach (var attribute in attributeList.Attributes)
+                        {
+                            var attributeText = attribute.Name.ToString();
+                            if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
+                                attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute"))
+                                return true;
+                        }
 
         return classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field => field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectAttribute"));
@@ -80,15 +80,15 @@ internal static class ServiceDiscovery
         foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)
             if (declaringSyntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
                 foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                foreach (var attributeList in fieldDeclaration.AttributeLists)
-                foreach (var attribute in attributeList.Attributes)
-                {
-                    var attributeText = attribute.Name.ToString();
-                    if (attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
-                        attributeText.EndsWith("InjectConfiguration") ||
-                        attributeText.EndsWith("InjectConfigurationAttribute"))
-                        return true;
-                }
+                    foreach (var attributeList in fieldDeclaration.AttributeLists)
+                        foreach (var attribute in attributeList.Attributes)
+                        {
+                            var attributeText = attribute.Name.ToString();
+                            if (attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
+                                attributeText.EndsWith("InjectConfiguration") ||
+                                attributeText.EndsWith("InjectConfigurationAttribute"))
+                                return true;
+                        }
 
         var hasFieldAttributes = classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field =>

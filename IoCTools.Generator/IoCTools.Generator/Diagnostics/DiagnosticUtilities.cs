@@ -31,10 +31,10 @@ internal static class DiagnosticUtilities
         => new()
         {
             DiagnosticsEnabled = true,
-            NoImplementationSeverity = DiagnosticSeverity.Warning,
-            ManualImplementationSeverity = DiagnosticSeverity.Warning,
+            NoImplementationSeverity = DiagnosticSeverity.Error,
+            ManualImplementationSeverity = DiagnosticSeverity.Error,
             LifetimeValidationEnabled = true,
-            LifetimeValidationSeverity = DiagnosticSeverity.Warning
+            LifetimeValidationSeverity = DiagnosticSeverity.Error
         };
 
     public static DiagnosticConfiguration GetDiagnosticConfiguration(AnalyzerConfigOptionsProvider options)
@@ -64,7 +64,7 @@ internal static class DiagnosticUtilities
             "warning" => DiagnosticSeverity.Warning,
             "info" => DiagnosticSeverity.Info,
             "hidden" => DiagnosticSeverity.Hidden,
-            _ => DiagnosticSeverity.Warning
+            _ => DiagnosticSeverity.Error
         };
 
     public static DiagnosticDescriptor CreateDynamicDescriptor(DiagnosticDescriptor baseDescriptor,

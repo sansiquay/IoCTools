@@ -133,11 +133,11 @@ namespace TestNamespace
         _output.WriteLine("Generated ServiceRegistrations:");
         _output.WriteLine(generatedCode);
 
-        // Verify Configure<ApiSettings> appears only once
+        // Verify Configure<...ApiSettings> appears only once (using fully-qualified name now)
         var configureMatches = Regex.Matches(
-            generatedCode, @"Configure<ApiSettings>");
+            generatedCode, @"Configure<global::TestNamespace\.ApiSettings>");
         (configureMatches.Count == 1).Should()
-            .BeTrue($"Configure<ApiSettings> should appear exactly once, found {configureMatches.Count}");
+            .BeTrue($"Configure<global::TestNamespace.ApiSettings> should appear exactly once, found {configureMatches.Count}");
 
         // Verify "Api" section binding appears only once
         var sectionMatches = Regex.Matches(

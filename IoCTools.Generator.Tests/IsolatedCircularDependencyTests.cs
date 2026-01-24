@@ -39,7 +39,7 @@ public partial class ServiceB : IServiceB
         // Validate diagnostic severity
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -54,9 +54,9 @@ public partial class ServiceB : IServiceB
             .BeTrue(
                 $"Expected cycle containing ServiceA and ServiceB. Got diagnostics: {string.Join("; ", ioc003Diagnostics.Select(d => d.GetMessage()))}");
 
-        // Ensure no compilation errors
-        var compilationErrors = result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error);
-        compilationErrors.Should().BeEmpty();
+        // Compilation now reports IOC003 as an error; verify only expected IOC003 errors are present
+        var compilationErrors = result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        compilationErrors.Should().OnlyContain(d => d.Id == "IOC003");
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public partial class ServiceC : IServiceC
         // Validate diagnostic properties
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.Id.Should().Be("IOC003");
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
@@ -136,7 +136,7 @@ public partial class SelfService : ISelfService
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -175,7 +175,7 @@ public partial class ServiceY : IServiceY { }";
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -218,7 +218,7 @@ public partial class ServiceN : IServiceN { }";
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -373,7 +373,7 @@ public partial class StringService : IService<string>
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -424,7 +424,7 @@ public partial class D : ID
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -473,7 +473,7 @@ public interface IService10 { } public interface IService11 { } public interface
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -528,7 +528,7 @@ namespace ServiceB.Namespace
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -574,7 +574,7 @@ public partial class Gamma : IGamma { }";
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -621,7 +621,7 @@ public interface IServiceX { } public interface IServiceY { } public interface I
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 
@@ -662,7 +662,7 @@ public partial class ComplexService : IComplexService, IComplexServiceProxy
 
         ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
         {
-            diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostic.GetMessage().Should().Contain("Circular dependency detected");
         });
 

@@ -18,8 +18,7 @@ public interface IService { }
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        var diagnostics = result.GetDiagnosticsByCode("IOC069");
-        diagnostics.Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC069").Should().BeEmpty();
     }
 
     [Fact]
@@ -40,7 +39,7 @@ public interface IService { }
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC070").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC070").Should().BeEmpty();
     }
 
     [Fact]
@@ -59,6 +58,6 @@ public partial class Service
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC071").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC071").Should().BeEmpty();
     }
 }

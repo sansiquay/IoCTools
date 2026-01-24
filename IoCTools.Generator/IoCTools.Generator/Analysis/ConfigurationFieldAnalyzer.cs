@@ -29,18 +29,18 @@ internal static class ConfigurationFieldAnalyzer
                     // Check for [InjectConfiguration]
                     AttributeSyntax? injectConfigAttribute = null;
                     foreach (var attributeList in fieldDeclaration.AttributeLists)
-                    foreach (var attribute in attributeList.Attributes)
-                    {
-                        var attributeText = attribute.Name.ToString();
-                        if (attributeText == "InjectConfiguration" ||
-                            attributeText == "InjectConfigurationAttribute" ||
-                            attributeText.EndsWith("InjectConfiguration") ||
-                            attributeText.EndsWith("InjectConfigurationAttribute"))
+                        foreach (var attribute in attributeList.Attributes)
                         {
-                            injectConfigAttribute = attribute;
-                            break;
+                            var attributeText = attribute.Name.ToString();
+                            if (attributeText == "InjectConfiguration" ||
+                                attributeText == "InjectConfigurationAttribute" ||
+                                attributeText.EndsWith("InjectConfiguration") ||
+                                attributeText.EndsWith("InjectConfigurationAttribute"))
+                            {
+                                injectConfigAttribute = attribute;
+                                break;
+                            }
                         }
-                    }
 
                     if (injectConfigAttribute == null) continue;
 
@@ -289,12 +289,21 @@ internal static class ConfigurationFieldAnalyzer
 
         // If the last argument is the params string[] it will come through as an array typed constant.
         var lastArg = attribute.ConstructorArguments[attribute.ConstructorArguments.Length - 1];
-        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Values is { Length: > 0 } values &&
-            lastArg.Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String })
-            return values.Select(v => v.Value as string).ToArray();
+        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Type is IArrayTypeSymbol
+            {
+                ElementType.SpecialType: SpecialType.System_String
+            })
+        {
+            // Empty params arrays should not throw; treat them as no constructor keys supplied.
+            if (lastArg.Values is { Length: > 0 } values)
+                return values.Select(v => v.Value as string).ToArray();
+
+            return Array.Empty<string>();
+        }
 
         // Fallback: collect string constructor arguments while ignoring other option parameters.
         var strings = attribute.ConstructorArguments
+            .Where(arg => arg.Kind != TypedConstantKind.Array)
             .Select(arg => arg.Value as string)
             .Where(v => v != null)
             .ToArray();

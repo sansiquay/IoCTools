@@ -1,5 +1,6 @@
 namespace IoCTools.Generator.Generator;
 
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -77,6 +78,7 @@ internal static class DiagnosticRules
         Dictionary<string, List<INamedTypeSymbol>> allImplementations,
         Dictionary<string, string> serviceLifetimes,
         DiagnosticConfiguration diagnosticConfig,
+        INamedTypeSymbol classSymbol,
         string implicitLifetime)
     {
         foreach (var dependency in hierarchyDependencies.AllDependenciesWithExternalFlag)
@@ -89,7 +91,33 @@ internal static class DiagnosticRules
 
             var dependencyType = dependency.ServiceType.ToDisplayString();
 
+            // Heuristic: clean-architecture abstractions often live alongside the application layer
+            // while their implementations live in an infrastructure assembly that is not referenced
+            // by the current project. If the interface has no implementations in this compilation
+            // and sits in an *Abstractions* / *Contracts* / *Interfaces* namespace, assume it is
+            // provided by another assembly to avoid noisy IOC001/IOC002 false positives.
+            if (dependency.ServiceType.TypeKind == TypeKind.Interface &&
+                !allImplementations.ContainsKey(dependencyType) &&
+                !allRegisteredServices.Contains(dependencyType))
+            {
+                var ns = dependency.ServiceType.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+                if (ns.Contains("Abstractions", StringComparison.Ordinal) ||
+                    ns.Contains("Contracts", StringComparison.Ordinal) ||
+                    ns.Contains("Interfaces", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+            }
+
+            // If the dependency interface lives in a different assembly than the consuming class, assume
+            // it may be provided by another project/host; avoid false positives in clean-architecture splits.
+            // Cross-assembly dependencies: assume provided elsewhere (clean architecture splits); skip IOC001/002 here
+            if (!SymbolEqualityComparer.Default.Equals(dependency.ServiceType.ContainingAssembly,
+                    classSymbol.ContainingAssembly))
+                continue;
+
             if (TypeHelpers.IsFrameworkTypeAdapted(dependencyType) ||
+                FrameworkTypes.KnownTypes.Contains(dependencyType) ||
                 allRegisteredServices.Contains(dependencyType))
                 continue;
 
@@ -316,12 +344,14 @@ internal static class DiagnosticRules
         if (key!.Contains("::"))
             return new ConfigurationKeyValidationResult
             {
-                IsValid = false, ErrorMessage = "contains double colons (::)"
+                IsValid = false,
+                ErrorMessage = "contains double colons (::)"
             };
         if (key!.StartsWith(":") || key.EndsWith(":"))
             return new ConfigurationKeyValidationResult
             {
-                IsValid = false, ErrorMessage = "cannot start or end with a colon (:)"
+                IsValid = false,
+                ErrorMessage = "cannot start or end with a colon (:)"
             };
         if (key.Any(c => c == '\0' || c == '\r' || c == '\n' || c == '\t'))
             return new ConfigurationKeyValidationResult
@@ -348,6 +378,22 @@ internal static class DiagnosticRules
         InheritanceHierarchyDependencies hierarchyDependencies) =>
         DependencyUsageValidator.ValidateUnusedDependencies(context, classDeclaration, classSymbol, semanticModel,
             hierarchyDependencies);
+
+    public static void ValidateRedundantDependencyWrappers(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        SemanticModel? semanticModel,
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
+        DependencyUsageValidator.ValidateRedundantDependencyWrappers(context, classDeclaration, classSymbol,
+            semanticModel, hierarchyDependencies);
+
+    public static void ValidateManualDependencyFieldShadows(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        SemanticModel? semanticModel,
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
+        DependencyUsageValidator.ValidateManualDependencyFieldShadows(context, classDeclaration, classSymbol,
+            semanticModel, hierarchyDependencies);
 
     public static void ValidateDuplicateDependsOn(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
@@ -381,6 +427,12 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol,
         InheritanceHierarchyDependencies hierarchyDependencies) =>
         CollectionDependencyValidator.Validate(context, classDeclaration, classSymbol, hierarchyDependencies);
+
+    public static void ValidateIConfigurationUsage(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies) =>
+        IConfigurationUsageValidator.Validate(context, classDeclaration, classSymbol, hierarchyDependencies);
 
     public static void ValidateConfigurationRedundancy(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
@@ -472,19 +524,6 @@ internal static class DiagnosticRules
             var location = attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation();
             if (location == null || attribute.AttributeClass == null) continue;
 
-            // [DependsOn<...>] using named MemberNames
-            if (attribute.AttributeClass.Name.StartsWith("DependsOnAttribute", StringComparison.Ordinal) &&
-                attribute.NamedArguments.Any(arg => arg.Key == "MemberNames"))
-            {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.PreferParamsStyleAttributeArguments,
-                    location,
-                    attribute.AttributeClass.Name,
-                    classSymbol.Name,
-                    "MemberNames");
-                context.ReportDiagnostic(diagnostic);
-                continue;
-            }
-
             if (!AttributeParser.IsDependsOnConfigurationAttribute(attribute)) continue;
 
             if (attribute.NamedArguments.Any(arg => arg.Key == "ConfigurationKeys"))
@@ -503,6 +542,10 @@ internal static class DiagnosticRules
             }
         }
     }
+
+    public static void ValidateRedundantMemberNames(SourceProductionContext context,
+        INamedTypeSymbol classSymbol) =>
+        MemberNameRedundancyValidator.Validate(context, classSymbol);
 
     public static bool ValidateManualConstructorMixing(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
@@ -530,6 +573,12 @@ internal static class DiagnosticRules
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol) =>
         InjectUsageValidator.ValidatePreferDependsOn(context, classDeclaration, classSymbol);
+
+    // IOC080: Validate that classes with code-generating attributes are marked as partial
+    public static void ValidateMissingPartialKeyword(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol) =>
+        MissingPartialKeywordValidator.Validate(context, classDeclaration, classSymbol);
 
     // IOC015: Validate inheritance chain lifetime violations (SourceProductionContext)
     public static void ValidateInheritanceChainLifetimesForSourceProduction(SourceProductionContext context,

@@ -98,11 +98,17 @@ internal static partial class ServiceRegistrationGenerator
         if (configOptions != null && configOptions.Any())
         {
             uniqueNamespaces.Add("Microsoft.Extensions.Configuration");
+            uniqueNamespaces.Add("Microsoft.Extensions.Options");
+            uniqueNamespaces.Add("Microsoft.Extensions.DependencyInjection.Extensions");
             foreach (var configOption in configOptions)
             {
-                var optionsTypeName = RemoveNamespacesAndDots(configOption.OptionsType, uniqueNamespaces);
+                // Use fully-qualified type names to avoid ambiguity when duplicate type names exist in different namespaces
+                var optionsTypeName = TypeNameSimplifier.SimplifySystemTypesForServiceRegistration(
+                    configOption.OptionsType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 registrations.AppendLine(
                     $"         services.Configure<{optionsTypeName}>(options => configuration.GetSection(\"{configOption.SectionName}\").Bind(options));");
+                registrations.AppendLine(
+                    $"         services.TryAddSingleton(sp => sp.GetRequiredService<IOptions<{optionsTypeName}>>().Value);");
             }
         }
 
@@ -156,7 +162,7 @@ internal static partial class ServiceRegistrationGenerator
         GenerateCollectionWrapperRegistrations(regularServices, registrations, uniqueNamespaces);
 
         if (registrations.ToString().Contains("IList<") || registrations.ToString().Contains("IReadOnlyList<") ||
-            registrations.ToString().Contains(".ToList()"))
+            registrations.ToString().Contains("IReadOnlyCollection<") || registrations.ToString().Contains(".ToList()"))
         {
             uniqueNamespaces.Add("System.Collections.Generic");
             uniqueNamespaces.Add("System.Linq");

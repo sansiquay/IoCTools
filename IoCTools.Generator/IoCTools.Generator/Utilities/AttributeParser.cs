@@ -68,8 +68,7 @@ internal static class AttributeParser
     }
 
     public static (string namingConvention, bool stripI, string prefix, bool external, string[] memberNames)
-        GetDependsOnOptionsFromAttribute(
-            AttributeData attribute)
+        GetDependsOnOptionsFromAttribute(AttributeData attribute)
     {
         var namingConvention = "CamelCase";
         var stripI = true;
@@ -77,8 +76,11 @@ internal static class AttributeParser
         var external = false;
         var memberNames = Array.Empty<string>();
 
-        // Check constructor arguments first
         var constructorArgs = attribute.ConstructorArguments;
+
+        // The constructor shape is:
+        // (NamingConvention, bool stripI, string prefix, bool external, string? memberName1, ...)
+        // Member-name slots align with the generic arity; we read the provided strings past index 3.
         if (constructorArgs.Length > 0)
         {
             // First parameter is namingConvention
@@ -114,12 +116,21 @@ internal static class AttributeParser
             if (externalValue is bool ext) external = ext;
         }
 
-        // Last parameter may be memberNames (params string[])
-        var lastArg = constructorArgs.LastOrDefault();
-        if (lastArg.Kind == TypedConstantKind.Array && lastArg.Values is { Length: > 0 } values)
-            memberNames = values.Select(v => v.Value?.ToString() ?? string.Empty).ToArray();
+        var memberNameArgs = new List<string>();
+        if (constructorArgs.Length > 4)
+        {
+            for (var i = 4; i < constructorArgs.Length; i++)
+            {
+                var arg = constructorArgs[i];
+                if (arg.Kind == TypedConstantKind.Primitive && arg.Value is string s && !string.IsNullOrEmpty(s))
+                    memberNameArgs.Add(s);
+            }
+        }
 
-        // Also check named arguments as fallback (for backwards compatibility)
+        if (memberNameArgs.Count > 0)
+            memberNames = memberNameArgs.ToArray();
+
+        // Also check named arguments for backwards compatibility with old MemberNames; keep reading naming/external
         foreach (var namedArg in attribute.NamedArguments)
             switch (namedArg.Key)
             {
@@ -394,12 +405,29 @@ internal static class AttributeParser
     {
         if (string.IsNullOrWhiteSpace(typeName)) return typeName;
 
+        // Remove duplicated suffixes greedily, but leave one trailing suffix if present (so JitterConfiguration -> JitterConfiguration, OptionsOptions -> Options)
         var suffixes = new[] { "Settings", "Configuration", "Options" };
-        foreach (var suffix in suffixes)
-            if (typeName.EndsWith(suffix, StringComparison.Ordinal))
-                return typeName.Substring(0, typeName.Length - suffix.Length);
 
-        return typeName;
+        var trimmed = typeName;
+        var strippedCount = 0;
+
+        while (true)
+        {
+            var matched = suffixes.FirstOrDefault(s => trimmed.EndsWith(s, StringComparison.Ordinal));
+            if (matched == null) break;
+
+            // Stop after removing one suffix; collapse duplicates but keep a single suffix if present.
+            if (strippedCount > 0) break;
+
+            // If removing the suffix would drop everything, bail out
+            if (trimmed.Length == matched.Length) break;
+
+            trimmed = trimmed.Substring(0, trimmed.Length - matched.Length);
+            strippedCount++;
+        }
+
+        // If we stripped once, leave the remaining name without reappending the suffix (collapsing duplicates)
+        return string.IsNullOrWhiteSpace(trimmed) ? typeName : trimmed;
     }
 
     public static string DeriveNameTokenFromConfigurationKey(string? configurationKey)

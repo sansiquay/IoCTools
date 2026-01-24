@@ -95,6 +95,7 @@ Add these MSBuild properties to your project file:
 - **IOC015**: Inheritance chain lifetime conflicts with deep hierarchy support
 - **IOC006-IOC009**: Registration conflict detection with deduplication strategies
 - **IOC029-IOC031**: RegisterAs attribute validation (interface implementation, non-interface types, duplicates)
+- **IOC080**: Missing partial keyword on classes using code-generating attributes (`[Inject]`, `[DependsOn]`, etc.)
 - **Enhanced Error Messages**: All diagnostics now reference individual lifetime attributes (`[Scoped]`, `[Singleton]`, `[Transient]`)
 
 Comprehensive diagnostic examples are available in `DiagnosticExamples.cs` within the sample application.

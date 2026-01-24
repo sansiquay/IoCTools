@@ -24,24 +24,32 @@ internal static class ConfigurationOptionsScanner
             if (!hasLifetimeAttribute && !hasConditionalServiceAttribute && !isHostedServiceType) continue;
 
             var configFields = DependencyAnalyzer.GetConfigurationInjectedFieldsForType(classSymbol, semanticModel);
-            foreach (var configField in configFields.Where(f => f.IsOptionsPattern))
+            foreach (var configField in configFields)
             {
-                var optionsInnerType = configField.GetOptionsInnerType();
-                if (optionsInnerType != null && processedTypes.Add(optionsInnerType))
-                {
-                    var sectionName = configField.GetSectionName();
-                    configOptions.Add(new ConfigurationOptionsRegistration(optionsInnerType, sectionName));
-                }
+                var targetType = configField.IsOptionsPattern
+                    ? configField.GetOptionsInnerType()
+                    : configField.FieldType;
+
+                if (targetType == null) continue;
+
+                if (targetType.SpecialType != SpecialType.None) continue; // primitives/strings not option classes
+                if (!(targetType.IsReferenceType && targetType.TypeKind == TypeKind.Class)) continue;
+                if (!processedTypes.Add(targetType)) continue;
+
+                var sectionName = configField.GetSectionName();
+                configOptions.Add(new ConfigurationOptionsRegistration(targetType, sectionName));
             }
 
             var regularDependencies = DependencyAnalyzer.GetConstructorDependencies(classSymbol, semanticModel);
             foreach (var dependency in regularDependencies.AllDependencies)
                 if (dependency.ServiceType is INamedTypeSymbol namedType &&
                     namedType.OriginalDefinition.ToDisplayString()
-                        .StartsWith("Microsoft.Extensions.Options.IOptions<"))
+                        .StartsWith("Microsoft.Extensions.Options.IOptions"))
                 {
                     var optionsInnerType = namedType.TypeArguments.FirstOrDefault();
-                    if (optionsInnerType != null && processedTypes.Add(optionsInnerType))
+                    if (optionsInnerType != null && optionsInnerType.SpecialType == SpecialType.None &&
+                        optionsInnerType.IsReferenceType && optionsInnerType.TypeKind == TypeKind.Class &&
+                        processedTypes.Add(optionsInnerType))
                     {
                         var sectionName = InferSectionNameFromType(optionsInnerType);
                         configOptions.Add(new ConfigurationOptionsRegistration(optionsInnerType, sectionName));

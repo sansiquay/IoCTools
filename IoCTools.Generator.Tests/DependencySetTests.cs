@@ -114,10 +114,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Test;
 
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""firstLogger"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""firstLogger"")]
 public class InfraA : IDependencySet {}
 
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""secondLogger"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""secondLogger"")]
 public class InfraB : IDependencySet {}
 
 [DependsOn<InfraA>]
@@ -137,7 +137,9 @@ public partial class Service {}
         }
 
         var ctorDescription = string.Join(";", attr.ConstructorArguments.Select(a => $"{a.Kind}:{FormatConst(a)}"));
-        var ctorMemberNames = attr.ConstructorArguments.Last().Values.Select(v => v.Value?.ToString() ?? "<null>")
+        var ctorMemberNames = attr.ConstructorArguments.Skip(4)
+            .Where(a => a.Kind == TypedConstantKind.Primitive)
+            .Select(a => a.Value?.ToString() ?? "<null>")
             .ToArray();
         ctorMemberNames.Should().Contain("firstLogger",
             $"CtorArgs:{ctorDescription}; named:{string.Join(",", attr.NamedArguments.Select(n => n.Key + ":" + n.Value))}");

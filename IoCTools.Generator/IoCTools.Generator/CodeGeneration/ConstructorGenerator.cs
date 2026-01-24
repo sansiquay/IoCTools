@@ -60,28 +60,11 @@ internal static partial class ConstructorGenerator
             if (semanticModel == null)
                 throw new ArgumentNullException(nameof(semanticModel));
 
-            // CRITICAL FIX: Check if class is marked as partial
-            // Constructor generation only works for partial classes
+            // Check if class is marked as partial - constructor generation only works for partial classes
+            // The diagnostic for missing partial keyword is now handled by IOC080 in DiagnosticsRunner
             var isPartial = classDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
             if (!isPartial)
             {
-                // For non-partial classes with [Inject] fields, report a diagnostic error
-                // instead of trying to generate a constructor that won't compile
-                var nonPartialClassSymbol = semanticModel.GetDeclaredSymbol(classDeclaration);
-                if (nonPartialClassSymbol != null && HasInjectFields(hierarchyDependencies))
-                {
-                    var descriptor = new DiagnosticDescriptor(
-                        "IOC030",
-                        "Class with [Inject] fields must be marked as partial",
-                        "Class '{0}' contains [Inject] fields but is not marked as partial. Add the 'partial' keyword to enable constructor generation.",
-                        "IoCTools",
-                        DiagnosticSeverity.Warning, // Changed to Warning for educational examples
-                        true);
-
-                    var location = classDeclaration.Identifier.GetLocation();
-                    reportDiagnostic(descriptor, location, new object[] { nonPartialClassSymbol.Name });
-                }
-
                 // Return empty string - do not generate constructor for non-partial classes
                 return "";
             }

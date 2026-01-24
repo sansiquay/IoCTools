@@ -51,7 +51,14 @@ internal sealed class GeneratorStyleOptions
         var defaults = new HashSet<string>(StringComparer.Ordinal)
         {
             // ASP.NET Core
-            "Microsoft.AspNetCore.Mvc.ControllerBase"
+            "Microsoft.AspNetCore.Mvc.ControllerBase",
+
+            // Mediator handlers (skip registration/lifetime; Mediator registers these)
+            "Mediator.IRequestHandler`1",
+            "Mediator.IRequestHandler`2",
+            "Mediator.IStreamRequestHandler`2",
+            "Mediator.INotificationHandler`1",
+            "Mediator.IPipelineBehavior`2"
         };
 
         // Toggle default set

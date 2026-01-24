@@ -6,10 +6,10 @@ internal static class UsagePrinter
     {
         Console.WriteLine("IoCTools CLI");
         Console.WriteLine("Usage:");
-        Console.WriteLine("  dotnet ioc-tools fields --project <csproj> --file <cs-file> [--type Namespace.Service]");
+        Console.WriteLine("  dotnet ioc-tools fields --project <csproj> --file <cs-file> [--type Namespace.Service] [--source]");
         Console.WriteLine(
             "  dotnet ioc-tools fields-path --project <csproj> --file <cs-file> --type Namespace.Service [--output <dir>]");
-        Console.WriteLine("  dotnet ioc-tools services --project <csproj> [--output <dir>]");
+        Console.WriteLine("  dotnet ioc-tools services --project <csproj> [--output <dir>] [--source] [--type Namespace.Service]");
         Console.WriteLine("  dotnet ioc-tools services-path --project <csproj> [--output <dir>]");
         Console.WriteLine("  dotnet ioc-tools explain --project <csproj> --type Namespace.Service");
         Console.WriteLine(
@@ -24,6 +24,8 @@ internal static class UsagePrinter
         Console.WriteLine("Common switches:");
         Console.WriteLine("  --configuration <Debug|Release>    Build configuration (default Debug)");
         Console.WriteLine("  --framework <tfm>                   Target framework override if multi-targeting");
+        Console.WriteLine("  --source, -s                        Output generated source code instead of summary");
+        Console.WriteLine("  --type, -t <Namespace.Service>      Filter output to specific type (with --source)");
     }
 
     public static int ExitWithUsage()

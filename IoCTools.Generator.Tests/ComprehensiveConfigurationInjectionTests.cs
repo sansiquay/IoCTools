@@ -570,10 +570,10 @@ public partial class OptionsPatternService
         Console.WriteLine("Generated Code:");
         Console.WriteLine(registrationSource.Content);
 
-        // Should register Configure<AppSettings> call (modern generator pattern)
+        // Should register Configure<AppSettings> call (modern generator pattern with fully-qualified name)
         // Note: Using "App" section since that's what's explicitly specified in [InjectConfiguration("App")]
         registrationSource.Content.Should()
-            .Contain("services.Configure<AppSettings>(options => configuration.GetSection(\"App\").Bind(options))");
+            .Contain("services.Configure<global::Test.AppSettings>(options => configuration.GetSection(\"App\").Bind(options))");
     }
 
     [Fact]
@@ -623,14 +623,14 @@ public partial class MultiOptionsService
 
         var registrationSource = result.GetRequiredServiceRegistrationSource();
 
-        // Should register both options types with correct section names
+        // Should register both options types with correct section names (fully-qualified names)
         // The test uses [InjectConfiguration("Database")] and [InjectConfiguration("Cache")]
         // so the generated code should use those section names
         registrationSource.Content.Should()
             .Contain(
-                "services.Configure<DatabaseOptions>(options => configuration.GetSection(\"Database\").Bind(options))");
+                "services.Configure<global::Test.DatabaseOptions>(options => configuration.GetSection(\"Database\").Bind(options))");
         registrationSource.Content.Should()
-            .Contain("services.Configure<CacheOptions>(options => configuration.GetSection(\"Cache\").Bind(options))");
+            .Contain("services.Configure<global::Test.CacheOptions>(options => configuration.GetSection(\"Cache\").Bind(options))");
     }
 
     #endregion

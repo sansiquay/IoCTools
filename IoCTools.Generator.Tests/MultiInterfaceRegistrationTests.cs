@@ -370,7 +370,7 @@ public partial class ServiceB : IServiceB
         // Validate circular dependency diagnostic content
         circularDiagnostics.Should().AllSatisfy(d =>
         {
-            d.Severity.Should().Be(DiagnosticSeverity.Warning);
+            d.Severity.Should().Be(DiagnosticSeverity.Error);
             var message = d.GetMessage();
             (message.Contains("ServiceA") || message.Contains("ServiceB")).Should().BeTrue();
         });
@@ -2593,6 +2593,44 @@ public partial class MixedLifetimeConsumer
         // Constructor should accept collection
         var constructorSource = result.GetRequiredConstructorSource("MixedLifetimeConsumer");
         constructorSource.Content.Should().Contain("public MixedLifetimeConsumer(IEnumerable<IService> services)");
+    }
+
+    [Fact]
+    public void CollectionWrappers_IncludeIReadOnlyCollectionAggregation()
+    {
+        // Arrange - Multiple implementations should expose IReadOnlyCollection wrappers
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using IoCTools.Abstractions;
+using System.Collections.Generic;
+
+namespace Test;
+
+public interface IService { }
+
+[Transient]
+public partial class ServiceA : IService { }
+
+[Transient]
+public partial class ServiceB : IService { }
+
+[Scoped]
+public partial class CollectionConsumer
+{
+    [Inject] private readonly IReadOnlyCollection<IService> _services;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        result.HasErrors.Should().BeFalse();
+
+        var registrationSource = result.GetRequiredServiceRegistrationSource();
+        registrationSource.Content.Should()
+            .Contain(
+                "services.AddTransient<IReadOnlyCollection<global::Test.IService>>(provider => provider.GetServices<global::Test.IService>().ToList());");
     }
 
     #endregion

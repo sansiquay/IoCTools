@@ -33,7 +33,7 @@ public partial class B : IB
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public partial class Self : ISelf
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public partial class Y : IY { }";
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -200,6 +200,6 @@ public partial class C : IC
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
     }
 }

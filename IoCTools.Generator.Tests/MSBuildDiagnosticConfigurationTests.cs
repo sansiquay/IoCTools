@@ -25,7 +25,7 @@ public class MSBuildDiagnosticConfigurationTests
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
 
         ioc001Diagnostics.Should().ContainSingle();
-        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning); // Default severity
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error); // Default severity
     }
 
     #endregion
@@ -96,7 +96,7 @@ namespace TestNamespace
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
 
         ioc001Diagnostics.Should().ContainSingle();
-        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc001Diagnostics[0].GetMessage().Should().Contain("but no implementation of this interface exists");
         ioc001Diagnostics[0].GetMessage().Should().Contain("IMissingService");
     }
@@ -112,7 +112,7 @@ namespace TestNamespace
         var ioc002Diagnostics = diagnostics.Where(d => d.Id == "IOC002").ToList();
 
         ioc002Diagnostics.Should().ContainSingle();
-        ioc002Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        ioc002Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc002Diagnostics[0].GetMessage().Should().Contain("implementation exists but lacks lifetime attribute");
         ioc002Diagnostics[0].GetMessage().Should().Contain("UnmanagedService");
     }
@@ -167,7 +167,7 @@ namespace TestNamespace
             "warning" => DiagnosticSeverity.Warning,
             "info" => DiagnosticSeverity.Info,
             "hidden" => DiagnosticSeverity.Hidden,
-            _ => DiagnosticSeverity.Warning
+            _ => DiagnosticSeverity.Error
         };
 
         ioc001Diagnostics[0].Severity.Should().Be(expectedSeverity);
@@ -187,7 +187,7 @@ namespace TestNamespace
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
         ioc001Diagnostics.Should().ContainSingle();
         // Should fallback to default Warning severity for invalid values
-        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion
@@ -234,7 +234,7 @@ namespace TestNamespace
             "warning" => DiagnosticSeverity.Warning,
             "info" => DiagnosticSeverity.Info,
             "hidden" => DiagnosticSeverity.Hidden,
-            _ => DiagnosticSeverity.Warning
+            _ => DiagnosticSeverity.Error
         };
 
         ioc002Diagnostics[0].Severity.Should().Be(expectedSeverity);
@@ -369,8 +369,8 @@ namespace TestNamespace
 
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
         ioc001Diagnostics.Should().ContainSingle();
-        // Empty values should fall back to default Warning severity
-        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        // Empty values should fall back to default Error severity
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -388,8 +388,8 @@ namespace TestNamespace
 
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
         ioc001Diagnostics.Should().ContainSingle();
-        // Whitespace values should fall back to default Warning severity
-        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        // Whitespace values should fall back to default Error severity
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion

@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Test;
 
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""logger"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""logger"")]
 public interface BaseInfra : IDependencySet {}
 
 [DependsOn<BaseInfra>]
@@ -40,11 +40,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Test;
 
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""loggerA"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""loggerA"")]
 public interface BaseInfra : IDependencySet {}
 
 [DependsOn<BaseInfra>]
-[DependsOn<ILogger<Service>>(memberNames: new[] { ""loggerB"" })]
+[DependsOn<ILogger<Service>>(memberName1: ""loggerB"")]
 public interface DerivedInfra : IDependencySet {}
 
 [DependsOn<DerivedInfra>]

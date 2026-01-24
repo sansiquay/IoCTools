@@ -37,6 +37,8 @@ internal static class ServiceRegistrationScan
                 var hasDependsOnAttribute = namedType.GetAttributes()
                     .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
 
+                var hasLifetimeAttribute = ServiceDiscovery.GetDirectLifetimeAttributes(namedType).HasAny;
+
                 var hasRegisterAsAllAttribute = namedType.GetAttributes()
                     .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
 
@@ -49,7 +51,7 @@ internal static class ServiceRegistrationScan
 
                 var hasExplicitServiceIntent = hasConditionalServiceAttribute || hasRegisterAsAllAttribute ||
                                                hasRegisterAsAttribute || isHostedService ||
-                                               hasInjectFields || hasDependsOnAttribute;
+                                               hasInjectFields || hasDependsOnAttribute || hasLifetimeAttribute;
 
                 if (hasExplicitServiceIntent) services.Add(new ServiceClassInfo(namedType, null, null));
             }
@@ -90,6 +92,8 @@ internal static class ServiceRegistrationScan
                 var hasDependsOnAttribute = nestedType.GetAttributes()
                     .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
 
+                var hasLifetimeAttribute = ServiceDiscovery.GetDirectLifetimeAttributes(nestedType).HasAny;
+
                 var hasRegisterAsAllAttribute = nestedType.GetAttributes()
                     .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
 
@@ -102,7 +106,7 @@ internal static class ServiceRegistrationScan
 
                 var hasExplicitServiceIntent = hasConditionalServiceAttribute || hasRegisterAsAllAttribute ||
                                                hasRegisterAsAttribute || isHostedService ||
-                                               hasInjectFields || hasDependsOnAttribute;
+                                               hasInjectFields || hasDependsOnAttribute || hasLifetimeAttribute;
 
                 if (hasExplicitServiceIntent) services.Add(new ServiceClassInfo(nestedType, null, null));
             }

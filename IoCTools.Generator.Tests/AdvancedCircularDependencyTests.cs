@@ -45,7 +45,7 @@ public partial class GrandchildService : IGrandchild
         ioc003Diagnostics.Should().NotBeEmpty();
         ioc003Diagnostics.Should().AllSatisfy(d =>
         {
-            d.Severity.Should().Be(DiagnosticSeverity.Warning);
+            d.Severity.Should().Be(DiagnosticSeverity.Error);
             d.GetMessage().Should().Contain("Circular dependency detected");
         });
     }
@@ -82,7 +82,7 @@ public interface I10 { }
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         // Should detect cycle involving first and last services
         var hasDeepCycle = ioc003Diagnostics.Any(d =>
@@ -157,7 +157,7 @@ public partial class ProcessorHandler : IProcessor, IHandler
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         var messages = ioc003Diagnostics.Select(d => d.GetMessage());
         messages.Any(m => m.Contains("ProcessorHandler")).Should().BeTrue(
@@ -200,7 +200,7 @@ namespace ServiceGroup.Beta
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         var hasExpectedCycle = ioc003Diagnostics.Any(d =>
         {
@@ -240,7 +240,7 @@ public partial class NonGenericService : INonGenericService
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         var hasExpectedCycle = ioc003Diagnostics.Any(d =>
         {
@@ -285,7 +285,7 @@ public partial class Delta : IDelta { }";
         // Assert
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         // Should detect at least part of the complex cycle: Alpha → Gamma → Delta → Alpha or Alpha → Beta → ... → Alpha
         var allMessages = string.Join(" ", ioc003Diagnostics.Select(d => d.GetMessage()));
@@ -482,7 +482,7 @@ public partial class OpenGenericB<T> : IOpenGenericB<T>
         // Assert - Should detect open generic circular dependency
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         var hasExpectedCycle = ioc003Diagnostics.Any(d =>
         {
@@ -557,7 +557,7 @@ public partial class ConstrainedService<T> : IConstrainedService<T> where T : cl
         // Assert - Should detect circular dependency with generic constraints
         var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
         ioc003Diagnostics.Should().NotBeEmpty();
-        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+        ioc003Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
 
         var hasExpectedCycle = ioc003Diagnostics.Any(d =>
         {

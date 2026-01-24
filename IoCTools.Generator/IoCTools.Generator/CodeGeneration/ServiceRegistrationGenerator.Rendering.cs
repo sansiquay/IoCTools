@@ -145,6 +145,8 @@ internal static partial class ServiceRegistrationGenerator
                 $"         services.AddTransient<IList<{interfaceType}>>(provider => provider.GetServices<{interfaceType}>().ToList());");
             registrations.AppendLine(
                 $"         services.AddTransient<IReadOnlyList<{interfaceType}>>(provider => provider.GetServices<{interfaceType}>().ToList());");
+            registrations.AppendLine(
+                $"         services.AddTransient<IReadOnlyCollection<{interfaceType}>>(provider => provider.GetServices<{interfaceType}>().ToList());");
         }
     }
 }

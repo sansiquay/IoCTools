@@ -405,7 +405,7 @@ public partial class ServiceB : IServiceB
         // Assert
         var circularDiagnostics = result.GetDiagnosticsByCode("IOC003");
         circularDiagnostics.Should().NotBeEmpty();
-        circularDiagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Warning);
+        circularDiagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -430,7 +430,7 @@ public partial class TestService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC001");
         diagnostics.Should().NotBeEmpty();
-        diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Warning);
+        diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Error);
         diagnostics.Any(d => d.GetMessage().Contains("IMissingService")).Should().BeTrue();
     }
 
@@ -458,7 +458,7 @@ public partial class TestService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC002");
         diagnostics.Should().NotBeEmpty();
-        diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Warning);
+        diagnostics.Should().Contain(d => d.Severity == DiagnosticSeverity.Error);
     }
 
     [Fact]

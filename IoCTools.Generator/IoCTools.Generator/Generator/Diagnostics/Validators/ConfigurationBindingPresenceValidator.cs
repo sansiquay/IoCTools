@@ -64,19 +64,19 @@ internal static class ConfigurationBindingPresenceValidator
         DiagnosticScan.ScanNamespaceForTypes(compilation.Assembly.GlobalNamespace, allTypes);
 
         foreach (var type in allTypes)
-        foreach (var iface in type.AllInterfaces)
-        {
-            var ifaceName = iface.OriginalDefinition.ToDisplayString();
-            var isMatch = optionConfiguratorInterfaces.Contains(ifaceName) ||
-                          (iface.Name.StartsWith("IConfigure", StringComparison.Ordinal) &&
-                           iface.ContainingNamespace?.ToDisplayString() == "Microsoft.Extensions.Options");
-            if (!isMatch) continue;
-            if (iface is INamedTypeSymbol { TypeArguments.Length: > 0 } named && named.TypeArguments[0] != null)
+            foreach (var iface in type.AllInterfaces)
             {
-                configured.Add(named.TypeArguments[0]);
-                configuredNames.Add(named.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                var ifaceName = iface.OriginalDefinition.ToDisplayString();
+                var isMatch = optionConfiguratorInterfaces.Contains(ifaceName) ||
+                              (iface.Name.StartsWith("IConfigure", StringComparison.Ordinal) &&
+                               iface.ContainingNamespace?.ToDisplayString() == "Microsoft.Extensions.Options");
+                if (!isMatch) continue;
+                if (iface is INamedTypeSymbol { TypeArguments.Length: > 0 } named && named.TypeArguments[0] != null)
+                {
+                    configured.Add(named.TypeArguments[0]);
+                    configuredNames.Add(named.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                }
             }
-        }
 
         // Method-based configuration discovery (Configure/AddOptions/BindConfiguration/Bind)
         foreach (var syntaxTree in compilation.SyntaxTrees)

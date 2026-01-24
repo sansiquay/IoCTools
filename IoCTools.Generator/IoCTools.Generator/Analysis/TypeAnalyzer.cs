@@ -195,17 +195,17 @@ internal static class TypeAnalyzer
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
             if (syntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
                 foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                foreach (var attributeList in fieldDeclaration.AttributeLists)
-                foreach (var attribute in attributeList.Attributes)
-                {
-                    var attributeText = attribute.Name.ToString();
-                    if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
-                        attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute") ||
-                        attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
-                        attributeText.EndsWith("InjectConfiguration") ||
-                        attributeText.EndsWith("InjectConfigurationAttribute"))
-                        return true;
-                }
+                    foreach (var attributeList in fieldDeclaration.AttributeLists)
+                        foreach (var attribute in attributeList.Attributes)
+                        {
+                            var attributeText = attribute.Name.ToString();
+                            if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
+                                attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute") ||
+                                attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
+                                attributeText.EndsWith("InjectConfiguration") ||
+                                attributeText.EndsWith("InjectConfigurationAttribute"))
+                                return true;
+                        }
 
         // Also consider any IHostedService assignable type as relevant for service registration
         if (IsAssignableFromIHostedService(type)) return true;

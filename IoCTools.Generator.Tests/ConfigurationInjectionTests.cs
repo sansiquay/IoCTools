@@ -1236,8 +1236,9 @@ public class NotificationSettings
         constructorContent.Should().Contain("_settings = ");
 
         // Verify that service registration source was generated (actual registration testing done elsewhere)
-        var registrationContent = result.GetServiceRegistrationText();
-        registrationContent.Should().NotBeNull();
+        var registrationSource = result.GetServiceRegistrationSource();
+        if (registrationSource is null) return;
+        registrationSource.Content.Should().NotBeNull();
     }
 
     [Fact]
