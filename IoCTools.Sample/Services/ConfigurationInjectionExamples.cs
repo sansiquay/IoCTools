@@ -1,88 +1,17 @@
 namespace IoCTools.Sample.Services;
 
-using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
 using Abstractions.Annotations;
+
+using IoCTools.Sample.Configuration;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 // COMPREHENSIVE CONFIGURATION INJECTION EXAMPLES
 // This file demonstrates all configuration injection patterns supported by IoCTools
-
-// === CONFIGURATION CLASSES FOR SECTION BINDING ===
-
-public class EmailSettings
-{
-    public string SmtpHost { get; set; } = string.Empty;
-    public int SmtpPort { get; set; }
-    public bool UseSsl { get; set; }
-    public string ApiKey { get; set; } = string.Empty;
-    public string FromAddress { get; set; } = string.Empty;
-    public string FromName { get; set; } = string.Empty;
-}
-
-public class CacheSettings
-{
-    public string Provider { get; set; } = string.Empty;
-    public int ExpirationMinutes { get; set; }
-    public int MaxItems { get; set; }
-    public RedisSettings Redis { get; set; } = new();
-}
-
-public class RedisSettings
-{
-    public string ConnectionString { get; set; } = string.Empty;
-}
-
-public class DatabaseSettings
-{
-    public string ConnectionString { get; set; } = string.Empty;
-    public int TimeoutSeconds { get; set; }
-    public bool EnableRetry { get; set; }
-    public int MaxRetries { get; set; }
-    public string Provider { get; set; } = string.Empty;
-}
-
-public class FeatureFlags
-{
-    public bool EnableAdvancedLogging { get; set; }
-    public bool UseAdvancedSecurity { get; set; }
-    public string NewPaymentProcessor { get; set; } = string.Empty;
-    public string EnableOptionalService { get; set; } = string.Empty;
-    public string EnableDistributedCache { get; set; } = string.Empty;
-    public string EnablePremiumFeatures { get; set; } = string.Empty;
-    public string Enabled { get; set; } = string.Empty;
-}
-
-public class AppSettings
-{
-    public string Name { get; set; } = string.Empty;
-    public int Version { get; set; }
-    public bool IsProduction { get; set; }
-    public TimeSpan Timeout { get; set; }
-    public decimal Price { get; set; }
-    public string? OptionalFeature { get; set; }
-}
-
-public class HotReloadSettings
-{
-    public string Setting { get; set; } = string.Empty;
-}
-
-public class ValidationSettings
-{
-    [Range(1, 1000)] public int MaxLength { get; set; }
-
-    [Range(1, 100)] public int MinLength { get; set; }
-
-    public bool RequireNumbers { get; set; }
-    public bool RequireSymbols { get; set; }
-    public string AllowedCharacters { get; set; } = string.Empty;
-    public List<string> Patterns { get; set; } = new();
-    public string Level { get; set; } = string.Empty;
-}
+// Configuration classes are defined in IoCTools.Sample.Configuration.ConfigurationModels.cs
 
 // === 1. BASIC CONFIGURATION INJECTION FOR PRIMITIVES ===
 

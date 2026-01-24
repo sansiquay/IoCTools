@@ -4,6 +4,8 @@ using System.Diagnostics;
 
 using Abstractions.Annotations;
 
+using IoCTools.Sample.Configuration;
+
 using Microsoft.Extensions.Logging;
 
 /// <summary>
