@@ -335,7 +335,7 @@ internal static class DiagnosticDescriptors
         "Manual registration duplicates IoCTools registration",
         "Service '{0}' is registered manually with lifetime '{1}' but IoCTools already registers it with the same lifetime. Remove the manual registration and rely on IoCTools attributes ({2}).",
         "IoCTools",
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
         true,
         "Avoid duplicate manual registrations when IoCTools already emits the same service/implementation.");
 

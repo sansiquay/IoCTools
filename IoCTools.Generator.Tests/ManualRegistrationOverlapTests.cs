@@ -1,4 +1,5 @@
 using IoCTools.Generator.Tests;
+using Microsoft.CodeAnalysis;
 
 public class ManualRegistrationOverlapTests
 {
@@ -26,7 +27,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC081");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -55,7 +57,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC081");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -140,7 +143,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC081");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
