@@ -560,4 +560,96 @@ namespace TestNamespace
     }
 
     #endregion
+
+    #region LifetimeValidationSeverity Configuration Tests
+
+    [Theory]
+    [InlineData("Error", DiagnosticSeverity.Error)]
+    [InlineData("Warning", DiagnosticSeverity.Warning)]
+    [InlineData("Info", DiagnosticSeverity.Info)]
+    [InlineData("Hidden", DiagnosticSeverity.Hidden)]
+    public void MSBuildDiagnostics_LifetimeValidationSeverity_CircularDependency_ConfiguresCorrectly(string severityValue,
+        DiagnosticSeverity expectedSeverity)
+    {
+        var sourceCode = GetCircularDependencySource();
+        var properties = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsLifetimeValidationSeverity"] = severityValue
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc003Diagnostics = diagnostics.Where(d => d.Id == "IOC003").ToList();
+        ioc003Diagnostics.Should().ContainSingle();
+        ioc003Diagnostics[0].Severity.Should().Be(expectedSeverity);
+    }
+
+    [Theory]
+    [InlineData("Error", DiagnosticSeverity.Error)]
+    [InlineData("Warning", DiagnosticSeverity.Warning)]
+    [InlineData("Info", DiagnosticSeverity.Info)]
+    [InlineData("Hidden", DiagnosticSeverity.Hidden)]
+    public void MSBuildDiagnostics_LifetimeValidationSeverity_LifetimeViolation_ConfiguresCorrectly(string severityValue,
+        DiagnosticSeverity expectedSeverity)
+    {
+        var sourceCode = GetLifetimeViolationSource();
+        var properties = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsLifetimeValidationSeverity"] = severityValue
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc012Diagnostics = diagnostics.Where(d => d.Id == "IOC012").ToList();
+        ioc012Diagnostics.Should().ContainSingle();
+        ioc012Diagnostics[0].Severity.Should().Be(expectedSeverity);
+    }
+
+    [Theory]
+    [InlineData("error")]
+    [InlineData("WARNING")]
+    [InlineData("Info")]
+    [InlineData("HIDDEN")]
+    public void MSBuildDiagnostics_LifetimeValidationSeverity_CaseInsensitive(string severityValue)
+    {
+        var sourceCode = GetLifetimeViolationSource();
+        var properties = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsLifetimeValidationSeverity"] = severityValue
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc012Diagnostics = diagnostics.Where(d => d.Id == "IOC012").ToList();
+        ioc012Diagnostics.Should().ContainSingle();
+
+        var expectedSeverity = severityValue.ToLowerInvariant() switch
+        {
+            "error" => DiagnosticSeverity.Error,
+            "warning" => DiagnosticSeverity.Warning,
+            "info" => DiagnosticSeverity.Info,
+            "hidden" => DiagnosticSeverity.Hidden,
+            _ => DiagnosticSeverity.Error
+        };
+
+        ioc012Diagnostics[0].Severity.Should().Be(expectedSeverity);
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_LifetimeValidationSeverity_InvalidValue_UsesDefault()
+    {
+        var sourceCode = GetLifetimeViolationSource();
+        var properties = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsLifetimeValidationSeverity"] = "InvalidValue"
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc012Diagnostics = diagnostics.Where(d => d.Id == "IOC012").ToList();
+        ioc012Diagnostics.Should().ContainSingle();
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    #endregion
 }

@@ -1,3 +1,5 @@
+using IoCTools.Generator.Diagnostics;
+
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 internal static class CircularDependencyValidator
@@ -67,7 +69,9 @@ internal static class CircularDependencyValidator
                 serviceNameToSymbolMap.TryGetValue(serviceForDiagnostic, out var symbol))
             {
                 var location = symbol.Locations.FirstOrDefault() ?? Location.None;
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.CircularDependency, location, cycle);
+                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.CircularDependency, diagnosticConfig.LifetimeValidationSeverity);
+                var diagnostic = Diagnostic.Create(descriptor, location, cycle);
                 context.ReportDiagnostic(diagnostic);
             }
         }

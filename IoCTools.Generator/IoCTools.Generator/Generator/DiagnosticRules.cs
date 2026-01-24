@@ -586,11 +586,12 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol,
         Dictionary<string, string> serviceLifetimes,
         Dictionary<string, List<INamedTypeSymbol>> allImplementations,
-        string implicitLifetime)
+        string implicitLifetime,
+        DiagnosticConfiguration diagnosticConfig)
     {
         LifetimeDependencyValidator
             .ValidateInheritanceChainLifetimesForSourceProduction(context, classDeclaration, classSymbol,
-                serviceLifetimes, allImplementations, implicitLifetime);
+                serviceLifetimes, allImplementations, implicitLifetime, diagnosticConfig);
     }
 
     // IOC012/IOC013: Validate service lifetime dependencies

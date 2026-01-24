@@ -195,7 +195,7 @@ internal static class DiagnosticsRunner
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
         if (serviceLifetime == "Singleton")
             DiagnosticRules.ValidateInheritanceChainLifetimesForSourceProduction(context, classDeclaration, classSymbol,
-                serviceLifetimes, allImplementations, implicitLifetime);
+                serviceLifetimes, allImplementations, implicitLifetime, diagnosticConfig);
 
         // IOC001/IOC002
         DiagnosticRules.ValidateMissingDependencies(context, classDeclaration, hierarchyDependencies,

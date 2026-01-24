@@ -1,3 +1,5 @@
+using IoCTools.Generator.Diagnostics;
+
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 internal static class LifetimeDependencyValidator
@@ -7,7 +9,8 @@ internal static class LifetimeDependencyValidator
         INamedTypeSymbol classSymbol,
         Dictionary<string, string> serviceLifetimes,
         Dictionary<string, List<INamedTypeSymbol>> allImplementations,
-        string implicitLifetime)
+        string implicitLifetime,
+        DiagnosticConfiguration diagnosticConfig)
     {
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
         if (serviceLifetime != "Singleton") return;
@@ -20,7 +23,9 @@ internal static class LifetimeDependencyValidator
                     allImplementations, implicitLifetime);
             if (baseServiceLifetime == "Scoped")
             {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InheritanceChainLifetimeValidation,
+                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
+                var diagnostic = Diagnostic.Create(descriptor,
                     classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, baseServiceLifetime);
                 context.ReportDiagnostic(diagnostic);
                 return;
@@ -37,7 +42,9 @@ internal static class LifetimeDependencyValidator
                                 serviceLifetimes, allImplementations, implicitLifetime);
                         if (depLifetime == "Scoped")
                         {
-                            var diagnostic = Diagnostic.Create(DiagnosticDescriptors.InheritanceChainLifetimeValidation,
+                            var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                                DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
+                            var diagnostic = Diagnostic.Create(descriptor,
                                 classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, depLifetime);
                             context.ReportDiagnostic(diagnostic);
                             return;
@@ -83,7 +90,9 @@ internal static class LifetimeDependencyValidator
 
             if (serviceLifetime == "Singleton" && dependencyLifetime == "Scoped")
             {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
+                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.SingletonDependsOnScoped, diagnosticConfig.LifetimeValidationSeverity);
+                var diagnostic = Diagnostic.Create(descriptor,
                     classDeclaration.GetLocation(), classSymbol.Name, dependencyTypeName);
                 context.ReportDiagnostic(diagnostic);
             }
