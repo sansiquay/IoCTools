@@ -86,7 +86,7 @@ namespace TestNamespace
     #region Default Behavior Tests
 
     [Fact]
-    public void MSBuildDiagnostics_DefaultBehavior_NoImplementation_ReportsWarning()
+    public void MSBuildDiagnostics_DefaultBehavior_NoImplementation_ReportsError()
     {
         // Test default behavior for IOC001 - No implementation found
         var sourceCode = GetMissingImplementationSource();
@@ -102,7 +102,7 @@ namespace TestNamespace
     }
 
     [Fact]
-    public void MSBuildDiagnostics_DefaultBehavior_UnmanagedService_ReportsWarning()
+    public void MSBuildDiagnostics_DefaultBehavior_UnmanagedService_ReportsError()
     {
         // Test default behavior for IOC002 - Unregistered implementation
         var sourceCode = GetUnmanagedServiceSource();
@@ -186,7 +186,7 @@ namespace TestNamespace
 
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
         ioc001Diagnostics.Should().ContainSingle();
-        // Should fallback to default Warning severity for invalid values
+        // Should fallback to default Error severity for invalid values
         ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
@@ -420,10 +420,10 @@ namespace TestNamespace
     {
         // Example MSBuild configuration:
         // <PropertyGroup>
-        //   <!-- Configure severity for missing implementations (default: Warning) -->
+        //   <!-- Configure severity for missing implementations (default: Error) -->
         //   <IoCToolsNoImplementationSeverity>Error</IoCToolsNoImplementationSeverity>
         //   
-        //   <!-- Configure severity for unregistered implementations (default: Warning) -->
+        //   <!-- Configure severity for unregistered implementations (default: Error) -->
         //   <IoCToolsManualSeverity>Info</IoCToolsManualSeverity>
         //   
         //   <!-- Disable all dependency validation diagnostics (default: false) -->

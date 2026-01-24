@@ -74,11 +74,11 @@ Add these MSBuild properties to your project file:
 
 ```xml
 <PropertyGroup>
-  <!-- Configure severity for missing implementations (default: Warning) -->
+  <!-- Configure severity for missing implementations (default: Error) -->
   <IoCToolsNoImplementationSeverity>Error</IoCToolsNoImplementationSeverity>
-  
-  <!-- Configure severity for unregistered implementations (default: Warning) -->
-  <IoCToolsUnregisteredSeverity>Info</IoCToolsUnregisteredSeverity>
+
+  <!-- Configure severity for unregistered implementations (default: Error) -->
+  <IoCToolsManualSeverity>Info</IoCToolsManualSeverity>
   
   <!-- Disable all dependency validation diagnostics (default: false) -->
   <IoCToolsDisableDiagnostics>true</IoCToolsDisableDiagnostics>
