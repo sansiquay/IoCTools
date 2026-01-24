@@ -37,6 +37,10 @@ using Microsoft.Extensions.Logging;
 
 using Services;
 
+// NOTE: The following self-referencing using aliases resolve type ambiguity
+// when the same short name exists in multiple namespaces (e.g., Payment, Order, IEmailValidator).
+// Without these aliases, the compiler reports CS0104 ambiguous reference errors.
+// This pattern is intentionally used to test the generator's type disambiguation.
 using AppSettings = AppSettings;
 using DataCleanupSettings = DataCleanupSettings;
 using EmailProcessorSettings = EmailProcessorSettings;
