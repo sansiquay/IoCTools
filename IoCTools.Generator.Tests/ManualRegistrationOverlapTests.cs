@@ -85,7 +85,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC082");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -114,7 +115,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC082");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -173,7 +175,8 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diags = result.GetDiagnosticsByCode("IOC082");
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]

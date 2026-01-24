@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class ManualRegistrationSuggestionTests
 {
     [Fact]
@@ -27,7 +29,8 @@ public static class Program
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         var diagnostics = result.GetDiagnosticsByCode("IOC086");
-        diagnostics.Should().ContainSingle();
+        diagnostics.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("Service");
     }
 }

@@ -78,7 +78,8 @@ public partial class Consumer { }
         var result = SourceGeneratorTestHelper.CompileWithGenerator(consumerSource,
             additionalMetadataReferences: new[] { libRef });
 
-        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -111,6 +112,7 @@ public partial class Consumer { }
         var result = SourceGeneratorTestHelper.CompileWithGenerator(consumerSource,
             additionalMetadataReferences: new[] { appRef, infraRef });
 
-        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 }

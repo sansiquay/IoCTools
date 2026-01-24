@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class DependencySetManualRegistrationTests
 {
     [Fact]
@@ -19,6 +21,7 @@ public partial class Service {}
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC052").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC052").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 }

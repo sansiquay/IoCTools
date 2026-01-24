@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 
 namespace IoCTools.Generator.Tests;
 
@@ -34,7 +35,8 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.Diagnostics.Should().Contain(d => d.Id == "IOC083");
+        result.GetDiagnosticsByCode("IOC083").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -67,7 +69,8 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC083").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC083").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -100,6 +103,7 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC083").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC083").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 }

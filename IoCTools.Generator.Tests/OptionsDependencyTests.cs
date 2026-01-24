@@ -43,7 +43,8 @@ public partial class Consumer
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC043").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC043").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -79,6 +80,7 @@ public partial class Consumer { }
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC042").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 }

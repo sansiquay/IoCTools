@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class RegisterAsAllSuggestionTests
 {
     [Fact]
@@ -21,7 +23,8 @@ public partial class Multi : IOne, ITwo, IThree { }
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         var suggestions = result.GetDiagnosticsByCode("IOC074");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]

@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class HostedServiceSuggestionTests
 {
     [Fact]
@@ -24,7 +26,8 @@ public class Worker : BackgroundService, IOne, ITwo
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         var suggestions = result.GetDiagnosticsByCode("IOC074");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]

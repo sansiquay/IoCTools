@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class ConfigurationBindingPresenceTests
 {
     [Fact]
@@ -22,7 +24,8 @@ public partial class MissingBindingService
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC057").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC057").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -206,7 +209,8 @@ public partial class DualService
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC057").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC057").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]

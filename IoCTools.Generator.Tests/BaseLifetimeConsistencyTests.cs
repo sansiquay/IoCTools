@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class BaseLifetimeConsistencyTests
 {
     [Fact]
@@ -23,7 +25,8 @@ public partial class SingletonChild : BaseService {}
         var diags = result.GetDiagnosticsByCode("IOC075");
         diags.Select(d => d.Id).Should().Contain("IOC075",
             "available diagnostics: {0}", string.Join(",", result.GeneratorDiagnostics.Select(d => d.Id)));
-        diags.Should().ContainSingle();
+        diags.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         diags[0].Location.GetLineSpan().StartLinePosition.Line.Should().Be(5);
     }
 

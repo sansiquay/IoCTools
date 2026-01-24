@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 /// <summary>
 ///     Tests that the MissedOpportunityValidator correctly excludes framework base types
 ///     from IOC068 suggestions. These classes have their own registration mechanisms
@@ -136,7 +138,8 @@ public class MyDerivedClass : SimpleBase
 
         // Should suggest because base() is called with no arguments - this is not a framework integration pattern
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -167,7 +170,8 @@ public class MyDerivedClass : SimpleBase
 
         // Should suggest because there's no explicit base() call with arguments
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -197,7 +201,8 @@ public class MultiCtorClass
 
         // Should suggest - `: this(...)` is not a framework integration pattern
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -228,7 +233,8 @@ public class RegularService
 
         // Should suggest because this is a regular service class
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("RegularService");
     }
 
@@ -259,7 +265,8 @@ public sealed class FallbackMcpContextPinStore : IMcpContextPinStore
         // Should suggest because this has a constructor with injectable params
         // The `: this(...)` call on the parameterless constructor doesn't exclude it
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("FallbackMcpContextPinStore");
         suggestions[0].GetMessage().Should().Contain("IClock");
     }
@@ -301,7 +308,8 @@ public sealed class FallbackMcpContextPinStore : IMcpContextPinStore
 
         // Should only suggest for FallbackMcpContextPinStore, not DefaultMcpContextPinStore
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("FallbackMcpContextPinStore");
         suggestions[0].GetMessage().Should().NotContain("DefaultMcpContextPinStore");
     }
@@ -347,7 +355,8 @@ public sealed class FallbackMcpContextPinStore : IMcpContextPinStore
 
         // Should suggest for FallbackMcpContextPinStore
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("FallbackMcpContextPinStore");
         suggestions[0].GetMessage().Should().Contain("IClock");
     }
@@ -393,7 +402,8 @@ public class RegularService
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         var suggestions = result.GetDiagnosticsByCode("IOC068");
-        suggestions.Should().ContainSingle();
+        suggestions.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("RegularService");
     }
 

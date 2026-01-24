@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class HostedServiceLifetimeTests
 {
     [Fact]
@@ -39,7 +41,8 @@ public class Worker : BackgroundService
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC072").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC072").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -60,7 +63,8 @@ public class Worker : BackgroundService, IWorkerTelemetry
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC070").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC070").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         result.GetDiagnosticsByCode("IOC072").Should().BeEmpty();
     }
 }

@@ -43,7 +43,8 @@ public partial class DependsOnService
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diagnostics = result.GetDiagnosticsByCode("IOC039");
-        diagnostics.Should().ContainSingle();
+        diagnostics.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("_service");
     }
 
@@ -109,7 +110,8 @@ public partial class DuplicateInjectService
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diagnostics = result.GetDiagnosticsByCode("IOC040");
-        diagnostics.Should().ContainSingle();
+        diagnostics.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("IDataStore");
         diagnostics[0].GetMessage().Should().Contain("[Inject]");
     }
@@ -135,7 +137,8 @@ public partial class DerivedService : BaseService
 }";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC040").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC040").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -161,7 +164,8 @@ public sealed partial class PlaybookRunRepository : Repository<string, int>
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diagnostics = result.GetDiagnosticsByCode("IOC076");
-        diagnostics.Should().ContainSingle();
+        diagnostics.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("DbContext");
     }
 
@@ -190,7 +194,8 @@ public sealed partial class PlaybookRunRepository : Repository<string, int>
 }";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC076").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC076").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -368,6 +373,7 @@ public partial class NeedsConfig {}
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diagnostics = result.GetDiagnosticsByCode("IOC079");
-        diagnostics.Should().ContainSingle();
+        diagnostics.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 }

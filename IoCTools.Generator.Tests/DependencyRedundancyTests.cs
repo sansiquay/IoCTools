@@ -68,7 +68,8 @@ public partial class Service
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC046").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC046").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -91,7 +92,8 @@ public partial class Derived : Base
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC046").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC046").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]

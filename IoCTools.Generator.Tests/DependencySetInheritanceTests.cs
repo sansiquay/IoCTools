@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class DependencySetInheritanceTests
 {
     [Fact]
@@ -52,6 +54,7 @@ public partial class Service {}
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC051").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC051").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 }

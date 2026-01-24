@@ -59,7 +59,8 @@ public partial class Consumer {}
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC050").Should().NotBeEmpty();
+        result.GetDiagnosticsByCode("IOC050").Should().NotBeEmpty()
+            .And.AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
     }
 
     [Fact]
@@ -81,7 +82,8 @@ public partial class Consumer {}
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC049").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -101,7 +103,8 @@ public partial class Consumer {}
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC052").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC052").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -148,7 +151,8 @@ public partial class Service {}
         ctor.Should().Contain("firstLogger");
 
         var allDiags = string.Join(" | ", result.Diagnostics.Select(d => $"{d.Id}:{d.GetMessage()}"));
-        result.GetDiagnosticsByCode("IOC051").Should().ContainSingle($"Diagnostics: {allDiags}");
+        result.GetDiagnosticsByCode("IOC051").Should().ContainSingle($"Diagnostics: {allDiags}")
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -172,7 +176,8 @@ public partial class Consumer {}
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC012").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC012").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
