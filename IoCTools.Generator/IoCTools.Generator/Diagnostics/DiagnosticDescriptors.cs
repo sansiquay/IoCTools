@@ -7,7 +7,7 @@ internal static class DiagnosticDescriptors
         "No implementation found for interface",
         "Service '{0}' depends on '{1}' but no implementation of this interface exists in the project",
         "IoCTools",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
         "Fix options: 1) Create a class implementing '{1}' with lifetime attribute ([Scoped], [Singleton], or [Transient]), 2) Add [ExternalService] attribute to this class if dependency is provided externally, or 3) Register manually with services.AddScoped<{1}, Implementation>() in Program.cs.");
 
@@ -16,7 +16,7 @@ internal static class DiagnosticDescriptors
         "Implementation exists but not registered",
         "Service '{0}' depends on '{1}' - implementation exists but lacks lifetime attribute ([Scoped], [Singleton], or [Transient])",
         "IoCTools",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
         "Fix options: 1) Add lifetime attribute ([Scoped], [Singleton], or [Transient]) to the implementation of '{1}', 2) Add [ExternalService] attribute to this class if dependency is provided externally, or 3) Register manually with services.AddScoped<{1}, Implementation>() in Program.cs.");
 
@@ -25,7 +25,7 @@ internal static class DiagnosticDescriptors
         "Circular dependency detected",
         "Circular dependency detected: {0}",
         "IoCTools",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
         "Break the circular dependency by: 1) Using dependency injection with interfaces, 2) Introducing a mediator pattern, or 3) Refactoring to eliminate the circular reference.");
 
@@ -331,25 +331,34 @@ internal static class DiagnosticDescriptors
         "Remove redundant lifetime attributes so only one of [Scoped], [Singleton], or [Transient] remains on the class.");
 
     public static readonly DiagnosticDescriptor ManualRegistrationDuplicatesIoCTools = new(
-        "IOC050",
+        "IOC081",
         "Manual registration duplicates IoCTools registration",
         "Service '{0}' is registered manually with lifetime '{1}' but IoCTools already registers it with the same lifetime. Remove the manual registration and rely on IoCTools attributes ({2}).",
         "IoCTools",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
         "Avoid duplicate manual registrations when IoCTools already emits the same service/implementation.");
 
     public static readonly DiagnosticDescriptor ManualRegistrationLifetimeMismatch = new(
-        "IOC051",
+        "IOC082",
         "Manual registration lifetime differs from IoCTools",
         "Service '{0}' is registered manually with lifetime '{1}' but IoCTools registers it with lifetime '{2}'. Align lifetimes or remove the manual registration.",
         "IoCTools",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
         "Keep manual registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.");
 
+    public static readonly DiagnosticDescriptor ManualOptionsRegistrationDuplicatesIoCTools = new(
+        "IOC083",
+        "Manual options registration duplicates IoCTools binding",
+        "Options type '{0}' is manually bound via AddOptions/Configure, but IoCTools already binds it from configuration. Remove the manual binding and rely on generated options registration.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "IoCTools automatically binds configuration-backed options types referenced via InjectConfiguration/DependsOnConfiguration. Avoid manual AddOptions/Configure calls for these types to prevent duplicate registrations and diverging configuration.");
+
     public static readonly DiagnosticDescriptor InheritedLifetimeRedundant = new(
-        "IOC048",
+        "IOC084",
         "Lifetime attribute duplicates inherited lifetime",
         "Class '{0}' declares lifetime '{1}' but already inherits the same lifetime from base class '{2}'. Remove the redundant lifetime attribute or change it to a different lifetime if intended.",
         "IoCTools",
@@ -519,6 +528,15 @@ internal static class DiagnosticDescriptors
         true,
         "Adopt existing dependency sets when a service already matches most of their members; add or remove the small delta locally.");
 
+    public static readonly DiagnosticDescriptor RedundantMemberName = new(
+        "IOC085",
+        "Member name matches default",
+        "Member name '{0}' for dependency '{1}' on '{2}' matches the generator's default name; remove the explicit name to reduce redundancy",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "You can omit memberNames when they equal the generator's default (based on naming convention, strip-I, and prefix settings). Keeping only overrides reduces noise and future merge conflicts.");
+
     public static readonly DiagnosticDescriptor DependencySetSharedBaseSuggestion = new(
         "IOC055",
         "Shared dependency cluster on related services",
@@ -665,19 +683,19 @@ internal static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor HostedServiceMissingLifetime = new(
         "IOC072",
-        "Hosted service should be Singleton",
-        "Class '{0}' implements IHostedService/BackgroundService but has no lifetime attribute. Add [Singleton].",
+        "Hosted service lifetime should be implicit",
+        "Class '{0}' implements IHostedService/BackgroundService and declares a lifetime attribute. Hosted services are registered implicitly; remove the lifetime attribute unless the class also exposes additional service interfaces.",
         "IoCTools",
         DiagnosticSeverity.Warning,
         true,
-        "Hosted services are typically singletons; add [Singleton] to enable generator registration and diagnostics.");
+        "Let IoCTools register hosted services implicitly. Only add a lifetime when the hosted service also registers additional interfaces.");
 
     public static readonly DiagnosticDescriptor ManualRegistrationCouldUseAttributes = new(
-        "IOC073",
+        "IOC086",
         "Manual registration could use IoCTools attributes",
         "'{0}' is registered manually as {1} but the implementation '{2}' lacks IoCTools lifetime attributes. Consider adding [Scoped]/[Singleton]/[Transient] (and [RegisterAs]) instead of manual registration.",
         "IoCTools",
-        DiagnosticSeverity.Info,
+        DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.");
 
@@ -689,4 +707,59 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When a class implements multiple interfaces, [RegisterAsAll] makes intent explicit and prevents partial registrations.");
+
+    public static readonly DiagnosticDescriptor BaseClassLifetimeMismatch = new(
+        "IOC075",
+        "Inconsistent lifetimes across inherited services",
+        "Base class '{0}' is inherited by IoCTools services with mixed or missing lifetimes: {1}. Move a single lifetime attribute to the base class and remove conflicting child lifetimes to align registrations.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Place one lifetime attribute ([Scoped]/[Singleton]/[Transient]) on the shared base class so all derived IoCTools services register consistently, and drop duplicate child lifetimes.");
+
+    public static readonly DiagnosticDescriptor RedundantDependencyWrapper = new(
+        "IOC076",
+        "Property redundantly wraps IoCTools dependency field",
+        "Property '{0}' on class '{1}' only returns dependency field '{2}'. Access the injected field directly or move the dependency to the base type instead of keeping a pass-through property.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid trivial wrapper properties around IoCTools dependency fields; they add noise without behavior. Use the generated field directly or refactor the dependency location if the base class needs it.");
+
+    public static readonly DiagnosticDescriptor ManualDependencyFieldShadowsGenerated = new(
+        "IOC077",
+        "Manual field shadows IoCTools-generated dependency",
+        "Field '{0}' on class '{1}' shadows the IoCTools-generated dependency for '{2}'. Remove the manual field and rely on [DependsOn]/[DependsOnConfiguration], or use [Inject] with a custom name instead of duplicating the slot.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Do not declare fields with the same name as IoCTools-generated dependencies; it prevents generation and leaves the dependency unassigned.");
+
+    public static readonly DiagnosticDescriptor DependsOnMemberNameSuppressedByField = new(
+        "IOC078",
+        "MemberNames entry is suppressed by existing field",
+        "MemberNames value '{0}' on attribute '{1}' is ignored because a field with that name already exists in class '{2}'. Remove the field or drop MemberNames to let IoCTools generate and wire the dependency.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid providing MemberNames that collide with existing fields; IoCTools will skip generation and the dependency will not be assigned.");
+
+    public static readonly DiagnosticDescriptor IConfigurationDependencyDiscouraged = new(
+        "IOC079",
+        "Prefer DependsOnConfiguration over IConfiguration",
+        "Class '{0}' depends on IConfiguration directly. Use [DependsOnConfiguration<...>] or typed options instead of IConfiguration to keep configuration binding declarative and analyzer-friendly.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Depend on typed configuration via [DependsOnConfiguration<...>] or options classes; avoid raw IConfiguration where possible.");
+
+    public static readonly DiagnosticDescriptor ServiceClassMustBePartial = new(
+        "IOC080",
+        "Service class must be partial",
+        "Class '{0}' uses IoCTools attributes ({1}) that require code generation, but is not marked as partial",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Add 'partial' modifier to the class declaration: 'public partial class {0}' to enable IoCTools code generation for constructors and fields.");
+
 }

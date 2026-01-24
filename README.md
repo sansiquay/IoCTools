@@ -21,11 +21,13 @@
   concrete types, interfaces, options bindings, conditional services, and background workers.
 - **Inheritance-aware lifetimes** – Derived services inherit the base class lifetime automatically for registrations and
   diagnostics. Redundant lifetime warnings respect inheritance (no false “missing” when a base is `[Scoped]`), and
+  an explicit `[Scoped]` is flagged as redundant (IOC033) whenever it matches the implicit default lifetime.
   conflicting lifetimes across the chain trigger IOC015.
-- **Analyzer coverage** – 40+ diagnostics (IOC001–IOC046) keep registrations honest: missing lifetimes, redundant
-  `RegisterAs`, conflicting `[SkipRegistration]`, invalid config keys, singleton/ scoped mismatches, manual-constructor
+- **Analyzer coverage** – 84 diagnostics (IOC001–IOC086) keep registrations honest: missing lifetimes, redundant
+  `RegisterAs`, conflicting `[SkipRegistration]`, invalid config keys, singleton/scoped mismatches, manual-constructor
   mixing with IoCTools dependencies, options misuse, primitive/collection dependency bans, redundant/unused
-  dependencies (including configuration), and overlapping options/config sections.
+  dependencies (including configuration), overlapping options/config sections, dependency set validation,
+  inheritance-based redundancy detection, hosted service lifetime validation, and framework dependency recognition.
 - **Zero reflection** – Everything happens at compile time. Startup cost stays flat, and generated code is plain C# you
   can inspect.
 
@@ -63,8 +65,8 @@ Or directly in your project file:
    ```
 
    _Tip:_ Any partial class that implements at least one interface is treated as a scoped service even without
-   `[Scoped]`. Add `[Singleton]`/`[Transient]` (or `[Scoped]` when you truly need to override diagnostics) only when you
-   want to change that default. You can change the implicit lifetime globally via
+  `[Scoped]`. Add `[Singleton]`/`[Transient]` (or `[Scoped]` when you truly need to override diagnostics) only when you
+  want to change that default. You can change the implicit lifetime globally via
    `build_property.IoCToolsDefaultServiceLifetime`, and both the generated registrations and IOC012/IOC013 diagnostics
    honor whatever value you pick.
 
@@ -101,9 +103,9 @@ dotnet tool install --add-source ./artifacts IoCTools.Tools.Cli
 
 | Command                                                                  | What it surfaces                                                                                                                                                        |
 |--------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `fields --project <csproj> --file <class.cs> [--type Namespace.Service]` | Lists IoCTools-aware services in a file (or filtered types), showing generated `[DependsOn]` and `[DependsOnConfiguration]` fields, inferred names, and external flags. |
+| `fields --project <csproj> --file <class.cs> [--type Namespace.Service] [--source]` | Lists IoCTools-aware services in a file (or filtered types), showing generated `[DependsOn]` and `[DependsOnConfiguration]` fields, inferred names, and external flags. With `--source`, outputs the generated constructor source code. |
 | `fields-path --project … --file … --type … [--output <dir>]`             | Emits the absolute path to the generated constructor `.g.cs` (defaults to `%TEMP%/IoCTools.Tools.Cli/<project>/<timestamp>` unless `--output` overrides).               |
-| `services --project <csproj> [--output <dir>]`                           | Summaries of generated registration extension: lifetimes, interface/implementation pairings, factories, conditionals, and configuration bindings.                       |
+| `services --project <csproj> [--output <dir>] [--source] [--type …]`     | Summaries of generated registration extension: lifetimes, interface/implementation pairings, factories, conditionals, and configuration bindings. With `--source`, outputs the raw generated source code. `--type` filters to specific service registrations. |
 | `services-path --project <csproj> [--output <dir>]`                      | Prints the path to the generated registration extension so you can open or diff the raw file.                                                                           |
 | `explain --project <csproj> --type Namespace.Service`                    | Explains a single service: generated dependency fields, config bindings (keys/required/reload), and external flags.                                                     |
 | `graph --project <csproj> [--type …] [--format json                      | puml                                                                                                                                                                    |mermaid] [--output <dir>]` | Emits a lightweight graph of service registrations (service → implementation edges) in JSON/PlantUML/Mermaid. Optional `--type` filters the graph. |
@@ -117,9 +119,10 @@ By default the CLI copies generator artifacts into your system temp directory un
 `IoCTools.Tools.Cli/<project>/<timestamp>`, so running it against other repositories will never dirty their working
 trees. Specify `--output` when you need the artifacts copied into a deterministic location.
 
-Key switches: `--configuration` (default `Debug`), `--framework` (for multi-targeting), `--type` (can repeat), and
-`--output` (deterministic artifact directory). Because the CLI drives Roslyn directly, it works immediately even when
-IoCTools is referenced as a project dependency and `EmitCompilerGeneratedFiles` is disabled.
+Key switches: `--configuration` (default `Debug`), `--framework` (for multi-targeting), `--type` (can repeat),
+`--output` (deterministic artifact directory), and `--source` (output raw generated code instead of summaries). Because
+the CLI drives Roslyn directly, it works immediately even when IoCTools is referenced as a project dependency and
+`EmitCompilerGeneratedFiles` is disabled.
 
 ## Before & After: Replacing DI Smells
 
@@ -193,6 +196,9 @@ Generated code now:
 - Injects `_meter`, `_baseUrl`, and `_retryCount` per attribute metadata.
 - Registers the service once via `builder.Services.AddYourAssemblyRegisteredServices(configuration);` – IoCTools emits
   `services.AddScoped<IBillingService, BillingService>()` plus shared-instance factory wiring for `IBillingDiagnostics`.
+- Configuration-backed types are auto-bound: any `[InjectConfiguration]` / `[DependsOnConfiguration]` (or `IOptions<T>`
+  dependency) gets `AddOptions<T>().Bind(configuration.GetSection("…"))` and a singleton `T` via
+  `TryAddSingleton(sp => sp.GetRequiredService<IOptions<T>>().Value)`, so manual options boilerplate isn’t needed.
 - Emits diagnostics if `[Scoped]` becomes redundant (IOC033), if `[SkipRegistration<ILegacyDiagnostics>]` can never
   trigger (IOC009/IOC038), or if configuration keys are invalid (IOC016–IOC017).
 
@@ -353,65 +359,94 @@ public static class GeneratedServiceCollectionExtensions
 
 ## Analyzer (Diagnostic) Reference
 
-| Rule   | Severity | Summary                                                                                                                                                                                                               |
-|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| IOC001 | Warning  | Service depends on an interface with no implementation in the project.                                                                                                                                                |
-| IOC002 | Warning  | Implementation exists but is missing a lifetime attribute, so it never registers.                                                                                                                                     |
-| IOC003 | Warning  | Circular dependency detected (message lists the cycle).                                                                                                                                                               |
-| IOC004 | Error    | `[RegisterAsAll]` requires a lifetime attribute because it defines a service.                                                                                                                                         |
-| IOC005 | Warning  | `[SkipRegistration]` without `[RegisterAsAll]` has no effect.                                                                                                                                                         |
-| IOC006 | Warning  | Duplicate dependency types across multiple `[DependsOn]` attributes.                                                                                                                                                  |
-| IOC007 | Warning  | Deprecated – replaced by IOC040 redundant dependency warnings.                                                                                                                                                        |
-| IOC008 | Warning  | Duplicate type listed inside a single `[DependsOn]` attribute.                                                                                                                                                        |
-| IOC009 | Warning  | `[SkipRegistration<T>]` targets an interface that would never be registered.                                                                                                                                          |
-| IOC010 | Warning  | Deprecated (background-service lifetime warnings are handled by IOC014).                                                                                                                                              |
-| IOC011 | Error    | Background services must be declared `partial`.                                                                                                                                                                       |
-| IOC012 | Error    | Singleton service depends on a scoped service.                                                                                                                                                                        |
-| IOC013 | Warning  | Singleton service depends on a transient service.                                                                                                                                                                     |
-| IOC014 | Error    | Background service uses a non-singleton lifetime.                                                                                                                                                                     |
-| IOC015 | Error    | Lifetime mismatch across an inheritance chain.                                                                                                                                                                        |
-| IOC016 | Error    | `[InjectConfiguration]` uses an invalid configuration key.                                                                                                                                                            |
-| IOC017 | Warning  | `[InjectConfiguration]` targets an unsupported type.                                                                                                                                                                  |
-| IOC018 | Error    | `[InjectConfiguration]` applied to a non-partial class.                                                                                                                                                               |
-| IOC019 | Warning  | `[InjectConfiguration]` cannot target static fields.                                                                                                                                                                  |
-| IOC020 | Warning  | `[ConditionalService]` contains conflicting conditions.                                                                                                                                                               |
-| IOC021 | Error    | `[ConditionalService]` requires a lifetime attribute.                                                                                                                                                                 |
-| IOC022 | Warning  | `[ConditionalService]` declared with no conditions.                                                                                                                                                                   |
-| IOC023 | Warning  | `ConfigValue` set without `Equals` / `NotEquals`.                                                                                                                                                                     |
-| IOC024 | Warning  | `Equals` / `NotEquals` provided without a `ConfigValue`.                                                                                                                                                              |
-| IOC025 | Warning  | `ConfigValue` is empty or whitespace.                                                                                                                                                                                 |
-| IOC026 | Warning  | Multiple `[ConditionalService]` attributes on the same class.                                                                                                                                                         |
-| IOC027 | Info     | Potential duplicate service registrations detected.                                                                                                                                                                   |
-| IOC028 | Error    | `[RegisterAs]` used without any service indicators/lifetime metadata.                                                                                                                                                 |
-| IOC029 | Error    | `[RegisterAs]` lists an interface the class does not implement.                                                                                                                                                       |
-| IOC030 | Warning  | Duplicate interface listed inside `[RegisterAs]`.                                                                                                                                                                     |
-| IOC031 | Error    | `[RegisterAs]` references a non-interface type.                                                                                                                                                                       |
-| IOC032 | Warning  | `[RegisterAs]` duplicates what the generator already infers.                                                                                                                                                          |
-| IOC033 | Warning  | `[Scoped]` attribute is redundant because the service is implicitly scoped.                                                                                                                                           |
-| IOC034 | Warning  | `[RegisterAsAll]` combined with `[RegisterAs]` is redundant.                                                                                                                                                          |
-| IOC035 | Warning  | `[Inject]` field matches the default `[DependsOn]` naming pattern.                                                                                                                                                    |
-| IOC036 | Warning  | Multiple lifetime attributes are applied to the same class.                                                                                                                                                           |
-| IOC037 | Warning  | `[SkipRegistration]` overrides other registration attributes on the same class.                                                                                                                                       |
-| IOC038 | Warning  | `[SkipRegistration<T>]` does nothing when `[RegisterAsAll(RegistrationMode.DirectOnly)]` is used.                                                                                                                     |
-| IOC039 | Warning  | Dependency declared via `[Inject]`/`[DependsOn]` is never referenced.                                                                                                                                                 |
-| IOC040 | Warning  | A dependency type is declared multiple times via `[Inject]`, `[DependsOn]`, or configuration bindings (including inheritance).                                                                                        |
-| IOC041 | Error    | A class mixes IoCTools dependency annotations with a manual or primary constructor. Remove the ctor or the annotations so IoCTools can manage the constructor graph.                                                  |
-| IOC042 | Warning  | `[DependsOn(..., external: true)]` used even though an implementation exists (or the type is a supported framework service). Remove `external: true` so IoCTools can validate and wire it normally.                   |
-| IOC043 | Warning  | IOptions-based dependencies detected. Use `[DependsOnConfiguration<…>]` instead of taking `IOptions<T>` (or Snapshot/Monitor) as a constructor dependency.                                                            |
-| IOC044 | Warning  | Dependency type is not a service (primitive/struct/string, including when wrapped in collections). Prefer `[DependsOnConfiguration<…>]` or a service abstraction instead.                                             |
-| IOC049 | Error    | Dependency set types (`IDependencySet`) must be metadata-only—methods, properties, fields, events, or nested types are not allowed.                                                                                   |
-| IOC050 | Error    | Dependency set recursion detected (`SetA → SetB → SetA`). Remove the cycle.                                                                                                                                           |
-| IOC051 | Error    | Dependency set expansion collides with an existing dependency of the same type but different member name. Align names or drop the duplicate.                                                                          |
-| IOC052 | Warning  | Type implementing `IDependencySet` is marked for registration (lifetime/registration attributes or manual scan). Dependency sets must not be registered.                                                              |
-| IOC053 | Info     | Repeated dependency cluster found across services; extract an `IDependencySet` and replace matching `[DependsOn]` blocks.                                                                                             |
-| IOC054 | Info     | Service is a near-match to an existing dependency set; consider using the set and adding/removing minimal extras to reduce noise.                                                                                     |
-| IOC055 | Info     | Shared dependency cluster on services with a common base suggests moving dependencies into a base-oriented set/refactor.                                                                                              |
-| IOC056 | Info     | Configuration section is bound both as options and primitive values in the same hierarchy (including across dependency sets).                                                                                         |
-| IOC045 | Warning  | Collection dependency shape is unsupported. Only `IReadOnlyCollection<T>` is allowed for multi-implementation dependencies; arrays, IEnumerable/IReadOnlyList, List/HashSet, Dictionary, and custom collections warn. |
-| IOC046 | Warning  | Overlapping configuration bindings (options + per-field bindings for the same section). Bind each configuration section only once.                                                                                    |
+84 diagnostics (IOC001–IOC086) keep registrations honest. Each includes a remediation tip in Visual Studio / Rider / CLI build output.
 
-Each diagnostic includes a remediation tip in Visual Studio / Rider / CLI build output. Treat them as code reviews from
-the generator.
+| Rule | Severity | Summary |
+|------|----------|---------|
+| IOC001 | Error | Service depends on an interface with no implementation in the project. |
+| IOC002 | Error | Implementation exists but is missing a lifetime attribute, so it never registers. |
+| IOC003 | Error | Circular dependency detected (message lists the cycle). |
+| IOC004 | Error | `[RegisterAsAll]` requires a lifetime attribute because it defines a service. |
+| IOC005 | Warning | `[SkipRegistration]` without `[RegisterAsAll]` has no effect. |
+| IOC006 | Warning | Duplicate dependency types across multiple `[DependsOn]` attributes. |
+| IOC007 | Warning | Deprecated – replaced by IOC040 redundant dependency warnings. |
+| IOC008 | Warning | Duplicate type listed inside a single `[DependsOn]` attribute. |
+| IOC009 | Warning | `[SkipRegistration<T>]` targets an interface that would never be registered. |
+| IOC010 | Warning | Deprecated (background-service lifetime warnings are handled by IOC014). |
+| IOC011 | Error | Background services must be declared `partial`. |
+| IOC012 | Error | Singleton service depends on a scoped service. |
+| IOC013 | Warning | Singleton service depends on a transient service. |
+| IOC014 | Error | Background service uses a non-singleton lifetime. |
+| IOC015 | Error | Lifetime mismatch across an inheritance chain. |
+| IOC016 | Error | `[InjectConfiguration]` uses an invalid configuration key. |
+| IOC017 | Warning | `[InjectConfiguration]` targets an unsupported type. |
+| IOC018 | Error | `[InjectConfiguration]` applied to a non-partial class. |
+| IOC019 | Warning | `[InjectConfiguration]` cannot target static fields. |
+| IOC020 | Warning | `[ConditionalService]` contains conflicting conditions. |
+| IOC021 | Error | `[ConditionalService]` requires a lifetime attribute. |
+| IOC022 | Warning | `[ConditionalService]` declared with no conditions. |
+| IOC023 | Warning | `ConfigValue` set without `Equals` / `NotEquals`. |
+| IOC024 | Warning | `Equals` / `NotEquals` provided without a `ConfigValue`. |
+| IOC025 | Warning | `ConfigValue` is empty or whitespace. |
+| IOC026 | Warning | Multiple `[ConditionalService]` attributes on the same class. |
+| IOC027 | Info | Potential duplicate service registrations detected. |
+| IOC028 | Error | `[RegisterAs]` used without any service indicators/lifetime metadata. |
+| IOC029 | Error | `[RegisterAs]` lists an interface the class does not implement. |
+| IOC030 | Warning | Duplicate interface listed inside `[RegisterAs]`. |
+| IOC031 | Error | `[RegisterAs]` references a non-interface type. |
+| IOC032 | Warning | `[RegisterAs]` duplicates what the generator already infers. |
+| IOC033 | Warning | `[Scoped]` attribute is redundant because the service is implicitly scoped. |
+| IOC034 | Warning | `[RegisterAsAll]` combined with `[RegisterAs]` is redundant. |
+| IOC035 | Warning | `[Inject]` field matches the default `[DependsOn]` naming pattern. |
+| IOC036 | Warning | Multiple lifetime attributes are applied to the same class. |
+| IOC037 | Warning | `[SkipRegistration]` overrides other registration attributes on the same class. |
+| IOC038 | Warning | `[SkipRegistration<T>]` does nothing when `[RegisterAsAll(RegistrationMode.DirectOnly)]` is used. |
+| IOC039 | Warning | Dependency declared via `[Inject]`/`[DependsOn]` is never referenced. |
+| IOC040 | Warning | A dependency type is declared multiple times via `[Inject]`, `[DependsOn]`, or configuration bindings (including inheritance). |
+| IOC041 | Error | A class mixes IoCTools dependency annotations with a manual or primary constructor. |
+| IOC042 | Warning | `[DependsOn(..., external: true)]` used even though an implementation exists. Remove `external: true`. |
+| IOC043 | Warning | IOptions-based dependencies detected. Use `[DependsOnConfiguration<…>]` instead. |
+| IOC044 | Warning | Dependency type is not a service (primitive/struct/string). Prefer `[DependsOnConfiguration<…>]`. |
+| IOC045 | Warning | Collection dependency shape is unsupported. Only `IReadOnlyCollection<T>` is allowed. |
+| IOC046 | Warning | Overlapping configuration bindings (options + per-field bindings for the same section). |
+| IOC047 | Info | Use params-style attribute arguments for cleaner syntax. |
+| IOC048 | Warning | Dependencies must be non-nullable. Prefer non-nullable types. |
+| IOC049 | Error | Dependency set types (`IDependencySet`) must be metadata-only. |
+| IOC050 | Error | Dependency set recursion detected (`SetA → SetB → SetA`). Remove the cycle. |
+| IOC051 | Error | Dependency set expansion collides with an existing dependency of the same type but different member name. |
+| IOC052 | Warning | Type implementing `IDependencySet` is marked for registration. Dependency sets must not be registered. |
+| IOC053 | Info | Repeated dependency cluster found across services; extract an `IDependencySet`. |
+| IOC054 | Info | Service is a near-match to an existing dependency set; consider using the set. |
+| IOC055 | Info | Shared dependency cluster on services with a common base suggests moving dependencies into a set. |
+| IOC056 | Info | Configuration section is bound both as options and primitive values in the same hierarchy. |
+| IOC057 | Warning | Configuration binding not found for options type. |
+| IOC058 | Info | Apply lifetime attribute to shared base class instead of each derived class. |
+| IOC059 | Warning | `[Singleton]` attribute is redundant because base class already declares it. |
+| IOC060 | Warning | `[Transient]` attribute is redundant because base class already declares it. |
+| IOC061 | Warning | Dependency set already applied in base class. Remove redundant `[DependsOn<Set>]`. |
+| IOC062 | Info | Move shared dependency set to base class to reduce duplication. |
+| IOC063 | Warning | `[RegisterAs]` attribute is redundant on derived class (inherited from base). |
+| IOC064 | Info | Move shared `[RegisterAs]` to base class to reduce duplication. |
+| IOC065 | Warning | `[RegisterAsAll]` attribute is redundant on derived class. |
+| IOC067 | Warning | `[ConditionalService]` attribute is redundant on derived class (same condition as base). |
+| IOC068 | Info | Class has a manual constructor with injectable parameters but no IoCTools attributes. Consider opting in. |
+| IOC069 | Warning | `[RegisterAs]` requires a lifetime attribute. |
+| IOC070 | Warning | `[DependsOn]`/`[Inject]` used without lifetime. Add `[Scoped]`, `[Singleton]`, or `[Transient]`. |
+| IOC071 | Warning | `[ConditionalService]` missing lifetime. Add a lifetime attribute. |
+| IOC072 | Warning | Hosted service declares explicit lifetime. Remove it (IHostedService is registered implicitly). |
+| IOC074 | Info | Multi-interface class could use `[RegisterAsAll]` to register all interfaces. |
+| IOC075 | Warning | Inconsistent lifetimes across inherited services. Move lifetime to base class. |
+| IOC076 | Warning | Property redundantly wraps IoCTools dependency field. Access the field directly. |
+| IOC077 | Error | Manual field shadows IoCTools-generated dependency. Remove the manual field. |
+| IOC078 | Warning | `MemberNames` entry is suppressed by existing field. Remove the field or drop `MemberNames`. |
+| IOC079 | Warning | Prefer `[DependsOnConfiguration<…>]` over raw `IConfiguration` dependency. |
+| IOC080 | Error | Class uses IoCTools code-generating attributes but is not marked as `partial`. |
+| IOC081 | Error | Manual registration duplicates IoCTools registration with same lifetime. |
+| IOC082 | Error | Manual registration lifetime differs from IoCTools. Align lifetimes or remove manual registration. |
+| IOC083 | Error | Manual options registration duplicates IoCTools binding. Remove manual `AddOptions`/`Configure`. |
+| IOC084 | Warning | Lifetime attribute duplicates inherited lifetime. Remove redundant attribute. |
+| IOC085 | Warning | Member name matches default naming. Remove explicit `memberName` parameter. |
+| IOC086 | Warning | Manual registration could use IoCTools attributes instead.
 
 ## Key Workflows
 

@@ -3,7 +3,7 @@ using IoCTools.Generator.Tests;
 public class ManualRegistrationOverlapTests
 {
     [Fact]
-    public void DuplicateManualRegistration_SameLifetime_TriggersIOC050()
+    public void DuplicateManualRegistration_SameLifetime_TriggersIOC081()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -25,12 +25,12 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var diags = result.GetDiagnosticsByCode("IOC050");
+        var diags = result.GetDiagnosticsByCode("IOC081");
         diags.Should().ContainSingle();
     }
 
     [Fact]
-    public void DuplicateManualRegistration_InterfacePair_SameLifetime_TriggersIOC050()
+    public void DuplicateManualRegistration_InterfacePair_SameLifetime_TriggersIOC081()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -54,12 +54,12 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var diags = result.GetDiagnosticsByCode("IOC050");
+        var diags = result.GetDiagnosticsByCode("IOC081");
         diags.Should().ContainSingle();
     }
 
     [Fact]
-    public void ManualRegistration_LifetimeMismatch_TriggersIOC051()
+    public void ManualRegistration_LifetimeMismatch_TriggersIOC082()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -81,12 +81,12 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var diags = result.GetDiagnosticsByCode("IOC051");
+        var diags = result.GetDiagnosticsByCode("IOC082");
         diags.Should().ContainSingle();
     }
 
     [Fact]
-    public void ManualRegistration_InterfaceMismatch_TriggersIOC051()
+    public void ManualRegistration_InterfaceMismatch_TriggersIOC082()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -110,7 +110,65 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var diags = result.GetDiagnosticsByCode("IOC051");
+        var diags = result.GetDiagnosticsByCode("IOC082");
+        diags.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ManualRegistration_InterfaceFactory_SameLifetime_TriggersIOC081()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IFoo {}
+
+[Scoped]
+public partial class FooService : IFoo {}
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<IFoo>(_ => new FooService());
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var diags = result.GetDiagnosticsByCode("IOC081");
+        diags.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ManualRegistration_InterfaceFactory_MismatchedLifetime_TriggersIOC082()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IFoo {}
+
+[Scoped]
+public partial class FooService : IFoo {}
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IFoo>(_ => new FooService());
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var diags = result.GetDiagnosticsByCode("IOC082");
         diags.Should().ContainSingle();
     }
 
@@ -135,7 +193,7 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        result.GetDiagnosticsByCode("IOC050").Should().BeEmpty();
-        result.GetDiagnosticsByCode("IOC051").Should().BeEmpty();
+        result.GetDiagnosticsByCode("IOC081").Should().BeEmpty();
+        result.GetDiagnosticsByCode("IOC082").Should().BeEmpty();
     }
 }

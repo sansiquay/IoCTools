@@ -3,7 +3,7 @@ namespace IoCTools.Generator.Tests;
 public class ManualRegistrationSuggestionTests
 {
     [Fact]
-    public void ManualAddScopedWithoutAttributes_ProducesIOC073()
+    public void ManualAddScopedWithoutAttributes_ProducesIOC086()
     {
         const string source = @"
 using IoCTools.Abstractions.Annotations;
@@ -26,7 +26,7 @@ public static class Program
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        var diagnostics = result.GetDiagnosticsByCode("IOC073");
+        var diagnostics = result.GetDiagnosticsByCode("IOC086");
         diagnostics.Should().ContainSingle();
         diagnostics[0].GetMessage().Should().Contain("Service");
     }

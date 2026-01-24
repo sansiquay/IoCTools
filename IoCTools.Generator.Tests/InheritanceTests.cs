@@ -1029,7 +1029,7 @@ public partial class DerivedService : SingletonBase, IService { }
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        var redundancy = result.GetDiagnosticsByCode("IOC048");
+        var redundancy = result.GetDiagnosticsByCode("IOC084");
         redundancy.Should().ContainSingle();
         redundancy[0].GetMessage().Should().Contain("Singleton");
         redundancy[0].GetMessage().Should().Contain("SingletonBase");
@@ -1055,7 +1055,7 @@ public partial class DerivedService : SingletonBase, IService { }
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         result.GetDiagnosticsByCode("IOC015").Should().BeEmpty();
-        result.GetDiagnosticsByCode("IOC048").Should().BeEmpty();
+        result.GetDiagnosticsByCode("IOC084").Should().BeEmpty();
     }
 
     [Fact]
@@ -1101,7 +1101,7 @@ public partial class DerivedService : TransientBase, IService { }
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        var redundancy = result.GetDiagnosticsByCode("IOC048");
+        var redundancy = result.GetDiagnosticsByCode("IOC084");
         redundancy.Should().ContainSingle();
         redundancy[0].GetMessage().Should().Contain("Transient");
         redundancy[0].GetMessage().Should().Contain("TransientBase");
