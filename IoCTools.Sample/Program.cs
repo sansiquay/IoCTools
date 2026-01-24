@@ -1590,11 +1590,11 @@ internal class Program
         Console.WriteLine("To configure diagnostic severity, add these properties to your .csproj file:");
         Console.WriteLine();
         Console.WriteLine("<PropertyGroup>");
-        Console.WriteLine("  <!-- Configure severity for missing implementations (default: Warning) -->");
+        Console.WriteLine("  <!-- Configure severity for missing implementations (default: Error) -->");
         Console.WriteLine("  <IoCToolsNoImplementationSeverity>Error</IoCToolsNoImplementationSeverity>");
         Console.WriteLine("  ");
-        Console.WriteLine("  <!-- Configure severity for unregistered implementations (default: Warning) -->");
-        Console.WriteLine("  <IoCToolsUnregisteredSeverity>Info</IoCToolsUnregisteredSeverity>");
+        Console.WriteLine("  <!-- Configure severity for unregistered implementations (default: Error) -->");
+        Console.WriteLine("  <IoCToolsManualSeverity>Info</IoCToolsManualSeverity>");
         Console.WriteLine("  ");
         Console.WriteLine("  <!-- Disable all dependency validation diagnostics (default: false) -->");
         Console.WriteLine("  <IoCToolsDisableDiagnostics>true</IoCToolsDisableDiagnostics>");
