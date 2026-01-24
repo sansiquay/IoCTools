@@ -214,22 +214,29 @@ internal class Program
     {
         Console.WriteLine("--- Manual Registration of Selected Services ---");
 
-        // These services are manually registered for demonstration purposes
-        // We manually register some for demonstration purposes
+        // DEMONSTRATION: Manual service registration examples
+        // These services are manually registered to show how manual registration works alongside IoCTools.
+        // In production, you would typically rely on IoCTools-generated registration via lifetime attributes
+        // ([Scoped], [Singleton], [Transient]) unless the service requires complex external configuration.
+
         services.AddScoped<IManualRegistrationService, ManualRegistrationService>();
 
         // Register legacy processor individually for demonstration
         services.AddScoped<LegacyPaymentProcessor>();
 
-        // Register inheritance services that are marked as [ExternalService]
+        // Register inheritance services for demonstration
         services.AddScoped<INewPaymentProcessor, UnregisteredNewPaymentProcessor>();
         services.AddScoped<IEnterprisePaymentProcessor, EnterprisePaymentProcessor>();
         services.AddSingleton<IManualServiceFactory, ManualServiceFactory>();
 
         Console.WriteLine("--- Manual Registration of External Services ---");
 
-        // Register external services that require manual configuration
-        // These have [ExternalService] because they need complex setup
+        // DEMONSTRATION: External service manual registration examples
+        // These services demonstrate how to manually register services that require complex external setup
+        // (like HTTP clients, database connections, or third-party API integrations). In production:
+        // - For services with complex setup, consider using [ExternalService] attribute to suppress IoCTools registration
+        // - Or delegate the external configuration to a separate extension method like RegisterExternalServices()
+
         services.AddScoped<IHttpClientService, HttpClientService>();
         services.AddScoped<IDatabaseContextService, DatabaseContextService>();
         services.AddScoped<IDistributedCacheService, ExternalRedisCacheService>();
