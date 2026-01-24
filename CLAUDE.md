@@ -88,11 +88,12 @@ Add these MSBuild properties to your project file:
 **Severity Options**: `Error`, `Warning`, `Info`, `Hidden`
 
 **Key Diagnostics:**
-- **IOC001/IOC002**: Cross-assembly aware missing/unregistered implementation detection with intelligent fix suggestions
+- **IOC001/IOC002**: Cross-assembly aware missing/unregistered implementation detection with intelligent fix suggestions (configurable via `IoCToolsNoImplementationSeverity` / `IoCToolsManualSeverity`)
+- **IOC003**: Circular dependency detected (configurable via `IoCToolsLifetimeValidationSeverity`)
 - **IOC011**: IHostedService partial class validation with enhanced detection
-- **IOC012/IOC013**: Lifetime violation errors (Singleton→Scoped/Transient) with inheritance chain analysis
+- **IOC012/IOC013**: Lifetime violation errors (Singleton→Scoped/Transient) with inheritance chain analysis (IOC012 configurable via `IoCToolsLifetimeValidationSeverity`)
 - **IOC014**: Enhanced background service lifetime validation with unified IHostedService detection
-- **IOC015**: Inheritance chain lifetime conflicts with deep hierarchy support
+- **IOC015**: Inheritance chain lifetime conflicts with deep hierarchy support (configurable via `IoCToolsLifetimeValidationSeverity`)
 - **IOC006-IOC009**: Registration conflict detection with deduplication strategies
 - **IOC029-IOC031**: RegisterAs attribute validation (interface implementation, non-interface types, duplicates)
 - **IOC080**: Missing partial keyword on classes using code-generating attributes (`[Inject]`, `[DependsOn]`, etc.)
@@ -104,7 +105,7 @@ Add these MSBuild properties to your project file:
 |------|----------|-------|
 | IOC001 | Error | No implementation found for interface |
 | IOC002 | Error | Implementation exists but not registered |
-| IOC003 | Error | Circular dependency detected |
+| IOC003 | Error | Circular dependency detected (¹) |
 | IOC004 | Error | RegisterAsAll attribute requires Service attribute |
 | IOC005 | Warning | SkipRegistration attribute has no effect without RegisterAsAll |
 | IOC006 | Warning | Duplicate dependency type in DependsOn attributes |
@@ -113,10 +114,10 @@ Add these MSBuild properties to your project file:
 | IOC009 | Warning | SkipRegistration for interface not registered by RegisterAsAll |
 | IOC010 | Warning | Background service with non-Singleton lifetime (deprecated, use IOC014) |
 | IOC011 | Error | Background service class must be partial |
-| IOC012 | Error | Singleton service depends on Scoped service |
+| IOC012 | Error | Singleton service depends on Scoped service (¹) |
 | IOC013 | Warning | Singleton service depends on Transient service |
 | IOC014 | Error | Background service with non-Singleton lifetime |
-| IOC015 | Error | Service lifetime mismatch in inheritance chain |
+| IOC015 | Error | Service lifetime mismatch in inheritance chain (¹) |
 | IOC016 | Error | Invalid configuration key |
 | IOC017 | Warning | Unsupported configuration type |
 | IOC018 | Error | InjectConfiguration requires partial class |
@@ -188,6 +189,8 @@ Add these MSBuild properties to your project file:
 | IOC086 | Warning | Manual registration could use IoCTools attributes |
 
 **Note:** This table reflects the current diagnostic severities as defined in `DiagnosticDescriptors.cs`. Severities can be configured per-project using MSBuild properties (see "Configure Diagnostic Severity" above).
+
+**¹** Severity configurable via `IoCToolsLifetimeValidationSeverity` MSBuild property.
 
 Comprehensive diagnostic examples are available in `DiagnosticExamples.cs` within the sample application.
 
