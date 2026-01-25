@@ -175,68 +175,111 @@ internal static class CommandLineParser
         for (var i = 0; i < args.Length; i++)
         {
             var token = args[i];
-            if (!token.StartsWith('-'))
-            {
-                error = $"Unexpected argument '{token}'.";
+            if (!TryParseToken(token, out var key, out var value, out error))
                 return false;
-            }
 
-            string? value = null;
-            var separatorIndex = token.IndexOf('=');
-            if (separatorIndex >= 0)
-            {
-                value = token[(separatorIndex + 1)..];
-                token = token[..separatorIndex];
-            }
-
-            var key = token switch
-            {
-                "--project" or "-p" => "project",
-                "--configuration" or "-c" => "configuration",
-                "--framework" or "-f" => "framework",
-                "--file" => "file",
-                "--type" or "-t" or "--class" => "type",
-                "--output" or "-o" => "output",
-                "--dependency" or "-d" => "dependency",
-                "--format" => "format",
-                "--baseline" => "baseline",
-                "--settings" => "settings",
-                "--fixable-only" => "fixable-only",
-                "--source" or "-s" => "source",
-                _ => token
-            };
-
-            if (key.StartsWith("-", StringComparison.Ordinal))
-            {
-                error = $"Unknown option '{token}'.";
+            key = NormalizeKey(key);
+            if (!IsValidKey(key, out error))
                 return false;
-            }
 
-            var isFlag = key is "fixable-only" or "source";
-
-            if (value == null && !isFlag)
-            {
-                if (i + 1 >= args.Length)
-                {
-                    error = $"Missing value for '{token}'.";
-                    return false;
-                }
-
-                value = args[++i];
-            }
-
-            if (isFlag && value == null)
-                value = "true";
-
-            if (!map.TryGetValue(key, out var list))
-            {
-                list = new List<string>();
-                map[key] = list;
-            }
-
-            list.Add(value ?? string.Empty);
+            if (!TryCollectValue(ref i, args, key, value, map, out error))
+                return false;
         }
 
+        return true;
+    }
+
+    private static bool TryParseToken(string token, out string key, out string? value, out string? error)
+    {
+        value = null;
+        error = null;
+
+        if (!token.StartsWith('-'))
+        {
+            key = token;
+            error = $"Unexpected argument '{token}'.";
+            return false;
+        }
+
+        var separatorIndex = token.IndexOf('=');
+        if (separatorIndex >= 0)
+        {
+            value = token[(separatorIndex + 1)..];
+            key = token[..separatorIndex];
+        }
+        else
+        {
+            key = token;
+        }
+
+        return true;
+    }
+
+    private static string NormalizeKey(string key)
+    {
+        return key switch
+        {
+            "--project" or "-p" => "project",
+            "--configuration" or "-c" => "configuration",
+            "--framework" or "-f" => "framework",
+            "--file" => "file",
+            "--type" or "-t" or "--class" => "type",
+            "--output" or "-o" => "output",
+            "--dependency" or "-d" => "dependency",
+            "--format" => "format",
+            "--baseline" => "baseline",
+            "--settings" => "settings",
+            "--fixable-only" => "fixable-only",
+            "--source" or "-s" => "source",
+            _ => key
+        };
+    }
+
+    private static bool IsValidKey(string key, out string? error)
+    {
+        error = null;
+        if (key.StartsWith("-", StringComparison.Ordinal))
+        {
+            error = $"Unknown option '{key}'.";
+            return false;
+        }
+        return true;
+    }
+
+    private static bool IsFlag(string key) => key is "fixable-only" or "source";
+
+    private static bool TryCollectValue(
+        ref int index,
+        string[] args,
+        string key,
+        string? value,
+        Dictionary<string, List<string>> map,
+        out string? error)
+    {
+        error = null;
+        var isFlag = IsFlag(key);
+
+        if (value == null && !isFlag)
+        {
+            if (index + 1 >= args.Length)
+            {
+                error = $"Missing value for '{key}'.";
+                return false;
+            }
+
+            value = args[++index];
+        }
+
+        if (isFlag && value == null)
+            value = "true";
+
+        if (!map.TryGetValue(key, out var list))
+        {
+            list = new List<string>();
+            map[key] = list;
+        }
+
+        list.Add(value ?? string.Empty);
         return true;
     }
 
