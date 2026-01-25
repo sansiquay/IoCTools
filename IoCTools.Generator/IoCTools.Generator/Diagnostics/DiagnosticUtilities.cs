@@ -50,7 +50,7 @@ internal static class DiagnosticUtilities
         return config;
     }
 
-    private static Regex[] CompileIgnoredTypePatterns(string patternsString)
+    internal static Regex[] CompileIgnoredTypePatterns(string patternsString)
     {
         if (string.IsNullOrWhiteSpace(patternsString))
             return GetDefaultIgnoredPatterns();
@@ -80,7 +80,7 @@ internal static class DiagnosticUtilities
         return compiled.Count > 0 ? compiled.ToArray() : GetDefaultIgnoredPatterns();
     }
 
-    private static Regex[] GetDefaultIgnoredPatterns()
+    internal static Regex[] GetDefaultIgnoredPatterns()
     {
         // Default patterns for cross-assembly clean-architecture scenarios
         return new[]
