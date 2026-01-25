@@ -1,0 +1,27 @@
+name: CI PR Validation
+
+on:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: build & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore IoCTools.sln
+
+      - name: Build solution
+        run: dotnet build IoCTools.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test IoCTools.sln --configuration Release --no-build --no-restore --verbosity normal
