@@ -63,6 +63,35 @@ public sealed class CliExtendedCommandTests
     }
 
     [Fact]
+    public async Task Why_CaseInsensitive_Finds_Dependency()
+    {
+        var result = await CliTestHost.RunAsync(
+            "why",
+            "--project", FieldsProjectPath,
+            "--type", "FieldsProject.Services.TelemetryReporter",
+            "--dependency", "ilogger");  // lowercase
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("Field: _logger");
+        result.Stdout.Should().Contain("ILogger<FieldsProject.Services.TelemetryReporter>");
+    }
+
+    [Fact]
+    public async Task Why_CaseInsensitive_PartialMatch_Finds_Dependency()
+    {
+        // Test that "ilog" (partial, lowercase) still finds ILogger
+        var result = await CliTestHost.RunAsync(
+            "why",
+            "--project", FieldsProjectPath,
+            "--type", "FieldsProject.Services.TelemetryReporter",
+            "--dependency", "ilog");
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("Field: _logger");
+        result.Stdout.Should().Contain("ILogger");
+    }
+
+    [Fact]
     public async Task Doctor_NoDiagnostics_Succeeds()
     {
         var emptyProject = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "EmptyProject",
