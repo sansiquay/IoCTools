@@ -2,186 +2,242 @@ namespace IoCTools.Generator.Analysis;
 
 internal static class DependencyAnalyzer
 {
+    /// <summary>
+    ///     Context object that holds mutable collections during dependency collection.
+    ///     Eliminates parameter explosion when extracting helper methods.
+    /// </summary>
+    private sealed class DependencyCollectionContext
+    {
+        public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)> AllDependencies { get; } = new();
+        public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)> AllDependenciesWithExternalFlag { get; } = new();
+        public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> BaseDependencies { get; } = new();
+        public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> DerivedDependencies { get; } = new();
+        public bool NeedsIConfigurationGlobally { get; set; }
+    }
     public static InheritanceHierarchyDependencies GetInheritanceHierarchyDependencies(INamedTypeSymbol classSymbol,
         SemanticModel semanticModel)
     {
-        var allDependencies =
-            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
-        var allDependenciesWithExternalFlag =
-            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
-        var baseDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-        var derivedDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
+        var context = new DependencyCollectionContext();
+        CollectDependenciesAcrossHierarchy(classSymbol, semanticModel, context);
+        AddIConfigurationIfNeeded(classSymbol, semanticModel, context);
+        var (uniqueDependencies, finalBaseDependencies, finalDerivedDependencies) =
+            ResolveDependencyOrderingAndSeparation(context);
 
+        return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
+            finalDerivedDependencies, context.AllDependencies, context.AllDependenciesWithExternalFlag);
+    }
+
+    /// <summary>
+    ///     Collects dependencies from the current class and all base classes in the inheritance hierarchy.
+    ///     Merges IConfiguration detection into the main traversal loop for efficiency.
+    /// </summary>
+    private static void CollectDependenciesAcrossHierarchy(
+        INamedTypeSymbol classSymbol,
+        SemanticModel semanticModel,
+        DependencyCollectionContext context)
+    {
         var currentType = classSymbol;
         var level = 0;
 
-        // Check if the main derived class (level 0) has [Inject] fields
-        var derivedHasInjectFields = InjectFieldAnalyzer.GetInjectedFieldsForType(classSymbol, semanticModel).Any();
-
-        // Collect dependencies from current class and all base classes
         while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
         {
-            var currentDependencies =
-                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
-
-            // Check service attributes for conditional dependency collection
-            var isExternalService = currentType.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
-
-            // [ExternalService] classes: Exclude dependencies from inheritance (they're managed elsewhere)
-            // For regular classes: include both [Inject] and [DependsOn] dependencies
-
-            // Get [Inject] field dependencies 
-            // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)
-            if (!isExternalService || level == 0)
-            {
-                var injectDependencies =
-                    InjectFieldAnalyzer.GetInjectedFieldsForTypeWithExternalFlag(currentType, semanticModel);
-                currentDependencies.AddRange(injectDependencies.Select(d =>
-                    (d.ServiceType, d.FieldName, DependencySource.Inject, d.IsExternal)));
-            }
-
-            // Get [InjectConfiguration] field dependencies
-            // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)  
-            if (!isExternalService || level == 0)
-            {
-                var configDependencies =
-                    GetConfigurationInjectedFieldsForType(currentType, semanticModel);
-
-                foreach (var configDep in configDependencies)
-                    if (configDep.IsOptionsPattern)
-                    {
-                        // Options pattern fields are injected as regular dependencies
-                        currentDependencies.Add((configDep.FieldType, configDep.FieldName, DependencySource.Inject,
-                            false));
-                    }
-                    else if (configDep.SupportsReloading)
-                    {
-                        // CRITICAL FIX: For primitive types with SupportsReloading, use IConfiguration
-                        // For complex objects with SupportsReloading, use IOptionsSnapshot<T>
-                        if (configDep.IsDirectValueBinding)
-                        {
-                            // For primitive types, use IConfiguration for reloading support
-                            var configurationType =
-                                semanticModel.Compilation.GetTypeByMetadataName(
-                                    "Microsoft.Extensions.Configuration.IConfiguration");
-                            if (configurationType != null)
-                                currentDependencies.Add((configurationType, configDep.FieldName,
-                                    DependencySource.Inject,
-                                    false));
-                        }
-                        else
-                        {
-                            // For complex objects, use IOptionsSnapshot<T> dependencies
-                            var optionsType =
-                                semanticModel.Compilation.GetTypeByMetadataName(
-                                    "Microsoft.Extensions.Options.IOptionsSnapshot`1");
-                            if (optionsType != null)
-                            {
-                                var optionsSnapshotType = optionsType.Construct(configDep.FieldType);
-                                currentDependencies.Add((optionsSnapshotType, configDep.FieldName,
-                                    DependencySource.Inject,
-                                    false));
-                            }
-                        }
-                    }
-                // CRITICAL FIX: Configuration object fields should NOT be constructor parameters
-                // They are handled via IConfiguration binding in the constructor body only
-                // Only Options pattern types and SupportsReloading fields get injected as DI dependencies
-                // NOTE: Direct value/section binding fields are NOT added as individual constructor parameters
-                // Instead, they are handled via IConfiguration binding in constructor body
-                // The IConfiguration parameter itself will be added later in the global check
-            }
-
-            // Get [DependsOn] dependencies
-            // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)
-            bool shouldIncludeDependsOn;
-            if (isExternalService)
-                // External services: include own dependencies but don't pass to inheritance
-                shouldIncludeDependsOn = level == 0;
-            else
-                // For regular classes, always include [DependsOn] dependencies
-                shouldIncludeDependsOn = true;
-
-            if (shouldIncludeDependsOn)
-            {
-                var expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, null, null);
-                currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
-                    (d.ServiceType, d.FieldName, DependencySource.DependsOn, d.IsExternal)));
-            }
-
-            // Add to appropriate collections
-            foreach (var dep in currentDependencies)
-            {
-                allDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source, level));
-                allDependenciesWithExternalFlag.Add((dep.ServiceType, dep.FieldName, dep.Source, dep.IsExternal));
-
-                if (level == 0)
-                    derivedDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
-                else
-                    baseDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
-            }
-
+            CollectDependenciesForLevel(currentType, semanticModel, context, level);
+            CheckIConfigurationNeedForLevel(currentType, semanticModel, context);
             currentType = currentType.BaseType;
             level++;
         }
+    }
 
+    /// <summary>
+    ///     Collects all dependencies (Inject, DependsOn, Configuration) for a single level in the inheritance hierarchy.
+    /// </summary>
+    private static void CollectDependenciesForLevel(
+        INamedTypeSymbol currentType,
+        SemanticModel semanticModel,
+        DependencyCollectionContext context,
+        int level)
+    {
+        var currentDependencies =
+            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
+
+        var isExternalService = currentType.GetAttributes().Any(attr =>
+            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
+
+        // [ExternalService] classes: Exclude dependencies from inheritance (they're managed elsewhere)
+        // For regular classes: include both [Inject] and [DependsOn] dependencies
+
+        // Get [Inject] field dependencies
+        // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)
+        if (!isExternalService || level == 0)
+        {
+            var injectDependencies =
+                InjectFieldAnalyzer.GetInjectedFieldsForTypeWithExternalFlag(currentType, semanticModel);
+            currentDependencies.AddRange(injectDependencies.Select(d =>
+                (d.ServiceType, d.FieldName, DependencySource.Inject, d.IsExternal)));
+        }
+
+        // Get [InjectConfiguration] field dependencies
+        // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)
+        if (!isExternalService || level == 0)
+        {
+            CollectConfigurationDependencies(currentType, semanticModel, currentDependencies);
+        }
+
+        // Get [DependsOn] dependencies
+        // For [ExternalService] classes: include in own constructor (level 0) but exclude from inheritance (level > 0)
+        bool shouldIncludeDependsOn;
+        if (isExternalService)
+            // External services: include own dependencies but don't pass to inheritance
+            shouldIncludeDependsOn = level == 0;
+        else
+            // For regular classes, always include [DependsOn] dependencies
+            shouldIncludeDependsOn = true;
+
+        if (shouldIncludeDependsOn)
+        {
+            var expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, null, null);
+            currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
+                (d.ServiceType, d.FieldName, DependencySource.DependsOn, d.IsExternal)));
+        }
+
+        // Add to appropriate collections
+        foreach (var dep in currentDependencies)
+        {
+            context.AllDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source, level));
+            context.AllDependenciesWithExternalFlag.Add((dep.ServiceType, dep.FieldName, dep.Source, dep.IsExternal));
+
+            if (level == 0)
+                context.DerivedDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
+            else
+                context.BaseDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
+        }
+    }
+
+    /// <summary>
+    ///     Collects configuration-based dependencies for a single level in the inheritance hierarchy.
+    /// </summary>
+    private static void CollectConfigurationDependencies(
+        INamedTypeSymbol currentType,
+        SemanticModel semanticModel,
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)> currentDependencies)
+    {
+        var configDependencies = GetConfigurationInjectedFieldsForType(currentType, semanticModel);
+
+        foreach (var configDep in configDependencies)
+            if (configDep.IsOptionsPattern)
+            {
+                // Options pattern fields are injected as regular dependencies
+                currentDependencies.Add((configDep.FieldType, configDep.FieldName, DependencySource.Inject,
+                    false));
+            }
+            else if (configDep.SupportsReloading)
+            {
+                // CRITICAL FIX: For primitive types with SupportsReloading, use IConfiguration
+                // For complex objects with SupportsReloading, use IOptionsSnapshot<T>
+                if (configDep.IsDirectValueBinding)
+                {
+                    // For primitive types, use IConfiguration for reloading support
+                    var configurationType =
+                        semanticModel.Compilation.GetTypeByMetadataName(
+                            "Microsoft.Extensions.Configuration.IConfiguration");
+                    if (configurationType != null)
+                        currentDependencies.Add((configurationType, configDep.FieldName,
+                            DependencySource.Inject,
+                            false));
+                }
+                else
+                {
+                    // For complex objects, use IOptionsSnapshot<T> dependencies
+                    var optionsType =
+                        semanticModel.Compilation.GetTypeByMetadataName(
+                            "Microsoft.Extensions.Options.IOptionsSnapshot`1");
+                    if (optionsType != null)
+                    {
+                        var optionsSnapshotType = optionsType.Construct(configDep.FieldType);
+                        currentDependencies.Add((optionsSnapshotType, configDep.FieldName,
+                            DependencySource.Inject,
+                            false));
+                    }
+                }
+            }
+        // CRITICAL FIX: Configuration object fields should NOT be constructor parameters
+        // They are handled via IConfiguration binding in the constructor body only
+        // Only Options pattern types and SupportsReloading fields get injected as DI dependencies
+        // NOTE: Direct value/section binding fields are NOT added as individual constructor parameters
+        // Instead, they are handled via IConfiguration binding in constructor body
+        // The IConfiguration parameter itself will be added later in the global check
+    }
+
+    /// <summary>
+    ///     Checks if a specific level in the hierarchy requires IConfiguration injection.
+    ///     Merged into main traversal loop for efficiency (eliminates second pass).
+    /// </summary>
+    private static void CheckIConfigurationNeedForLevel(
+        INamedTypeSymbol currentType,
+        SemanticModel semanticModel,
+        DependencyCollectionContext context)
+    {
+        var configDependencies = GetConfigurationInjectedFieldsForType(currentType, semanticModel);
+        // Need IConfiguration if:
+        // 1. Regular config fields (not options pattern, not supports reloading)
+        // 2. Primitive SupportsReloading fields (direct value binding with SupportsReloading = true)
+        if (configDependencies.Any(cd =>
+                !cd.IsOptionsPattern && (!cd.SupportsReloading || cd.IsDirectValueBinding)))
+        {
+            context.NeedsIConfigurationGlobally = true;
+        }
+    }
+
+    /// <summary>
+    ///     Adds IConfiguration dependency if any level in the hierarchy needs it and it's not already present.
+    /// </summary>
+    private static void AddIConfigurationIfNeeded(
+        INamedTypeSymbol classSymbol,
+        SemanticModel semanticModel,
+        DependencyCollectionContext context)
+    {
+        if (!context.NeedsIConfigurationGlobally)
+            return;
+
+        var iConfigurationType =
+            semanticModel.Compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
+        if (iConfigurationType == null)
+            return;
+
+        var hasExistingIConfiguration = context.AllDependencies.Any(d =>
+            SymbolEqualityComparer.Default.Equals(d.ServiceType, iConfigurationType));
+
+        if (hasExistingIConfiguration)
+            return;
+
+        // CRITICAL FIX: IConfiguration should be added as a special mid-level dependency
+        // We want it to appear after base dependencies but before derived dependencies
+        // Use a special level of 0.5 to place it between base (level >= 1) and derived (level 0)
+        const int configurationLevel = 0; // Add at derived level but with special ordering priority
+
+        context.AllDependencies.Add((iConfigurationType, "_configuration", DependencySource.ConfigurationInjection,
+            configurationLevel));
+    }
+
+    /// <summary>
+    ///     Resolves dependency ordering conflicts and separates base from derived dependencies.
+    ///     Handles deduplication, conflict resolution, and proper base/derived separation.
+    /// </summary>
+    private static (
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> UniqueDependencies,
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> BaseDependencies,
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> DerivedDependencies
+        ) ResolveDependencyOrderingAndSeparation(DependencyCollectionContext context)
+    {
         // Remove duplicates (keep the first occurrence - closest to derived class)
         // This also automatically removes redundancies that were detected and reported
         // Priority: 1) Closest to derived class (lowest Level), 2) [Inject] over [DependsOn]
         // Apply the "all ancestors manual" rule BEFORE grouping
         // NOTE: All dependencies are included for proper constructor generation
 
-        // Check if any level needs IConfiguration and add it if not already present
-        var needsIConfigurationGlobally = false;
-
-        // Check all types in the hierarchy for configuration fields
-        var checkType = classSymbol;
-        var checkLevel = 0;
-        while (checkType != null && checkType.SpecialType != SpecialType.System_Object)
-        {
-            var configDependencies =
-                GetConfigurationInjectedFieldsForType(checkType, semanticModel);
-            // Need IConfiguration if:
-            // 1. Regular config fields (not options pattern, not supports reloading)
-            // 2. Primitive SupportsReloading fields (direct value binding with SupportsReloading = true)
-            if (configDependencies.Any(cd =>
-                    !cd.IsOptionsPattern && (!cd.SupportsReloading || cd.IsDirectValueBinding)))
-            {
-                needsIConfigurationGlobally = true;
-                break;
-            }
-
-            checkType = checkType.BaseType;
-            checkLevel++;
-        }
-
-        // Add IConfiguration dependency if needed and not already present
-        if (needsIConfigurationGlobally)
-        {
-            var iConfigurationType =
-                semanticModel.Compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
-            if (iConfigurationType != null)
-            {
-                var hasExistingIConfiguration = allDependencies.Any(d =>
-                    SymbolEqualityComparer.Default.Equals(d.ServiceType, iConfigurationType));
-
-                if (!hasExistingIConfiguration)
-                {
-                    // CRITICAL FIX: IConfiguration should be added as a special mid-level dependency
-                    // We want it to appear after base dependencies but before derived dependencies
-                    // Use a special level of 0.5 to place it between base (level >= 1) and derived (level 0)
-                    var configurationLevel = 0; // Add at derived level but with special ordering priority
-
-                    allDependencies.Add((iConfigurationType, "_configuration", DependencySource.ConfigurationInjection,
-                        configurationLevel));
-                }
-            }
-        }
-
         // CRITICAL FIX: Simplified, reliable dependency ordering with correct conflict resolution
         // Group by both ServiceType AND FieldName to allow multiple fields of same type, keep closest to derived class
-        var uniqueDependencies = allDependencies
+        var uniqueDependencies = context.AllDependencies
             .GroupBy(d => $"{SymbolEqualityComparer.Default.GetHashCode(d.ServiceType)}_{d.FieldName}")
             .Select(g => g.OrderBy(d => d.Source == DependencySource.Inject ? 0 : 1).ThenBy(d => d.Level).First())
             // SIMPLE, PREDICTABLE ORDERING: Base dependencies first (higher level), then derived (level 0)
@@ -192,14 +248,13 @@ internal static class DependencyAnalyzer
             .Select(d => (d.ServiceType, d.FieldName, d.Source))
             .ToList();
 
-
         // CRITICAL FIX: Simplified base/derived dependency separation
         // Extract derived dependencies (level 0 only) from unique dependencies
         var finalDerivedDependencies = uniqueDependencies
             .Where(d =>
             {
                 // Check if this dependency came from level 0 (derived class)
-                var originalDep = allDependencies.First(ad =>
+                var originalDep = context.AllDependencies.First(ad =>
                     SymbolEqualityComparer.Default.Equals(ad.ServiceType, d.ServiceType) &&
                     ad.FieldName == d.FieldName &&
                     ad.Source == d.Source);
@@ -213,7 +268,7 @@ internal static class DependencyAnalyzer
             SymbolEqualityComparer.Default);
 
         // Base dependencies are those from level > 0 (parent classes) that are NOT in derived
-        var finalBaseDependencies = allDependencies
+        var finalBaseDependencies = context.AllDependencies
             .Where(ad => ad.Level > 0 && !derivedDependencyTypes.Contains(ad.ServiceType))
             .GroupBy(ad => $"{SymbolEqualityComparer.Default.GetHashCode(ad.ServiceType)}_{ad.FieldName}")
             .Select(g => g.OrderBy(ad => ad.Level).ThenBy(ad =>
@@ -224,8 +279,7 @@ internal static class DependencyAnalyzer
             .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
             .ToList();
 
-        return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
-            finalDerivedDependencies, allDependencies, allDependenciesWithExternalFlag);
+        return (uniqueDependencies, finalBaseDependencies, finalDerivedDependencies);
     }
 
     public static InheritanceHierarchyDependencies GetInheritanceHierarchyDependenciesForDiagnostics(
