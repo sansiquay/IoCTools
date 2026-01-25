@@ -99,9 +99,25 @@ internal static class DiagnosticsRunner
                 diagnosticConfig);
             DiagnosticRules.ValidateAttributeCombinations(context, services.Select(s => s.ClassSymbol));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            GeneratorDiagnostics.Report(context, "IOC996", "Diagnostic validation pipeline error", ex.Message);
+            // Report diagnostic with exception details for debugging
+            GeneratorDiagnostics.Report(context, "IOC996",
+                "Diagnostic validation pipeline error",
+                $"{ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+
+            // Re-throw to prevent downstream corruption from continuing with invalid state
+            throw;
+        }
+        catch (OutOfMemoryException)
+        {
+            // Do not attempt to report diagnostics during OOM - just let process fail
+            throw;
+        }
+        catch (StackOverflowException)
+        {
+            // Do not attempt to report diagnostics during stack overflow - just let process fail
+            throw;
         }
     }
 
