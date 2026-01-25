@@ -16,6 +16,18 @@ internal static class AttributeParser
         };
     }
 
+    private static string ParseRegistrationModeEnum(object? enumValue)
+    {
+        if (enumValue == null) return "All";
+        return enumValue switch
+        {
+            0 => "DirectOnly",
+            1 => "All",
+            2 => "Exclusionary",
+            _ => "All"
+        };
+    }
+
     public static (string namingConvention, bool stripI, string prefix) GetNamingConventionOptionsFromAttribute(
         AttributeData attribute)
     {
@@ -207,35 +219,17 @@ internal static class AttributeParser
         {
             var ctorValue = attribute.ConstructorArguments[0].Value;
             if (ctorValue is int enumValue)
-                return enumValue switch
-                {
-                    0 => "DirectOnly",
-                    1 => "All",
-                    2 => "Exclusionary",
-                    _ => defaultMode
-                };
+                return ParseRegistrationModeEnum(enumValue);
 
             if (int.TryParse(ctorValue?.ToString(), out var parsedCtor))
-                return parsedCtor switch
-                {
-                    0 => "DirectOnly",
-                    1 => "All",
-                    2 => "Exclusionary",
-                    _ => defaultMode
-                };
+                return ParseRegistrationModeEnum(parsedCtor);
         }
 
         var modeArg = attribute.NamedArguments.FirstOrDefault(arg => arg.Key == "Mode");
         if (modeArg.Key != null)
         {
             if (modeArg.Value.Value is int namedEnum)
-                return namedEnum switch
-                {
-                    0 => "DirectOnly",
-                    1 => "All",
-                    2 => "Exclusionary",
-                    _ => defaultMode
-                };
+                return ParseRegistrationModeEnum(namedEnum);
 
             var namedString = modeArg.Value.Value?.ToString();
             if (namedString is "DirectOnly" or "All" or "Exclusionary") return namedString;
