@@ -9,15 +9,7 @@ internal static class CollectionUtilities
         typeName.StartsWith("System.Collections.Generic.List<", StringComparison.Ordinal) ||
         typeName.StartsWith("System.Collections.Generic.ICollection<", StringComparison.Ordinal) ||
         typeName.StartsWith("System.Collections.Generic.IReadOnlyList<", StringComparison.Ordinal) ||
-        typeName.StartsWith("System.Collections.Generic.IReadOnlyCollection<", StringComparison.Ordinal) ||
-        typeName.Contains("IEnumerable<") ||
-        typeName.Contains("IList<") ||
-        typeName.Contains("ICollection<") ||
-        typeName.Contains("List<") ||
-        typeName.StartsWith("IEnumerable<", StringComparison.Ordinal) ||
-        typeName.StartsWith("IList<", StringComparison.Ordinal) ||
-        typeName.StartsWith("ICollection<", StringComparison.Ordinal) ||
-        typeName.StartsWith("List<", StringComparison.Ordinal);
+        typeName.StartsWith("System.Collections.Generic.IReadOnlyCollection<", StringComparison.Ordinal);
 
     internal static string? ExtractInnerTypeFromIEnumerable(string enumerableTypeName)
     {
