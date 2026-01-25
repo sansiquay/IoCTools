@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class MissedOpportunityTests
 {
     [Fact]
@@ -30,6 +32,7 @@ public partial class ManualService
 
         var suggestions = result.GetDiagnosticsByCode("IOC068");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("ManualService");
         suggestions[0].GetMessage().Should().Contain("IRepo");
         suggestions[0].GetMessage().Should().Contain("ILogger");
@@ -350,6 +353,7 @@ public partial class InternalCtor
         // Internal constructors are valid for DI
         var suggestions = result.GetDiagnosticsByCode("IOC068");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("InternalCtor");
     }
 
@@ -466,6 +470,7 @@ public partial class MultiCtor
         // Should suggest because there's a constructor with injectable params
         var suggestions = result.GetDiagnosticsByCode("IOC068");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -494,5 +499,6 @@ public class NonPartialService
         // Info-level suggestion even for non-partial since user can make it partial
         var suggestions = result.GetDiagnosticsByCode("IOC068");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
     }
 }

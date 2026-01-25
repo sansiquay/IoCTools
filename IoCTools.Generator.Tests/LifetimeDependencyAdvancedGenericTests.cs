@@ -542,7 +542,9 @@ public partial class ComplexService
         var ioc013 = result.GetDiagnosticsByCode("IOC013");
 
         ioc012.Should().ContainSingle(); // One Singleton → Scoped error
+        ioc012[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc013.Should().ContainSingle(); // Singleton → Transient warning (may be deduplicated by generator)
+        ioc013[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -581,7 +583,9 @@ public partial class VarianceService
         var ioc013 = result.GetDiagnosticsByCode("IOC013");
 
         ioc012.Should().ContainSingle(); // Singleton → Scoped error
+        ioc012[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc013.Should().ContainSingle(); // Singleton → Transient warning
+        ioc013[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     #endregion
@@ -977,6 +981,7 @@ public partial class PerformanceTestService
 
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
         diagnostics.Should().ContainSingle(); // Should detect Singleton → Scoped violation
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion
@@ -1035,6 +1040,7 @@ public partial class ServiceB<T> : IServiceB<T>
 
         // Should detect Singleton → Scoped violation
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("ServiceA");
         diagnostics[0].GetMessage().Should().Contain("ServiceB");
     }
@@ -1131,7 +1137,9 @@ public partial class MediatrService
         var ioc013 = result.GetDiagnosticsByCode("IOC013");
 
         ioc012.Should().ContainSingle(); // Singleton → Scoped violation
+        ioc012[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc013.Should().ContainSingle(); // Singleton → Transient warning
+        ioc013[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -1264,6 +1272,7 @@ public partial class EventOrchestrator
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle(); // Singleton → Scoped violation
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion
@@ -1309,6 +1318,7 @@ public partial class PerformanceTestService
         // This suggests the dependency resolution is failing before lifetime validation
         // Let's expect IOC012 once we fix the resolution
         ioc012Diagnostics.Should().ContainSingle(); // Should detect Singleton → Scoped violation
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -1337,6 +1347,7 @@ public partial class TestService
 
         // This should pass if working correctly
         ioc012Diagnostics.Should().ContainSingle(); // Should detect Singleton → Scoped violation
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion

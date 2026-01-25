@@ -298,9 +298,8 @@ public partial class SingletonService
         var ioc013Diagnostics = result.GetDiagnosticsByCode("IOC013"); // Singleton→Transient WARNING
 
         ioc012Diagnostics.Should().ContainSingle(); // Must detect Singleton→Scoped violation
-        ioc013Diagnostics.Should().ContainSingle(); // Must detect Singleton→Transient violation
-
         ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        ioc013Diagnostics.Should().ContainSingle(); // Must detect Singleton→Transient violation
         ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
@@ -342,6 +341,7 @@ public partial class TopLevelService
         var ioc012Diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         ioc012Diagnostics.Should().ContainSingle(); // IntermediateService → ScopedDataAccess violation
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc012Diagnostics[0].GetMessage().Should().Contain("IntermediateService");
         ioc012Diagnostics[0].GetMessage().Should().Contain("ScopedDataAccess");
     }
@@ -422,9 +422,8 @@ public partial class MixedService
         var ioc013Diagnostics = result.GetDiagnosticsByCode("IOC013");
 
         ioc012Diagnostics.Should().ContainSingle(); // DependsOn violation
-        ioc013Diagnostics.Should().ContainSingle(); // Inject violation
-
         ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        ioc013Diagnostics.Should().ContainSingle(); // Inject violation
         ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 

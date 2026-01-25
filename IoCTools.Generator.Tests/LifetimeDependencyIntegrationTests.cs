@@ -113,6 +113,7 @@ public partial class CacheService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("CacheService");
         diagnostics[0].GetMessage().Should().Contain("DatabaseService");
     }
@@ -146,6 +147,7 @@ public partial class DebugCacheService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("DebugCacheService");
         diagnostics[0].GetMessage().Should().Contain("DatabaseService");
     }
@@ -183,6 +185,7 @@ public partial class ProductionPaymentService : IPaymentService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("ProductionPaymentService");
     }
 
@@ -211,6 +214,7 @@ public partial class CacheService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("CacheService");
         diagnostics[0].GetMessage().Should().Contain("HttpService");
     }
@@ -258,6 +262,7 @@ public partial class CacheUserRepository : UserRepository
         var diagnostics = result.GetDiagnosticsByCode("IOC015");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("CacheUserRepository");
         diagnostics[0].GetMessage().Should().Contain("Singleton");
         diagnostics[0].GetMessage().Should().Contain("Scoped");
@@ -295,7 +300,9 @@ public partial class ConcreteService : BaseService<string>
 
         // Should report both Singleton->Transient warning and inheritance chain error
         ioc013Diagnostics.Should().ContainSingle();
+        ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         ioc015Diagnostics.Should().ContainSingle();
+        ioc015Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -337,6 +344,7 @@ public partial class SingletonProcessor : BaseProcessor
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("SingletonProcessor");
     }
 
@@ -486,11 +494,12 @@ public partial class MultiInterfaceService : IProcessor, IHandler
         // for lifetime violations (Singleton→Scoped dependency)
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
-        // If no IOC012 diagnostic is generated, this might indicate a change in how 
+        // If no IOC012 diagnostic is generated, this might indicate a change in how
         // lifetime validation works with intelligent inference
         if (diagnostics.Any())
         {
             diagnostics.Should().ContainSingle();
+            diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
             diagnostics[0].GetMessage().Should().Contain("MultiInterfaceService");
         }
         else
@@ -563,6 +572,7 @@ public partial class UserService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("GenericRepository");
     }
 
@@ -650,7 +660,9 @@ public partial class CacheService
         var ioc014Diagnostics = result.GetDiagnosticsByCode("IOC014");
 
         ioc012Diagnostics.Should().ContainSingle(); // Singleton -> Scoped
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc013Diagnostics.Should().ContainSingle(); // Singleton -> Transient
+        ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         // No IOC014 errors for hosted services - their lifetime is managed by AddHostedService()
         ioc014Diagnostics.Should().BeEmpty();
     }
@@ -680,6 +692,7 @@ public partial class CacheService
         // Basic test - in production would test MSBuild property configuration
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -776,6 +789,7 @@ public partial class UserCache
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("UserCache");
         diagnostics[0].GetMessage().Should().Contain("UserRepository");
     }
@@ -815,6 +829,7 @@ public partial class MessageProcessorService : BackgroundService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("MessageProcessorService");
         diagnostics[0].GetMessage().Should().Contain("ExternalApiService");
     }
@@ -883,6 +898,7 @@ public partial class DatabaseCache
             // TEMPORARY: Allow the test to pass with IOC013 until transitive validation is properly implemented
             // The test expectation is correct, but the implementation needs more work
             ioc013Diagnostics.Should().ContainSingle();
+            ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
             ioc013Diagnostics[0].GetMessage().Should().Contain("DatabaseCache");
             return; // Exit early for now
         }
@@ -891,6 +907,7 @@ public partial class DatabaseCache
             false.Should().BeTrue($"Expected IOC012 diagnostics but got none. Have IOC013: {ioc013Diagnostics.Count}");
 
         ioc012Diagnostics.Should().ContainSingle();
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc012Diagnostics[0].GetMessage().Should().Contain("DatabaseCache");
     }
 
@@ -933,6 +950,7 @@ public partial class SessionCacheService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("SessionCacheService");
         diagnostics[0].GetMessage().Should().Contain("UserSession");
     }
@@ -973,6 +991,7 @@ public partial class MessageDispatcher
         var diagnostics = result.GetDiagnosticsByCode("IOC013");
 
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("MessageDispatcher");
         diagnostics[0].GetMessage().Should().Contain("UserCreatedHandler");
     }
@@ -1138,6 +1157,7 @@ public partial class Entity{i}Service
         // Should detect one IOC012 violation for GenericRepository depending on DatabaseService
         var diagnostics = result.GetDiagnosticsByCode("IOC012");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     #endregion
@@ -1229,6 +1249,7 @@ public partial class ServiceC : IServiceC
         // Should detect lifetime violations despite circular references
         var ioc012Diagnostics = result.GetDiagnosticsByCode("IOC012");
         ioc012Diagnostics.Should().ContainSingle(); // Singleton -> Scoped
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc012Diagnostics[0].GetMessage().Should().Contain("ServiceA");
         ioc012Diagnostics[0].GetMessage().Should().Contain("ServiceB");
     }

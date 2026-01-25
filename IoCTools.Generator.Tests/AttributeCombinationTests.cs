@@ -687,6 +687,7 @@ public partial class SkipNonExistentInterface : IActualInterface
         // Assert
         var ioc009Diagnostics = result.GetDiagnosticsByCode("IOC009");
         ioc009Diagnostics.Should().ContainSingle();
+        ioc009Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = ioc009Diagnostics[0];
         diagnostic.GetMessage().Should().Contain("INonExistentInterface");
@@ -897,6 +898,7 @@ public partial class ConsumerService
         // Assert
         var ioc002Diagnostics = result.GetDiagnosticsByCode("IOC002");
         ioc002Diagnostics.Should().ContainSingle();
+        ioc002Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
 
         var diagnostic = ioc002Diagnostics[0];
         diagnostic.GetMessage().Should().Contain("ConsumerService");
@@ -1034,6 +1036,7 @@ public partial class DuplicateDependsOnService
         // Assert
         var ioc006Diagnostics = result.GetDiagnosticsByCode("IOC006");
         ioc006Diagnostics.Should().ContainSingle();
+        ioc006Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = ioc006Diagnostics[0];
         diagnostic.GetMessage().Should().Contain("IService1");
@@ -1063,6 +1066,7 @@ public partial class ConflictingDependenciesService
         // Assert
         var ioc040Diagnostics = result.GetDiagnosticsByCode("IOC040");
         ioc040Diagnostics.Should().ContainSingle();
+        ioc040Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = ioc040Diagnostics[0];
         var message = diagnostic.GetMessage();
@@ -1094,6 +1098,7 @@ public partial class DuplicateInAttributeService
         // Assert
         var ioc008Diagnostics = result.GetDiagnosticsByCode("IOC008");
         ioc008Diagnostics.Should().ContainSingle();
+        ioc008Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = ioc008Diagnostics[0];
         diagnostic.GetMessage().Should().Contain("IService1");
@@ -1533,6 +1538,7 @@ public partial class SpecificDiagnosticService
         // Assert
         var ioc001Diagnostics = result.GetDiagnosticsByCode("IOC001");
         ioc001Diagnostics.Should().ContainSingle();
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
 
         // IMPROVED: Verify only the expected IOC diagnostics are present
         var allIOCDiagnostics = result.GeneratorDiagnostics

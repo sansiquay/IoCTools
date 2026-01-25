@@ -753,6 +753,7 @@ public partial class ServiceB : IServiceB
 
         // Should report IOC012 for Singleton → Scoped dependency
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("ServiceA");
         diagnostics[0].GetMessage().Should().Contain("ServiceB");
     }
@@ -1059,6 +1060,7 @@ public partial class FinalService : Level49Service
         // Should still detect lifetime violations
         var diagnostics = result.GetDiagnosticsByCode("IOC015");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -1366,7 +1368,9 @@ public partial class ProcessingBackgroundService : BackgroundService
         var ioc014Diagnostics = result.GetDiagnosticsByCode("IOC014");
 
         ioc012Diagnostics.Should().ContainSingle(); // Singleton BackgroundService → ScopedProcessor error
+        ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         ioc013Diagnostics.Should().ContainSingle(); // Singleton BackgroundService → TransientProcessor warning
+        ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         ioc014Diagnostics.Should().BeEmpty(); // Background service is correctly Singleton
     }
 

@@ -333,9 +333,8 @@ public partial class DerivedService : BaseService
 
         // Should report both IOC012 (Singleton → Scoped) and IOC013 (Singleton → Transient)
         ioc012Diagnostics.Should().ContainSingle();
-        ioc013Diagnostics.Should().ContainSingle();
-
         ioc012Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        ioc013Diagnostics.Should().ContainSingle();
         ioc013Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
@@ -433,6 +432,7 @@ public partial class FinalService : Level9Service
         // Should still detect lifetime violations
         var diagnostics = result.GetDiagnosticsByCode("IOC015");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
 using Xunit.Sdk;
 
 /// <summary>
@@ -432,7 +433,8 @@ public class BillingOptions
             throw new XunitException($"Unexpected diagnostics: {diags}");
         }
 
-        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -466,7 +468,8 @@ public class BillingOptions
             throw new XunitException($"Unexpected diagnostics: {diags}");
         }
 
-        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -501,7 +504,8 @@ public class BillingOptions
             throw new XunitException($"Unexpected diagnostics: {diags}");
         }
 
-        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]
@@ -553,7 +557,8 @@ public class BillingOptions
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
         result.HasErrors.Should().BeFalse();
-        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC056").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
     }
 
     [Fact]

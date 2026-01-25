@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class LifetimePlacementSuggestionTests
 {
     [Fact]
@@ -39,6 +41,7 @@ public sealed partial class ConsumerB
 
         var sharedBaseDiagnostics = result.GetDiagnosticsByCode("IOC058");
         sharedBaseDiagnostics.Should().ContainSingle();
+        sharedBaseDiagnostics[0].Severity.Should().Be(DiagnosticSeverity.Info);
         sharedBaseDiagnostics[0].GetMessage().Should().Contain("RepositoryBase");
         sharedBaseDiagnostics[0].GetMessage().Should().Contain("Scoped");
 

@@ -188,6 +188,7 @@ public partial class ConflictService
         // Assert - should generate IOC040 diagnostic
         var ioc040Diagnostics = result.GetDiagnosticsByCode("IOC040");
         ioc040Diagnostics.Should().ContainSingle();
+        ioc040Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = ioc040Diagnostics[0];
         var message = diagnostic.GetMessage();

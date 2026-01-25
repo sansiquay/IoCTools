@@ -377,6 +377,7 @@ public partial class FullyRegisteredService : IServiceA, IServiceB
         // Assert - IOC032 should warn about redundant RegisterAs usage
         var diagnostics = result.GetDiagnosticsByCode("IOC032");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var message = diagnostics[0].GetMessage();
         message.Should().Contain("FullyRegisteredService");
@@ -431,6 +432,7 @@ public partial class DerivedService : ScopedBase { }
 
         var scopedRedundancies = result.GetDiagnosticsByCode("IOC033");
         scopedRedundancies.Should().ContainSingle();
+        scopedRedundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         scopedRedundancies[0].GetMessage().Should().Contain("Scoped");
         scopedRedundancies[0].GetMessage().Should().Contain("ScopedBase");
     }
@@ -454,6 +456,7 @@ public partial class DerivedService : SingletonBase { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC059");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("SingletonBase");
     }
 
@@ -476,6 +479,7 @@ public partial class DerivedService : TransientBase { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC060");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("TransientBase");
     }
 
@@ -503,6 +507,7 @@ public partial class RepoA : BaseRepo { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC061");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("SharedSet");
     }
 
@@ -532,6 +537,7 @@ public partial class RepoB : BaseRepo { }
 
         var suggestions = result.GetDiagnosticsByCode("IOC062");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("BaseRepo");
         suggestions[0].GetMessage().Should().Contain("SharedSet");
     }
@@ -557,6 +563,7 @@ public interface ITest { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC063");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("BaseService");
     }
 
@@ -585,6 +592,7 @@ public partial class ServiceB : BaseService, ITest { }
 
         var suggestions = result.GetDiagnosticsByCode("IOC064");
         suggestions.Should().ContainSingle();
+        suggestions[0].Severity.Should().Be(DiagnosticSeverity.Info);
         suggestions[0].GetMessage().Should().Contain("BaseService");
         suggestions[0].GetMessage().Should().Contain("ITest");
     }
@@ -613,6 +621,7 @@ public interface ITwo { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC065");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("BaseService");
     }
 
@@ -635,6 +644,7 @@ public partial class ConditionalDerived : ConditionalBase { }
 
         var redundancies = result.GetDiagnosticsByCode("IOC067");
         redundancies.Should().ContainSingle();
+        redundancies[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancies[0].GetMessage().Should().Contain("ConditionalBase");
     }
 

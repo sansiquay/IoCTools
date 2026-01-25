@@ -31,6 +31,7 @@ public partial class EmptyKeyService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC016");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
@@ -283,6 +284,7 @@ public partial class AbstractTypeService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC017");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
@@ -322,6 +324,7 @@ public partial class ComplexTypeService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC017");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
@@ -355,6 +358,7 @@ public partial class CollectionElementTypeService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC017");
         diagnostics.Should().ContainSingle(); // Only List<IUnsupportedElement> should fail
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
@@ -386,6 +390,7 @@ public partial class ArrayElementTypeService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC017");
         diagnostics.Should().ContainSingle(); // Only Task[] should fail
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
@@ -517,6 +522,7 @@ public class NonPartialConfigService // Missing 'partial' keyword
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC018");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
@@ -545,6 +551,7 @@ public record NonPartialConfigRecord // Missing 'partial' keyword
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC018");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
@@ -659,6 +666,7 @@ public partial class StaticFieldService
         // Assert
         var diagnostics = result.GetDiagnosticsByCode("IOC019");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
@@ -847,6 +855,7 @@ public partial class DerivedConfigService : BaseConfigService
 
         ioc016Diagnostics.Count.Should().Be(2); // Empty key being reported twice due to inheritance traversal
         ioc019Diagnostics.Should().ContainSingle(); // Static field in derived class
+        ioc019Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]

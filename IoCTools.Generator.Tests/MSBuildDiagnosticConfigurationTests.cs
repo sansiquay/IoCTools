@@ -283,6 +283,7 @@ namespace TestNamespace
         // When diagnostics are enabled (false or invalid values), IOC001 should be reported
         var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
         ioc001Diagnostics.Should().ContainSingle();
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error); // Default severity
     }
 
     #endregion
@@ -324,9 +325,8 @@ namespace TestNamespace
         var ioc002Diagnostics = diagnostics.Where(d => d.Id == "IOC002").ToList();
 
         ioc001Diagnostics.Should().ContainSingle();
-        ioc002Diagnostics.Should().ContainSingle();
-
         ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+        ioc002Diagnostics.Should().ContainSingle();
         ioc002Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Info);
     }
 

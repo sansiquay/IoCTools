@@ -809,6 +809,7 @@ public partial class DerivedController : BaseController
         // Assert - Should produce IOC040 warning for conflict
         var conflictWarnings = result.GetDiagnosticsByCode("IOC040");
         conflictWarnings.Should().NotBeEmpty();
+        conflictWarnings.Should().ContainSingle().Which.Severity.Should().Be(DiagnosticSeverity.Warning);
 
         // But should still compile successfully
         result.HasErrors.Should().BeFalse();
@@ -1006,6 +1007,7 @@ public partial class DerivedService : ScopedBase, IService { }
 
         var diagnostics = result.GetDiagnosticsByCode("IOC015");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("DerivedService");
         diagnostics[0].GetMessage().Should().Contain("Scoped");
     }
@@ -1031,6 +1033,7 @@ public partial class DerivedService : SingletonBase, IService { }
 
         var redundancy = result.GetDiagnosticsByCode("IOC084");
         redundancy.Should().ContainSingle();
+        redundancy[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancy[0].GetMessage().Should().Contain("Singleton");
         redundancy[0].GetMessage().Should().Contain("SingletonBase");
     }
@@ -1078,6 +1081,7 @@ public partial class DerivedService : MidService { }
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         var diagnostics = result.GetDiagnosticsByCode("IOC015");
         diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("DerivedService");
         diagnostics[0].GetMessage().Should().Contain("Scoped");
     }
@@ -1103,6 +1107,7 @@ public partial class DerivedService : TransientBase, IService { }
 
         var redundancy = result.GetDiagnosticsByCode("IOC084");
         redundancy.Should().ContainSingle();
+        redundancy[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         redundancy[0].GetMessage().Should().Contain("Transient");
         redundancy[0].GetMessage().Should().Contain("TransientBase");
     }
@@ -1125,7 +1130,8 @@ public partial class DerivedService : ScopedBase { }
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        result.GetDiagnosticsByCode("IOC036").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC036").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -1473,6 +1479,7 @@ public partial class DerivedClass : BaseClass
         // Assert - Should produce IOC006 warning for duplicate dependencies
         var duplicateWarnings = result.GetDiagnosticsByCode("IOC006");
         duplicateWarnings.Should().NotBeEmpty();
+        duplicateWarnings.Should().ContainSingle().Which.Severity.Should().Be(DiagnosticSeverity.Warning);
 
         // Should still compile and work correctly
         result.HasErrors.Should().BeFalse();
@@ -1575,6 +1582,7 @@ public partial class DerivedService : BaseService
         // Assert - Should detect and report circular dependency
         var circularDependencyErrors = result.GetDiagnosticsByCode("IOC003");
         circularDependencyErrors.Should().NotBeEmpty();
+        circularDependencyErrors.First().Severity.Should().Be(DiagnosticSeverity.Error);
 
         // May or may not have compilation errors depending on detection timing
     }

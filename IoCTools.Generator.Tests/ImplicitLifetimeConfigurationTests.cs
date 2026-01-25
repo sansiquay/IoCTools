@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Tests;
 
+using Microsoft.CodeAnalysis;
+
 public class ImplicitLifetimeConfigurationTests
 {
     private const string PartialServiceSource = @"
@@ -43,7 +45,8 @@ public partial class Consumer
             new Dictionary<string, string> { ["IoCToolsDefaultServiceLifetime"] = "Transient" });
 
         result.GetDiagnosticsByCode("IOC012").Should().BeEmpty();
-        result.GetDiagnosticsByCode("IOC013").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC013").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -52,6 +55,7 @@ public partial class Consumer
         var result = SourceGeneratorTestHelper.CompileWithGenerator(PartialServiceSource, true,
             new Dictionary<string, string> { ["IoCToolsDefaultServiceLifetime"] = "Scoped" });
 
-        result.GetDiagnosticsByCode("IOC012").Should().ContainSingle();
+        result.GetDiagnosticsByCode("IOC012").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
     }
 }

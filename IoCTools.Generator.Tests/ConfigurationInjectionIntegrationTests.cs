@@ -368,6 +368,7 @@ public partial class CacheService : ICacheService
         // Should generate lifetime validation warning for transient dependency in singleton
         var lifetimeWarnings = result.GetDiagnosticsByCode("IOC013");
         lifetimeWarnings.Should().ContainSingle();
+        lifetimeWarnings[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         lifetimeWarnings[0].GetMessage().Should().Contain("CacheService");
         lifetimeWarnings[0].GetMessage().Should().Contain("ITransientDependency");
 
