@@ -63,16 +63,6 @@ internal static class ConfigurationOptionsScanner
     private static string InferSectionNameFromType(ITypeSymbol type)
     {
         var typeName = type.Name;
-        if (typeName.EndsWith("Settings"))
-            return typeName.Substring(0, typeName.Length - "Settings".Length);
-        if (typeName.EndsWith("Configuration"))
-            return typeName.Substring(0, typeName.Length - "Configuration".Length);
-        if (typeName.EndsWith("Config"))
-            return typeName.Substring(0, typeName.Length - "Config".Length);
-        if (typeName.EndsWith("Options"))
-            return typeName.Substring(0, typeName.Length - "Options".Length);
-        if (typeName.EndsWith("Object"))
-            return typeName.Substring(0, typeName.Length - "Object".Length);
-        return typeName;
+        return ConfigurationNamingUtilities.InferSectionNameFromType(typeName);
     }
 }

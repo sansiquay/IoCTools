@@ -309,38 +309,9 @@ internal static class AttributeParser
         string prefix,
         bool stripSettingsSuffix)
     {
-        var workingName = stripSettingsSuffix ? StripConfigurationSuffixes(originalTypeName) : originalTypeName;
+        var workingName = stripSettingsSuffix ? ConfigurationNamingUtilities.StripConfigurationSuffixes(originalTypeName) : originalTypeName;
         if (string.IsNullOrWhiteSpace(workingName)) workingName = originalTypeName;
         return GenerateFieldName(workingName, namingConvention, stripI, prefix);
-    }
-
-    public static string StripConfigurationSuffixes(string typeName)
-    {
-        if (string.IsNullOrWhiteSpace(typeName)) return typeName;
-
-        // Remove duplicated suffixes greedily, but leave one trailing suffix if present (so JitterConfiguration -> JitterConfiguration, OptionsOptions -> Options)
-        var suffixes = new[] { "Settings", "Configuration", "Options" };
-
-        var trimmed = typeName;
-        var strippedCount = 0;
-
-        while (true)
-        {
-            var matched = suffixes.FirstOrDefault(s => trimmed.EndsWith(s, StringComparison.Ordinal));
-            if (matched == null) break;
-
-            // Stop after removing one suffix; collapse duplicates but keep a single suffix if present.
-            if (strippedCount > 0) break;
-
-            // If removing the suffix would drop everything, bail out
-            if (trimmed.Length == matched.Length) break;
-
-            trimmed = trimmed.Substring(0, trimmed.Length - matched.Length);
-            strippedCount++;
-        }
-
-        // If we stripped once, leave the remaining name without reappending the suffix (collapsing duplicates)
-        return string.IsNullOrWhiteSpace(trimmed) ? typeName : trimmed;
     }
 
     public static string DeriveNameTokenFromConfigurationKey(string? configurationKey)

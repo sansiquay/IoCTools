@@ -23,54 +23,6 @@ internal static class ConfigurationValidator
         public ITypeSymbol? CycleType { get; set; }
         public string? CycleProperty { get; set; }
     }
-    // Types that can be bound from configuration without issues
-    private static readonly HashSet<string> SupportedPrimitiveTypes = new()
-    {
-        "System.String",
-        "string",
-        "System.Int32",
-        "int",
-        "System.Int64",
-        "long",
-        "System.Int16",
-        "short",
-        "System.Byte",
-        "byte",
-        "System.Boolean",
-        "bool",
-        "System.Double",
-        "double",
-        "System.Single",
-        "float",
-        "System.Decimal",
-        "decimal",
-        "System.DateTime",
-        "System.DateTimeOffset",
-        "System.TimeSpan",
-        "System.Guid",
-        "System.Uri"
-    };
-
-    // Collection types that support configuration binding
-    private static readonly HashSet<string> SupportedCollectionTypes = new()
-    {
-        "System.Collections.Generic.List<>",
-        "System.Collections.Generic.IList<>",
-        "System.Collections.Generic.ICollection<>",
-        "System.Collections.Generic.IEnumerable<>",
-        "System.Collections.Generic.IReadOnlyList<>",
-        "System.Collections.Generic.IReadOnlyCollection<>",
-        "System.Collections.Generic.Dictionary<,>",
-        "System.Collections.Generic.IDictionary<,>"
-    };
-
-    // Options pattern types
-    private static readonly HashSet<string> OptionsPatternTypes = new()
-    {
-        "Microsoft.Extensions.Options.IOptions<>",
-        "Microsoft.Extensions.Options.IOptionsSnapshot<>",
-        "Microsoft.Extensions.Options.IOptionsMonitor<>"
-    };
 
     /// <summary>
     ///     Validates configuration injection usage on a class
@@ -340,10 +292,10 @@ internal static class ConfigurationValidator
                 }
 
             // Handle Options pattern types - these are always valid
-            if (OptionsPatternTypes.Contains(originalDef)) return (true, string.Empty);
+            if (ConfigurationTypeRegistry.OptionsPatternTypes.Contains(originalDef)) return (true, string.Empty);
 
             // Handle collection types (including collection interfaces like IList<T>)
-            if (SupportedCollectionTypes.Contains(originalDef))
+            if (ConfigurationTypeRegistry.SupportedCollectionTypes.Contains(originalDef))
             {
                 // For collections, validate the element type(s)
                 if (namedType.TypeArguments.Length > 0)
@@ -419,7 +371,7 @@ internal static class ConfigurationValidator
         }
 
         // Check for supported primitive types
-        if (SupportedPrimitiveTypes.Contains(typeName) || SupportedPrimitiveTypes.Contains(originalTypeName))
+        if (ConfigurationTypeRegistry.SupportedPrimitiveTypes.Contains(typeName) || ConfigurationTypeRegistry.SupportedPrimitiveTypes.Contains(originalTypeName))
             return (true, string.Empty);
 
         // Check if it's an enum (supported)

@@ -394,28 +394,28 @@ public class AttributeParserTests
         [Fact]
         public void SettingsSuffix_RemovesOnce()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MySettings");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MySettings");
             Assert.Equal("My", result);
         }
 
         [Fact]
         public void ConfigurationSuffix_RemovesOnce()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MyConfiguration");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MyConfiguration");
             Assert.Equal("My", result);
         }
 
         [Fact]
         public void OptionsSuffix_RemovesOnce()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MyOptions");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MyOptions");
             Assert.Equal("My", result);
         }
 
         [Fact]
         public void DuplicateSettingsSettings_RemovesToOne()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MySettingsSettings");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MySettingsSettings");
             Assert.Equal("MySettings", result);
         }
 
@@ -423,14 +423,14 @@ public class AttributeParserTests
         public void TripleSuffix_RemovesOnlyOne()
         {
             // Only removes ONE suffix, not multiple
-            var result = AttributeParser.StripConfigurationSuffixes("MyOptionsOptionsOptions");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MyOptionsOptionsOptions");
             Assert.Equal("MyOptionsOptions", result);
         }
 
         [Fact]
         public void MixedSuffixes_RemovesActualSuffix()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MySettingsOptions");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MySettingsOptions");
             // The string ends with "Options", so that's what gets removed
             // The suffixes array is checked in order, but EndsWith determines actual match
             Assert.Equal("MySettings", result);
@@ -439,21 +439,21 @@ public class AttributeParserTests
         [Fact]
         public void EmptyString_ReturnsEmpty()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("");
             Assert.Equal("", result);
         }
 
         [Fact]
         public void WhitespaceOnly_ReturnsOriginal()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("   ");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("   ");
             Assert.Equal("   ", result);
         }
 
         [Fact]
         public void NoSuffix_ReturnsOriginal()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MyService");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MyService");
             Assert.Equal("MyService", result);
         }
 
@@ -461,28 +461,28 @@ public class AttributeParserTests
         public void OnlySuffix_ReturnsOriginal()
         {
             // If removing the suffix would drop everything, bail out
-            var result = AttributeParser.StripConfigurationSuffixes("Settings");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("Settings");
             Assert.Equal("Settings", result);
         }
 
         [Fact]
         public void SuffixInMiddle_NotRemoved()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("MySettingsService");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("MySettingsService");
             Assert.Equal("MySettingsService", result); // Only checks end of string
         }
 
         [Fact]
         public void CaseSensitive_NotRemoved()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("Mysettings");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("Mysettings");
             Assert.Equal("Mysettings", result);
         }
 
         [Fact]
         public void ComplexName_WithConfiguration_Removes()
         {
-            var result = AttributeParser.StripConfigurationSuffixes("JitterConfiguration");
+            var result = ConfigurationNamingUtilities.StripConfigurationSuffixes("JitterConfiguration");
             Assert.Equal("Jitter", result);
         }
     }
