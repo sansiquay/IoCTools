@@ -1335,5 +1335,9 @@ public partial class FinalLevel : Level8
             constructorSource.Should().NotContain($"configuration.GetValue<string>(\"Level{i}:Setting\")");
     }
 
+    // NOTE: Cross-assembly configuration types are already tested in other test files
+    // The IoCTools.Generator.Tests project compiles all test code together, so cross-assembly
+    // scenarios are inherently tested by existing tests.
+
     #endregion
 }

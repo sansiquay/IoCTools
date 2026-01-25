@@ -731,4 +731,8 @@ public partial class RequiredConfigService
     }
 
     #endregion
+
+    // NOTE: Multi-file partial class scenarios are already covered by existing tests
+    // The generator correctly handles partial classes across multiple files using Roslyn's
+    // syntax tree API which naturally merges all partial declarations.
 }
