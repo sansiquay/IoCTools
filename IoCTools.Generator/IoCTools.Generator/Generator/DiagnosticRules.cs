@@ -167,7 +167,7 @@ internal static class DiagnosticRules
 
             var (dependencyLifetime, _) =
                 DependencyLifetimeResolver.GetDependencyLifetimeWithGenericSupportAndImplementationName(
-                    dependencyType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
+                    dependency.ServiceType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
 
             var implementationExists = dependencyLifetime != null || allImplementations.ContainsKey(dependencyType);
             if (implementationExists)

@@ -101,7 +101,7 @@ internal static class LifetimeDependencyValidator
 
             var (dependencyLifetime, implementationName) =
                 DependencyLifetimeResolver.GetDependencyLifetimeWithGenericSupportAndImplementationName(
-                    dependencyTypeName, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
+                    dependency.ServiceType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
             if (dependencyLifetime == null) continue;
 
             var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, dependencyLifetime);

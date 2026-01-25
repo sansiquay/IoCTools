@@ -33,88 +33,28 @@ internal static class TypeHelpers
 
     internal static string? ExtractBaseGenericInterface(string constructedType)
     {
+        // Simple helper: converts "IService<string>" to "IService<T>"
+        // This is used for IEnumerable<T> inner type resolution
+        // For full Roslyn-based resolution, use INamedTypeSymbol.ConstructedFrom.ToDisplayString()
         if (!constructedType.Contains('<') || !constructedType.Contains('>')) return null;
-        return ConvertToOpenGenericForm(constructedType);
-    }
 
-    internal static string ConvertToOpenGenericForm(string constructedType)
-    {
-        if (!constructedType.Contains('<') || !constructedType.Contains('>')) return constructedType;
         var angleStart = constructedType.IndexOf('<');
-        var angleEnd = constructedType.LastIndexOf('>');
-        if (angleStart >= 0 && angleEnd > angleStart)
+        var baseName = constructedType.Substring(0, angleStart);
+
+        // Count type parameters to determine generic arity
+        var typeArgsString = constructedType.Substring(angleStart + 1, constructedType.LastIndexOf('>') - angleStart - 1);
+        var paramCount = CountTopLevelTypeParameters(typeArgsString);
+
+        // Build open generic name (IService<T> or IService<T1, T2>, etc.)
+        if (paramCount == 1)
+            return $"{baseName}<T>";
+        else
         {
-            var baseName = constructedType.Substring(0, angleStart);
-            var typeArgsString = constructedType.Substring(angleStart + 1, angleEnd - angleStart - 1);
-            var convertedTypeArgs = ConvertTypeArgumentsToOpenForm(typeArgsString);
-            return $"{baseName}<{string.Join(", ", convertedTypeArgs)}>";
+            var typeParams = new List<string>();
+            for (int i = 0; i < paramCount; i++)
+                typeParams.Add(i == 0 ? "T" : $"T{i + 1}");
+            return $"{baseName}<{string.Join(", ", typeParams)}>";
         }
-
-        return constructedType;
-    }
-
-    internal static List<string> ConvertTypeArgumentsToOpenForm(string typeArgsString)
-    {
-        var result = new List<string>();
-        var typeArgs = SplitTopLevelTypeArguments(typeArgsString);
-        var simpleTypeCounter = 1;
-        foreach (var typeArg in typeArgs)
-        {
-            var trimmedArg = typeArg.Trim();
-            if (trimmedArg.Contains('<') && trimmedArg.Contains('>'))
-            {
-                result.Add(ConvertToOpenGenericForm(trimmedArg));
-            }
-            else
-            {
-                var paramName = simpleTypeCounter == 1 ? "T" : $"T{simpleTypeCounter}";
-                result.Add(paramName);
-                simpleTypeCounter++;
-            }
-        }
-
-        return result;
-    }
-
-    internal static List<string> SplitTopLevelTypeArguments(string typeArgsString)
-    {
-        var result = new List<string>();
-        if (string.IsNullOrWhiteSpace(typeArgsString)) return result;
-        var depth = 0;
-        var lastStart = 0;
-        for (var i = 0; i < typeArgsString.Length; i++)
-        {
-            var c = typeArgsString[i];
-            if (c == '<')
-            {
-                depth++;
-            }
-            else if (c == '>')
-            {
-                depth--;
-            }
-            else if (c == ',' && depth == 0)
-            {
-                result.Add(typeArgsString.Substring(lastStart, i - lastStart));
-                lastStart = i + 1;
-            }
-        }
-
-        if (lastStart < typeArgsString.Length) result.Add(typeArgsString.Substring(lastStart));
-        return result;
-    }
-
-    internal static int CountTypeParameters(string constructedType)
-    {
-        var start = constructedType.IndexOf('<');
-        var end = constructedType.LastIndexOf('>');
-        if (start >= 0 && end > start)
-        {
-            var typeParams = constructedType.Substring(start + 1, end - start - 1);
-            return CountTopLevelTypeParameters(typeParams);
-        }
-
-        return 0;
     }
 
     internal static int CountTopLevelTypeParameters(string typeParamsString)
@@ -143,26 +83,6 @@ internal static class TypeHelpers
 
         if (lastStart < typeParamsString.Length && typeParamsString.Substring(lastStart).Trim().Length > 0) count++;
         return count;
-    }
-
-    internal static bool IsMatchingOpenGeneric(string baseName,
-        int typeParamCount,
-        string registeredService)
-    {
-        if (!registeredService.StartsWith(baseName + "<", StringComparison.Ordinal)) return false;
-        var registeredTypeParamCount = CountTypeParameters(registeredService);
-        return registeredTypeParamCount == typeParamCount;
-    }
-
-    internal static bool IsMatchingGenericInterface(string constructedType,
-        string implementedInterfaceType)
-    {
-        if (!constructedType.Contains('<') || !implementedInterfaceType.Contains('<')) return false;
-        var constructedBaseName = ExtractBaseTypeNameFromConstructed(constructedType);
-        var constructedParamCount = CountTypeParameters(constructedType);
-        var implementedBaseName = ExtractBaseTypeNameFromConstructed(implementedInterfaceType);
-        var implementedParamCount = CountTypeParameters(implementedInterfaceType);
-        return constructedBaseName == implementedBaseName && constructedParamCount == implementedParamCount;
     }
 
     internal static string ExtractSimpleTypeNameFromFullName(string fullTypeName) =>
