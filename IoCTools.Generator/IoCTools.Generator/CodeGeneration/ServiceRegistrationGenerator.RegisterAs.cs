@@ -6,11 +6,13 @@ internal static partial class ServiceRegistrationGenerator
         => attr.AttributeClass != null && attr.AttributeClass.Name?.StartsWith("RegisterAsAttribute") == true &&
            attr.AttributeClass.IsGenericType;
 
-    internal static IEnumerable<ServiceRegistration> GetRegisterAsRegistrations(
+    private delegate void ReportDiagnosticDelegate(Diagnostic diagnostic);
+
+    private static IEnumerable<ServiceRegistration> GetRegisterAsRegistrationsCore(
         INamedTypeSymbol classSymbol,
         AttributeData registerAsAttribute,
         string lifetime,
-        GeneratorExecutionContext context)
+        ReportDiagnosticDelegate reportDiagnostic)
     {
         var registrations = new List<ServiceRegistration>();
         if (registerAsAttribute.AttributeClass?.TypeArguments == null ||
@@ -41,7 +43,7 @@ internal static partial class ServiceRegistrationGenerator
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsNonInterfaceType,
                     classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
                 continue;
             }
 
@@ -49,7 +51,7 @@ internal static partial class ServiceRegistrationGenerator
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsDuplicateInterface,
                     classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
                 continue;
             }
 
@@ -59,7 +61,7 @@ internal static partial class ServiceRegistrationGenerator
             {
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsInterfaceNotImplemented,
                     classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
                 continue;
             }
 
@@ -94,95 +96,20 @@ internal static partial class ServiceRegistrationGenerator
 
         return registrations;
     }
+
+    internal static IEnumerable<ServiceRegistration> GetRegisterAsRegistrations(
+        INamedTypeSymbol classSymbol,
+        AttributeData registerAsAttribute,
+        string lifetime,
+        GeneratorExecutionContext context)
+        => GetRegisterAsRegistrationsCore(classSymbol, registerAsAttribute, lifetime, context.ReportDiagnostic);
 
     internal static IEnumerable<ServiceRegistration> GetRegisterAsRegistrationsWithSourceContext(
         INamedTypeSymbol classSymbol,
         AttributeData registerAsAttribute,
         string lifetime,
         SourceProductionContext context)
-    {
-        var registrations = new List<ServiceRegistration>();
-        if (registerAsAttribute.AttributeClass?.TypeArguments == null ||
-            !registerAsAttribute.AttributeClass.TypeArguments.Any()) return registrations;
-
-        var instanceSharing = ExtractRegisterAsInstanceSharing(registerAsAttribute);
-        var specifiedInterfaces = registerAsAttribute.AttributeClass.TypeArguments;
-        var implementedInterfaces = GetAllInterfaces(classSymbol).ToList();
-        var seenInterfaces = new HashSet<string>();
-        var validSpecifiedInterfaces = new List<INamedTypeSymbol>();
-
-        var hasConfigurationInjection = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(classSymbol);
-        var skipConcreteRegistration = classSymbol.IsAbstract;
-
-        var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
-        var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
-            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
-
-        var shouldRegisterConcreteClass = instanceSharing == "Shared"
-            ? hasLifetimeAttribute || hasConditionalServiceAttribute
-            : hasLifetimeAttribute || hasConditionalServiceAttribute || specifiedInterfaces.Any();
-
-        foreach (var specifiedType in specifiedInterfaces)
-        {
-            if (specifiedType is not INamedTypeSymbol namedType) continue;
-            var typeDisplayString = namedType.ToDisplayString();
-            if (namedType.TypeKind != TypeKind.Interface)
-            {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsNonInterfaceType,
-                    classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
-                continue;
-            }
-
-            if (!seenInterfaces.Add(typeDisplayString))
-            {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsDuplicateInterface,
-                    classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
-                continue;
-            }
-
-            var implementsInterface =
-                implementedInterfaces.Any(impl => SymbolEqualityComparer.Default.Equals(impl, namedType));
-            if (!implementsInterface)
-            {
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RegisterAsInterfaceNotImplemented,
-                    classSymbol.Locations.FirstOrDefault() ?? Location.None, classSymbol.Name, typeDisplayString);
-                context.ReportDiagnostic(diagnostic);
-                continue;
-            }
-
-            validSpecifiedInterfaces.Add(namedType);
-        }
-
-        if (instanceSharing == "Shared")
-        {
-            if (!skipConcreteRegistration && shouldRegisterConcreteClass)
-            {
-                var useSharedInstanceForConcrete = hasLifetimeAttribute;
-                registrations.Add(new ServiceRegistration(classSymbol, classSymbol, lifetime,
-                    useSharedInstanceForConcrete, hasConfigurationInjection));
-            }
-
-            foreach (var namedType in validSpecifiedInterfaces)
-                registrations.Add(new ServiceRegistration(classSymbol, namedType, lifetime, true,
-                    hasConfigurationInjection));
-        }
-        else
-        {
-            if (!skipConcreteRegistration && shouldRegisterConcreteClass)
-                registrations.Add(new ServiceRegistration(classSymbol, classSymbol, lifetime, false,
-                    hasConfigurationInjection));
-            foreach (var namedType in validSpecifiedInterfaces)
-            {
-                var useSharedInstance = hasConfigurationInjection;
-                registrations.Add(new ServiceRegistration(classSymbol, namedType, lifetime, useSharedInstance,
-                    hasConfigurationInjection));
-            }
-        }
-
-        return registrations;
-    }
+        => GetRegisterAsRegistrationsCore(classSymbol, registerAsAttribute, lifetime, context.ReportDiagnostic);
 
     private static string ExtractRegisterAsInstanceSharing(AttributeData registerAsAttribute)
     {
