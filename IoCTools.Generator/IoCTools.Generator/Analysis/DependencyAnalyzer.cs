@@ -594,94 +594,89 @@ internal static class DependencyAnalyzer
         // Get the full dependencies using the diagnostic logic
         var diagnosticDependencies = GetInheritanceHierarchyDependencies(classSymbol, semanticModel);
 
-        // CRITICAL DEBUG: Log when dependencies are not found
+        // Handle fallback logic when [Inject] fields exist but no dependencies detected
+        if (HasInjectFieldsWithoutDependencies(classSymbol, diagnosticDependencies))
+        {
+            return GenerateFallbackDependencies(classSymbol);
+        }
+
+        // Resolve inheritance conflicts (same ServiceType at multiple inheritance levels)
+        var constructorDependencies = ResolveInheritanceConflicts(diagnosticDependencies);
+
+        return new InheritanceHierarchyDependencies(
+            constructorDependencies,
+            diagnosticDependencies.BaseDependencies,
+            diagnosticDependencies.DerivedDependencies,
+            diagnosticDependencies.RawAllDependencies,
+            diagnosticDependencies.AllDependenciesWithExternalFlag);
+    }
+
+    /// <summary>
+    ///     Checks if a class has [Inject] fields but no detected dependencies.
+    ///     This indicates a potential bug in the dependency detection logic.
+    /// </summary>
+    private static bool HasInjectFieldsWithoutDependencies(INamedTypeSymbol classSymbol,
+        InheritanceHierarchyDependencies diagnosticDependencies)
+    {
         var hasInjectFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field => field.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "InjectAttribute"));
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.InjectAttribute)));
 
-        if (hasInjectFields && (diagnosticDependencies.AllDependencies == null ||
-                                !diagnosticDependencies.AllDependencies.Any()))
+        return hasInjectFields &&
+               (diagnosticDependencies.AllDependencies == null ||
+                !diagnosticDependencies.AllDependencies.Any());
+    }
+
+    /// <summary>
+    ///     Generates fallback dependencies directly from [Inject] fields when
+    ///     the standard dependency detection fails.
+    /// </summary>
+    private static InheritanceHierarchyDependencies GenerateFallbackDependencies(
+        INamedTypeSymbol classSymbol)
+    {
+        var symbolFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
+            .Where(field => !field.IsStatic && !field.IsConst)
+            .Where(field => field.GetAttributes().Any(attr =>
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.InjectAttribute)))
+            .ToList();
+
+        if (!symbolFields.Any())
+            return new InheritanceHierarchyDependencies(
+                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>(),
+                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>(),
+                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>(),
+                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>(),
+                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>());
+
+        var fallbackDependencies =
+            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
+        var fallbackAllDependencies =
+            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
+
+        foreach (var field in symbolFields)
         {
-            // CRITICAL BUG: We have [Inject] fields but no dependencies - field detection is broken!
-            // Force fallback processing for ALL classes with [Inject] fields, not just generics
-            var symbolFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
-                .Where(field => !field.IsStatic && !field.IsConst)
-                .Where(field => field.GetAttributes().Any(attr =>
-                    attr.AttributeClass?.Name == "InjectAttribute"))
-                .ToList();
-
-            if (symbolFields.Any())
-            {
-                // CRITICAL FIX: Generate dependencies directly from symbols
-                var fallbackDependencies =
-                    new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-                var fallbackAllDependencies =
-                    new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
-
-                foreach (var field in symbolFields)
-                {
-                    var substitutedType = TypeSubstitution.SubstituteTypeParameters(field.Type, classSymbol);
-                    fallbackDependencies.Add((substitutedType, field.Name, DependencySource.Inject));
-                    fallbackAllDependencies.Add((substitutedType, field.Name, DependencySource.Inject, 0));
-                }
-
-                return new InheritanceHierarchyDependencies(
-                    fallbackDependencies,
-                    new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source
-                        )>(), // BaseDependencies
-                    fallbackDependencies, // DerivedDependencies
-                    fallbackAllDependencies,
-                    new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal
-                        )>() // AllDependenciesWithExternalFlag not needed for constructor generation
-                );
-            }
+            var substitutedType = TypeSubstitution.SubstituteTypeParameters(field.Type, classSymbol);
+            fallbackDependencies.Add((substitutedType, field.Name, DependencySource.Inject));
+            fallbackAllDependencies.Add((substitutedType, field.Name, DependencySource.Inject, 0));
         }
 
-        // CRITICAL FIX: If there are no dependencies, check if this is a generic type with [Inject] fields
-        // that might have been missed by the standard processing logic
-        if (diagnosticDependencies.AllDependencies == null || !diagnosticDependencies.AllDependencies.Any())
-        {
-            // For generic types, ensure we haven't missed any [Inject] fields due to processing complexity
-            if (classSymbol.IsGenericType)
-            {
-                var symbolFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
-                    .Where(field => !field.IsStatic && !field.IsConst)
-                    .Where(field => field.GetAttributes().Any(attr =>
-                        attr.AttributeClass?.Name == "InjectAttribute"))
-                    .ToList();
+        return new InheritanceHierarchyDependencies(
+            fallbackDependencies,
+            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>(), // BaseDependencies
+            fallbackDependencies, // DerivedDependencies
+            fallbackAllDependencies,
+            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>()
+        );
+    }
 
-                if (symbolFields.Any())
-                {
-                    // CRITICAL FIX: Generate dependencies directly from symbols for generic types
-                    var fallbackDependencies =
-                        new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-                    var fallbackAllDependencies =
-                        new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
-
-                    foreach (var field in symbolFields)
-                    {
-                        var substitutedType = TypeSubstitution.SubstituteTypeParameters(field.Type, classSymbol);
-                        fallbackDependencies.Add((substitutedType, field.Name, DependencySource.Inject));
-                        fallbackAllDependencies.Add((substitutedType, field.Name, DependencySource.Inject, 0));
-                    }
-
-                    return new InheritanceHierarchyDependencies(
-                        fallbackDependencies,
-                        new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source
-                            )>(), // BaseDependencies
-                        fallbackDependencies, // DerivedDependencies
-                        fallbackAllDependencies,
-                        new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal
-                            )>() // AllDependenciesWithExternalFlag not needed for constructor generation
-                    );
-                }
-            }
-
-            return diagnosticDependencies;
-        }
-
-        // Group dependencies by ServiceType to find inheritance conflicts
-        var constructorAllDependencies =
+    /// <summary>
+    ///     Resolves inheritance conflicts when the same ServiceType appears at multiple
+    ///     inheritance levels. Chooses the most derived dependency for conflicts.
+    /// </summary>
+    private static List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>
+        ResolveInheritanceConflicts(InheritanceHierarchyDependencies diagnosticDependencies)
+    {
+        var constructorDependencies =
             new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
 
         var serviceTypeGroups = diagnosticDependencies.AllDependencies
@@ -690,24 +685,7 @@ internal static class DependencyAnalyzer
         foreach (var group in serviceTypeGroups)
         {
             var dependencies = group.ToList();
-
-            // CRITICAL FIX: For non-inheritance scenarios (single class), RawAllDependencies might not contain level info
-            // In such cases, all dependencies will have level 0, so we should just add them all
-
-            // Check if this ServiceType has dependencies across multiple inheritance levels
-            var dependenciesWithLevels = dependencies.Select(d =>
-            {
-                // Need to find level from RawAllDependencies
-                var rawDep = diagnosticDependencies.RawAllDependencies
-                    .FirstOrDefault(rd => SymbolEqualityComparer.Default.Equals(rd.ServiceType, d.ServiceType) &&
-                                          rd.FieldName == d.FieldName && rd.Source == d.Source);
-
-                // CRITICAL FIX: Handle case where rawDep is not found (default tuple returns Level = 0)
-                // This can happen if AllDependencies and RawAllDependencies are out of sync
-                var level = rawDep.ServiceType != null ? rawDep.Level : 0;
-                return (dependency: d, level);
-            }).ToList();
-
+            var dependenciesWithLevels = GetDependenciesWithLevels(dependencies, diagnosticDependencies);
             var levels = dependenciesWithLevels.Select(d => d.level).Distinct().ToList();
 
             if (levels.Count > 1)
@@ -721,21 +699,37 @@ internal static class DependencyAnalyzer
                     .First()
                     .dependency;
 
-                constructorAllDependencies.Add(preferredDependency);
+                constructorDependencies.Add(preferredDependency);
             }
             else
             {
                 // NO INHERITANCE CONFLICT: Add all dependencies (multiple fields of same type in same class)
-                constructorAllDependencies.AddRange(dependencies);
+                constructorDependencies.AddRange(dependencies);
             }
         }
 
-        return new InheritanceHierarchyDependencies(
-            constructorAllDependencies,
-            diagnosticDependencies.BaseDependencies,
-            diagnosticDependencies.DerivedDependencies,
-            diagnosticDependencies.RawAllDependencies,
-            diagnosticDependencies.AllDependenciesWithExternalFlag);
+        return constructorDependencies;
+    }
+
+    /// <summary>
+    ///     Gets dependencies with their inheritance levels from RawAllDependencies.
+    /// </summary>
+    private static List<( (ITypeSymbol ServiceType, string FieldName, DependencySource Source) dependency, int level)>
+        GetDependenciesWithLevels(
+            List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> dependencies,
+            InheritanceHierarchyDependencies diagnosticDependencies)
+    {
+        return dependencies.Select(d =>
+        {
+            // Need to find level from RawAllDependencies
+            var rawDep = diagnosticDependencies.RawAllDependencies
+                .FirstOrDefault(rd => SymbolEqualityComparer.Default.Equals(rd.ServiceType, d.ServiceType) &&
+                                      rd.FieldName == d.FieldName && rd.Source == d.Source);
+
+            // Handle case where rawDep is not found (default tuple returns Level = 0)
+            var level = rawDep.ServiceType != null ? rawDep.Level : 0;
+            return (dependency: d, level);
+        }).ToList();
     }
 
     // Backwards-compatible delegator to keep public surface stable

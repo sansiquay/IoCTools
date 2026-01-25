@@ -8,6 +8,7 @@ internal static class AttributeTypeChecker
     public const string ScopedAttribute = "IoCTools.Abstractions.Annotations.ScopedAttribute";
     public const string SingletonAttribute = "IoCTools.Abstractions.Annotations.SingletonAttribute";
     public const string TransientAttribute = "IoCTools.Abstractions.Annotations.TransientAttribute";
+    public const string InjectAttribute = "IoCTools.Abstractions.Annotations.InjectAttribute";
     public const string RegisterAsAllAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute";
     public const string RegisterAsAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAttribute";
     public const string ConditionalServiceAttribute = "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute";
