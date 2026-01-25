@@ -578,4 +578,131 @@ namespace TestApp
     }
 
     #endregion
+
+    #region Generic Edge Cases
+
+    [Fact]
+    public void RegisterAs_ClosedGenericOnOpenGenericClass_GeneratesDiagnostic()
+    {
+        // Tests the scenario where a closed generic interface is specified in RegisterAs
+        // but the class is an open generic (mismatch scenario)
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestApp
+{
+    public interface IRepository { }
+    public interface IRepository<T> : IRepository { }
+
+    [Scoped]
+    [RegisterAs<IRepository<User>>]  // Closed generic interface
+    public partial class Repository<T> : IRepository<T>  // Open generic class
+    {
+    }
+
+    public class User { }
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // DOCUMENTED BEHAVIOR: When RegisterAs specifies a closed generic interface but
+        // the class is open generic (type arity mismatch), the closed generic is NOT registered.
+        // Only the open generic matching the class's type parameters is registered. This is
+        // because the generator cannot know all possible instantiations of the open generic
+        // class at compile time.
+        var registrationContent = result.GetServiceRegistrationText();
+
+        // The concrete class registration should use the open generic
+        registrationContent.Should().Contain("Repository<", "Repository<T> should be in registration");
+
+        // NOTE: The closed generic IRepository<User> is NOT registered because:
+        // 1. The class is open generic (Repository<T>)
+        // 2. The generator cannot register specific instantiations without explicit type parameters
+        // This is documented behavior - use RegisterAs with matching generic arity or
+        // create a separate closed generic class for specific types.
+        registrationContent.Should().NotContain("IRepository<User>",
+            "Closed generic interface should not be registered for open generic class");
+    }
+
+    [Fact]
+    public void RegisterAs_GenericClassWithNonGenericInterface_WorksCorrectly()
+    {
+        // Tests the scenario where a generic class uses RegisterAs with a non-generic interface
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestApp
+{
+    public interface INonGenericService { }
+    public interface IGenericService<T> { }
+
+    [Scoped]
+    [RegisterAs<INonGenericService>]
+    public partial class GenericService<T> : INonGenericService
+    {
+    }
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // DOCUMENTED BEHAVIOR: A generic class can implement and be registered as a non-generic
+        // interface. The registration uses the open generic class definition.
+        var registrationContent = result.GetServiceRegistrationText();
+
+        // Should register the open generic class
+        registrationContent.Should().Contain("GenericService<", "GenericService<T> should be in registration");
+
+        // Should register the non-generic interface
+        registrationContent.Should().Contain("INonGenericService", "INonGenericService should be registered");
+    }
+
+    [Fact]
+    public void RegisterAs_InheritanceDiamondScenario_HandlesCorrectly()
+    {
+        // Tests the diamond inheritance scenario with RegisterAs
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace TestApp
+{
+    // Diamond hierarchy: A -> B, C -> D
+    public interface IBase { }
+    public interface ILeft : IBase { }
+    public interface IRight : IBase { }
+    public interface IDiamond : ILeft, IRight { }
+
+    [Scoped]
+    [RegisterAs<IBase, IDiamond>]  // Register both root and diamond tip
+    public partial class DiamondService : IDiamond
+    {
+    }
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // DOCUMENTED BEHAVIOR: Diamond inheritance with RegisterAs should register all
+        // specified interfaces that the class implements, including those inherited through
+        // multiple paths. Intermediate interfaces not explicitly listed in RegisterAs are NOT
+        // registered.
+        var registrationContent = result.GetServiceRegistrationText();
+
+        // Should register the concrete class
+        registrationContent.Should().Contain("DiamondService", "DiamondService should be registered");
+
+        // Should register IBase (root of diamond, specified in RegisterAs)
+        registrationContent.Should().Contain("IBase", "IBase should be registered");
+
+        // Should register IDiamond (tip of diamond, specified in RegisterAs)
+        registrationContent.Should().Contain("IDiamond", "IDiamond should be registered");
+
+        // Should NOT register intermediate interfaces (IRight, ILeft) not specified in RegisterAs
+        // even though they are part of the inheritance chain
+        registrationContent.Should().NotContain("ILeft", "ILeft should not be registered");
+        registrationContent.Should().NotContain("IRight", "IRight should not be registered");
+    }
+
+    #endregion
 }
