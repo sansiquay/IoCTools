@@ -4,6 +4,25 @@ using IoCTools.Generator.Utilities;
 
 internal static class ConfigurationValidator
 {
+    /// <summary>
+    ///     Result of validating a type for configuration binding
+    /// </summary>
+    private enum ConfigurationValidationResult
+    {
+        Valid,
+        Invalid,
+        CycleDetected
+    }
+
+    /// <summary>
+    ///     Result of cycle detection during configuration validation
+    /// </summary>
+    private sealed class CycleDetectionResult
+    {
+        public bool HasCycle { get; set; }
+        public ITypeSymbol? CycleType { get; set; }
+        public string? CycleProperty { get; set; }
+    }
     // Types that can be bound from configuration without issues
     private static readonly HashSet<string> SupportedPrimitiveTypes = new()
     {
@@ -256,7 +275,23 @@ internal static class ConfigurationValidator
         var fieldType = fieldSymbol.Type;
         var fieldTypeName = fieldType.ToDisplayString();
 
-        var validationResult = ValidateTypeForConfiguration(fieldType);
+        // Use cycle-aware validation with recursion stack
+        var recursionStack = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+        var validationResult = ValidateTypeForConfiguration(fieldType, recursionStack, null, out var cycleResult);
+
+        // Report IOC088 if cycle detected
+        if (cycleResult?.HasCycle == true)
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.ConfigurationCircularReference,
+                fieldDeclaration.Declaration.Type.GetLocation(),
+                cycleResult.CycleType?.ToDisplayString() ?? fieldTypeName,
+                cycleResult.CycleProperty ?? "unknown");
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
+
+        // Report IOC017 if type is invalid
         if (!validationResult.IsValid)
         {
             var diagnostic = Diagnostic.Create(
@@ -269,10 +304,23 @@ internal static class ConfigurationValidator
     }
 
     /// <summary>
-    ///     Validates that a type can be bound from configuration
+    ///     Validates that a type can be bound from configuration (without cycle detection - for internal recursion)
     /// </summary>
     private static (bool IsValid, string ErrorMessage) ValidateTypeForConfiguration(ITypeSymbol type)
     {
+        return ValidateTypeForConfiguration(type, new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default), null, out _);
+    }
+
+    /// <summary>
+    ///     Validates that a type can be bound from configuration with cycle detection
+    /// </summary>
+    private static (bool IsValid, string ErrorMessage) ValidateTypeForConfiguration(
+        ITypeSymbol type,
+        HashSet<ITypeSymbol> recursionStack,
+        string? propertyName,
+        out CycleDetectionResult? cycleResult)
+    {
+        cycleResult = null;
         var typeName = type.ToDisplayString();
         var originalTypeName = type.OriginalDefinition.ToDisplayString();
 
@@ -288,7 +336,7 @@ internal static class ConfigurationValidator
                 if (namedType.TypeArguments.Length > 0)
                 {
                     var underlyingType = namedType.TypeArguments.First();
-                    return ValidateTypeForConfiguration(underlyingType);
+                    return ValidateTypeForConfiguration(underlyingType, recursionStack, propertyName, out cycleResult);
                 }
 
             // Handle Options pattern types - these are always valid
@@ -301,7 +349,8 @@ internal static class ConfigurationValidator
                 if (namedType.TypeArguments.Length > 0)
                     foreach (var typeArg in namedType.TypeArguments)
                     {
-                        var elementValidation = ValidateTypeForConfiguration(typeArg);
+                        var elementValidation = ValidateTypeForConfiguration(typeArg, recursionStack, propertyName, out cycleResult);
+                        if (cycleResult != null) return (false, string.Empty);
                         if (!elementValidation.IsValid)
                             return (false,
                                 "Collection element type is not supported: " + elementValidation.ErrorMessage);
@@ -324,7 +373,8 @@ internal static class ConfigurationValidator
                 if (namedType.TypeArguments.Length > 0)
                     foreach (var typeArg in namedType.TypeArguments)
                     {
-                        var elementValidation = ValidateTypeForConfiguration(typeArg);
+                        var elementValidation = ValidateTypeForConfiguration(typeArg, recursionStack, propertyName, out cycleResult);
+                        if (cycleResult != null) return (false, string.Empty);
                         if (!elementValidation.IsValid)
                             return (false,
                                 "Collection element type is not supported: " + elementValidation.ErrorMessage);
@@ -333,14 +383,15 @@ internal static class ConfigurationValidator
                 return (true, string.Empty);
             }
 
-            // Support dictionary interfaces  
+            // Support dictionary interfaces
             if (namedTypeName.StartsWith("System.Collections.Generic.IDictionary<"))
             {
                 // Dictionary types are supported
                 if (namedType.TypeArguments.Length >= 2)
                     foreach (var typeArg in namedType.TypeArguments)
                     {
-                        var elementValidation = ValidateTypeForConfiguration(typeArg);
+                        var elementValidation = ValidateTypeForConfiguration(typeArg, recursionStack, propertyName, out cycleResult);
+                        if (cycleResult != null) return (false, string.Empty);
                         if (!elementValidation.IsValid)
                             return (false,
                                 "Dictionary type argument is not supported: " + elementValidation.ErrorMessage);
@@ -360,7 +411,8 @@ internal static class ConfigurationValidator
         // Handle array types
         if (type is IArrayTypeSymbol arrayType)
         {
-            var elementValidation = ValidateTypeForConfiguration(arrayType.ElementType);
+            var elementValidation = ValidateTypeForConfiguration(arrayType.ElementType, recursionStack, propertyName, out cycleResult);
+            if (cycleResult != null) return (false, string.Empty);
             if (!elementValidation.IsValid)
                 return (false, "Array element type is not supported: " + elementValidation.ErrorMessage);
             return (true, string.Empty);
@@ -378,6 +430,7 @@ internal static class ConfigurationValidator
 
         // Check if it's a reference type that could potentially be bound (POCOs)
         if (type.IsReferenceType && type.TypeKind == TypeKind.Class)
+        {
             // For classes, we need to check if they have a parameterless constructor
             if (type is INamedTypeSymbol classType)
             {
@@ -387,8 +440,51 @@ internal static class ConfigurationValidator
                 if (!hasParameterlessConstructor)
                     return (false, "requires a parameterless constructor for configuration binding");
 
-                return (true, string.Empty);
+                // CYCLE DETECTION: Check for circular references in POCO properties
+                // Add current type to recursion stack
+                if (!recursionStack.Add(type))
+                {
+                    // Type already in stack - cycle detected!
+                    cycleResult = new CycleDetectionResult
+                    {
+                        HasCycle = true,
+                        CycleType = type,
+                        CycleProperty = propertyName ?? "self"
+                    };
+                    return (false, "circular reference detected");
+                }
+
+                try
+                {
+                    // Check all public, settable, non-static properties for cycles
+                    foreach (var member in classType.GetMembers())
+                    {
+                        if (member is not IPropertySymbol prop)
+                            continue;
+
+                        // Filter: only public, settable, non-static properties
+                        if (prop.DeclaredAccessibility != Accessibility.Public)
+                            continue;
+                        if (prop.IsStatic)
+                            continue;
+                        if (prop.SetMethod == null)
+                            continue;
+
+                        // Recursively validate property type
+                        var propValidation = ValidateTypeForConfiguration(prop.Type, recursionStack, prop.Name, out cycleResult);
+                        if (cycleResult != null)
+                            return (false, "circular reference detected");
+                    }
+
+                    return (true, string.Empty);
+                }
+                finally
+                {
+                    // Remove from stack when backtracking (enables diamond dependencies)
+                    recursionStack.Remove(type);
+                }
             }
+        }
 
         // Check if it's an interface (not supported for direct configuration binding)
         // Note: Collection interfaces are handled above in the generic type section

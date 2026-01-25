@@ -1,7 +1,18 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
+using Microsoft.CodeAnalysis;
+
 internal static class ConfigurationInjectionValidator
 {
+    /// <summary>
+    ///     Result of cycle detection during configuration validation
+    /// </summary>
+    private sealed class CycleDetectionResult
+    {
+        public bool HasCycle { get; set; }
+        public INamedTypeSymbol? CycleType { get; set; }
+        public string? CycleProperty { get; set; }
+    }
     internal static void ValidateConfigurationInjection(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol)
@@ -44,6 +55,21 @@ internal static class ConfigurationInjectionValidator
             }
 
             var fieldType = fieldSymbol.Type;
+
+            // IOC088: Check for circular references in configuration types
+            var recursionStack = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+            var cycleResult = CheckForCircularReference(fieldType, recursionStack, null);
+
+            if (cycleResult?.HasCycle == true)
+            {
+                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.ConfigurationCircularReference,
+                    classDeclaration.GetLocation(),
+                    cycleResult.CycleType?.ToDisplayString() ?? fieldType.ToDisplayString(),
+                    cycleResult.CycleProperty ?? "unknown");
+                context.ReportDiagnostic(diagnostic);
+                continue; // Skip unsupported type diagnostic if cycle detected
+            }
+
             if (!IsSupportedConfigurationType(fieldType))
             {
                 var reasonMessage = GetUnsupportedTypeReason(fieldType);
@@ -51,6 +77,81 @@ internal static class ConfigurationInjectionValidator
                     classDeclaration.GetLocation(), fieldType.ToDisplayString(), reasonMessage);
                 context.ReportDiagnostic(diagnostic);
             }
+        }
+    }
+
+    /// <summary>
+    ///     Checks for circular references in configuration type hierarchy
+    /// </summary>
+    private static CycleDetectionResult? CheckForCircularReference(
+        ITypeSymbol type,
+        HashSet<INamedTypeSymbol> recursionStack,
+        string? propertyName)
+    {
+        // Only check named types (classes, structs) that can have properties
+        if (type is not INamedTypeSymbol namedType) return null;
+
+        var originalDef = namedType.OriginalDefinition;
+
+        // Handle Nullable<T>
+        if (originalDef.SpecialType == SpecialType.System_Nullable_T && namedType.TypeArguments.Length > 0)
+            return CheckForCircularReference(namedType.TypeArguments[0], recursionStack, propertyName);
+
+        // Handle Options pattern - these don't need cycle checking
+        var typeName = namedType.ToDisplayString();
+        if (typeName.StartsWith("Microsoft.Extensions.Options.IOptions") ||
+            typeName.StartsWith("Microsoft.Extensions.Options.IOptionsSnapshot") ||
+            typeName.StartsWith("Microsoft.Extensions.Options.IOptionsMonitor"))
+            return null;
+
+        // Handle collection types - check element type for cycles
+        if (namedType.TypeArguments.Length > 0)
+        {
+            // Only check first type argument (element type) for cycles
+            var elementCycle = CheckForCircularReference(namedType.TypeArguments[0], recursionStack, propertyName);
+            if (elementCycle?.HasCycle == true) return elementCycle;
+        }
+
+        // Handle array types
+        if (type is IArrayTypeSymbol arrayType)
+            return CheckForCircularReference(arrayType.ElementType, recursionStack, propertyName);
+
+        // Only POCO classes can have circular references
+        if (type.TypeKind != TypeKind.Class || type.IsValueType) return null;
+        if (type.IsAbstract || type.TypeKind == TypeKind.Interface) return null;
+
+        // Check for cycle using recursion stack
+        if (!recursionStack.Add(namedType))
+        {
+            // Type already in stack - cycle detected!
+            return new CycleDetectionResult
+            {
+                HasCycle = true,
+                CycleType = namedType,
+                CycleProperty = propertyName ?? "self"
+            };
+        }
+
+        try
+        {
+            // Check all public, settable, non-static properties for cycles
+            foreach (var member in namedType.GetMembers())
+            {
+                if (member is not IPropertySymbol prop) continue;
+                if (prop.DeclaredAccessibility != Accessibility.Public) continue;
+                if (prop.IsStatic) continue;
+                if (prop.SetMethod == null) continue;
+
+                var propCycle = CheckForCircularReference(prop.Type, recursionStack, prop.Name);
+                if (propCycle?.HasCycle == true) return propCycle;
+            }
+
+            return null;
+        }
+        finally
+        {
+            // Remove from stack when backtracking (enables diamond dependencies)
+            recursionStack.Remove(namedType);
         }
     }
 

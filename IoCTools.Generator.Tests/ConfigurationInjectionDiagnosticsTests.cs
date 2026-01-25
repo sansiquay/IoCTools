@@ -1118,4 +1118,242 @@ public class SeverityTestService // Non-partial (IOC018 - Error)
     }
 
     #endregion
+
+    #region IOC088 - Circular Reference Detection Tests
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088DirectCircularReference_ProducesExpectedDiagnostic()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public class EmailSettings
+{
+    public string Host { get; set; } = string.Empty;
+    public EmailSettings FallbackSettings { get; set; } // Direct circular reference!
+}
+
+[Scoped]
+public partial class CircularConfigService
+{
+    [InjectConfiguration] private readonly EmailSettings _emailSettings;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC088");
+        diagnostics.Should().ContainSingle("IOC088 should be produced for circular reference");
+
+        var diagnostic = diagnostics[0];
+        diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
+        diagnostic.GetMessage().Should().Contain("EmailSettings");
+        diagnostic.GetMessage().Should().Contain("FallbackSettings");
+        diagnostic.GetMessage().Should().Contain("circular reference");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088IndirectCircularReference_ProducesExpectedDiagnostic()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public class SettingsA
+{
+    public string ValueA { get; set; } = string.Empty;
+    public SettingsB NestedB { get; set; }
+}
+
+public class SettingsB
+{
+    public string ValueB { get; set; } = string.Empty;
+    public SettingsA BackToA { get; set; } // Indirect circular reference!
+}
+
+[Scoped]
+public partial class IndirectCircularConfigService
+{
+    [InjectConfiguration] private readonly SettingsA _settingsA;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC088");
+        diagnostics.Should().ContainSingle("IOC088 should be produced for indirect circular reference");
+
+        var diagnostic = diagnostics[0];
+        diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
+        diagnostic.GetMessage().Should().ContainAny(new[] { "SettingsA", "SettingsB" });
+        diagnostic.GetMessage().Should().Contain("circular reference");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088DeeplyNestedNonCircular_ProducesNoDiagnostics()
+    {
+        // Arrange - Deeply nested but valid configuration (no cycles)
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public class Level3Settings
+{
+    public string Level3Value { get; set; } = string.Empty;
+}
+
+public class Level2Settings
+{
+    public string Level2Value { get; set; } = string.Empty;
+    public Level3Settings Level3 { get; set; }
+}
+
+public class Level1Settings
+{
+    public string Level1Value { get; set; } = string.Empty;
+    public Level2Settings Level2 { get; set; }
+}
+
+[Scoped]
+public partial class DeepNestingConfigService
+{
+    [InjectConfiguration] private readonly Level1Settings _level1Settings;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC088");
+        diagnostics.Should().BeEmpty("IOC088 should not be produced for non-circular deeply nested configuration");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088DiamondDependency_ProducesNoDiagnostics()
+    {
+        // Arrange - Diamond dependency (A -> B, A -> C, B -> D, C -> D) is valid
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public class SharedSettings
+{
+    public string SharedValue { get; set; } = string.Empty;
+}
+
+public class PathASettings
+{
+    public string PathAValue { get; set; } = string.Empty;
+    public SharedSettings Shared { get; set; }
+}
+
+public class PathBSettings
+{
+    public string PathBValue { get; set; } = string.Empty;
+    public SharedSettings Shared { get; set; } // Shared by both paths - not a cycle!
+}
+
+[Scoped]
+public partial class DiamondConfigService
+{
+    [InjectConfiguration] private readonly PathASettings _pathA;
+    [InjectConfiguration] private readonly PathBSettings _pathB;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC088");
+        diagnostics.Should().BeEmpty("IOC088 should not be produced for diamond dependency pattern");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088CollectionWithCircularReference_ProducesExpectedDiagnostic()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+
+namespace Test;
+
+public class NodeSettings
+{
+    public string Name { get; set; } = string.Empty;
+    public List<NodeSettings> Children { get; set; } // Circular through collection!
+}
+
+[Scoped]
+public partial class CircularCollectionConfigService
+{
+    [InjectConfiguration] private readonly NodeSettings _nodeSettings;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC088");
+        diagnostics.Should().ContainSingle("IOC088 should be produced for circular reference through collection");
+
+        var diagnostic = diagnostics[0];
+        diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
+        diagnostic.GetMessage().Should().Contain("NodeSettings");
+        diagnostic.GetMessage().Should().Contain("Children");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC088SelfReferencingInterfaceProperty_ProducesNoDiagnostics()
+    {
+        // Arrange - Interface types are already rejected by IOC017, so no cycle detection needed
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public interface IRecursiveSettings
+{
+    IRecursiveSettings Parent { get; set; }
+}
+
+[Scoped]
+public partial class InterfaceCircularConfigService
+{
+    [InjectConfiguration] private readonly IRecursiveSettings _settings;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should get IOC017 (interface not supported), not IOC088
+        var ioc088Diagnostics = result.GetDiagnosticsByCode("IOC088");
+        ioc088Diagnostics.Should().BeEmpty("IOC088 should not be produced for interface properties");
+
+        var ioc017Diagnostics = result.GetDiagnosticsByCode("IOC017");
+        ioc017Diagnostics.Should().NotBeEmpty("IOC017 should be produced for interface type");
+    }
+
+    #endregion
 }

@@ -770,4 +770,13 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton] or [Transient], 2) Changing this service to [Scoped], or 3) Use dependency factories/scoped service locator pattern.");
+
+    public static readonly DiagnosticDescriptor ConfigurationCircularReference = new(
+        "IOC088",
+        "Configuration type has circular reference",
+        "Configuration type '{0}' has a circular reference through property '{1}'. This will cause infinite recursion during configuration binding.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Fix the circular reference by: 1) Breaking the cycle by removing the self-referencing property, 2) Using a different configuration structure (nested classes without cycles), or 3) Using IOptions<> pattern with manual configuration.");
 }
