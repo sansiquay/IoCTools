@@ -20,11 +20,14 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      - name: Restore dependencies
+        run: dotnet restore IoCTools.sln
+
       - name: Build solution
-        run: dotnet build IoCTools.sln --configuration Release
+        run: dotnet build IoCTools.sln --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test IoCTools.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test IoCTools.sln --configuration Release --no-build --no-restore --verbosity normal
 
   publish:
     name: publish NuGet
