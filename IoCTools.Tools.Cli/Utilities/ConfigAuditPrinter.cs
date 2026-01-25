@@ -11,7 +11,9 @@ internal static class ConfigAuditPrinter
         foreach (var report in reports)
         foreach (var cfg in report.ConfigurationFields)
         {
-            var key = string.IsNullOrWhiteSpace(cfg.ConfigurationKey) ? cfg.FieldName : cfg.ConfigurationKey!;
+            var key = string.IsNullOrWhiteSpace(cfg.ConfigurationKey)
+                ? InferSectionKeyFromTypeName(cfg.TypeName)
+                : cfg.ConfigurationKey!;
             keys.Add(key);
         }
 
@@ -73,5 +75,49 @@ internal static class ConfigAuditPrinter
                 if (!string.IsNullOrEmpty(prefix)) keys.Add(prefix);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Infers the configuration section key from a type name, matching the logic used
+    /// by the generator's ConfigurationInjectionInfo.InferSectionNameFromType().
+    /// </summary>
+    private static string InferSectionKeyFromTypeName(string typeName)
+    {
+        // Handle generic types like IOptions<T> by extracting the inner type
+        var genericIndex = typeName.IndexOf('`');
+        if (genericIndex > 0)
+            typeName = typeName.Substring(0, genericIndex);
+
+        // Handle IOptions<T>, IOptionsSnapshot<T> patterns
+        if (typeName.StartsWith("IOptions", StringComparison.Ordinal) ||
+            typeName.StartsWith("Microsoft.Extensions.Options.IOptions", StringComparison.Ordinal))
+        {
+            var start = typeName.IndexOf('<');
+            if (start > 0)
+            {
+                var end = typeName.LastIndexOf('>');
+                if (end > start)
+                    typeName = typeName.Substring(start + 1, end - start - 1);
+            }
+        }
+
+        // Extract the simple type name (without namespace)
+        var lastDot = typeName.LastIndexOf('.');
+        if (lastDot >= 0)
+            typeName = typeName.Substring(lastDot + 1);
+
+        // Remove common configuration suffixes (matching generator logic)
+        if (typeName.EndsWith("Settings"))
+            return typeName.Substring(0, typeName.Length - "Settings".Length);
+        if (typeName.EndsWith("Configuration"))
+            return typeName.Substring(0, typeName.Length - "Configuration".Length);
+        if (typeName.EndsWith("Config"))
+            return typeName.Substring(0, typeName.Length - "Config".Length);
+        if (typeName.EndsWith("Options"))
+            return typeName.Substring(0, typeName.Length - "Options".Length);
+        if (typeName.EndsWith("Object"))
+            return typeName.Substring(0, typeName.Length - "Object".Length);
+
+        return typeName;
     }
 }
