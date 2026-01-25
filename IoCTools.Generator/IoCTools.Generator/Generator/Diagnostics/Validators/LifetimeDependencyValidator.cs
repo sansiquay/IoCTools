@@ -134,6 +134,35 @@ internal static class LifetimeDependencyValidator
         }
     }
 
+    private static void ReportLifetimeViolationDiagnostics(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        LifetimeViolationType violationType,
+        string dependencyTypeName)
+    {
+        var location = classDeclaration.GetLocation();
+        var serviceName = classSymbol.Name;
+
+        switch (violationType)
+        {
+            case LifetimeViolationType.SingletonDependsOnScoped:
+                var scopedDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
+                    location, serviceName, dependencyTypeName);
+                context.ReportDiagnostic(scopedDiagnostic);
+                break;
+            case LifetimeViolationType.SingletonDependsOnTransient:
+                var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
+                    location, serviceName, dependencyTypeName);
+                context.ReportDiagnostic(transientDiagnostic);
+                break;
+            case LifetimeViolationType.TransientDependsOnScoped:
+                var transientScopedDiagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
+                    location, serviceName, dependencyTypeName);
+                context.ReportDiagnostic(transientScopedDiagnostic);
+                break;
+        }
+    }
+
     internal static void ValidateIEnumerableLifetimes(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
@@ -147,37 +176,12 @@ internal static class LifetimeDependencyValidator
     {
         var foundImplementations = false;
         var processed = new HashSet<string>();
+
         if (allImplementations.TryGetValue(innerType, out var direct))
         {
             foundImplementations = true;
-            foreach (var implementation in direct)
-            {
-                if (!processed.Add(implementation.ToDisplayString())) continue;
-                var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
-                if (implLifetime == null) continue;
-                var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
-                if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
-                else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
-                else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
-            }
+            ValidateImplementationSet(direct, processed, serviceLifetime, implicitLifetime, context,
+                classDeclaration, classSymbol, dependencyTypeName);
         }
 
         if (innerType.Contains('<') && innerType.Contains('>'))
@@ -186,70 +190,63 @@ internal static class LifetimeDependencyValidator
             if (baseGeneric != null && allImplementations.TryGetValue(baseGeneric, out var generics))
             {
                 foundImplementations = true;
-                foreach (var implementation in generics)
-                {
-                    if (!processed.Add(implementation.ToDisplayString())) continue;
-                    var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
-                        implicitLifetime);
-                    if (implLifetime == null) continue;
-                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
-                    if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                }
+                ValidateImplementationSet(generics, processed, serviceLifetime, implicitLifetime, context,
+                    classDeclaration, classSymbol, dependencyTypeName);
             }
         }
 
         if (!foundImplementations)
+        {
             foreach (var kvp in allImplementations)
                 foreach (var implementation in kvp.Value)
                 {
                     if (!processed.Add(implementation.ToDisplayString())) continue;
                     var interfaces = implementation.AllInterfaces.Select(i => i.ToDisplayString());
                     if (!interfaces.Contains(innerType)) continue;
-                    var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
-                        implicitLifetime);
-                    if (implLifetime == null) continue;
-                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
-                    if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
+
+                    ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
+                        classDeclaration, classSymbol, dependencyTypeName);
                 }
+        }
+    }
+
+    private static void ValidateImplementationSet(
+        List<INamedTypeSymbol> implementations,
+        HashSet<string> processed,
+        string serviceLifetime,
+        string implicitLifetime,
+        SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        string dependencyTypeName)
+    {
+        foreach (var implementation in implementations)
+        {
+            if (!processed.Add(implementation.ToDisplayString())) continue;
+
+            ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
+                classDeclaration, classSymbol, dependencyTypeName);
+        }
+    }
+
+    private static void ValidateImplementationLifetime(
+        INamedTypeSymbol implementation,
+        string serviceLifetime,
+        string implicitLifetime,
+        SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        string dependencyTypeName)
+    {
+        var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
+        if (implLifetime == null) return;
+
+        var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
+        if (violationType != LifetimeViolationType.Compatible)
+        {
+            var displayDependencyName = $"{dependencyTypeName} -> {implementation.Name}";
+            ReportLifetimeViolationDiagnostics(context, classDeclaration, classSymbol, violationType,
+                displayDependencyName);
+        }
     }
 }
