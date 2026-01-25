@@ -480,3 +480,38 @@ while (currentType != null && currentType.SpecialType != SpecialType.System_Obje
 - Expanded to 18 comprehensive example files showcasing all features
 - Real-world scenario coverage validated practical applicability
 - Formal test suite complements sample application for complete coverage
+
+---
+
+## Issue Tracking and Verification
+
+This project uses **beads** for issue tracking. When closing a bead, verify completion with objective evidence:
+
+**Verification Checklist:**
+- [ ] **Code changes committed**: `git diff --stat` shows expected modifications
+- [ ] **Tests pass**: Run `dotnet test` or relevant test command - all tests pass
+- [ ] **Acceptance criteria met**: Each criterion from the bead has corresponding evidence
+- [ ] **No silent scope creep**: Out-of-scope work is tracked as separate beads
+
+**Before Closing a Bead:**
+```bash
+# 1. Check what changed
+git diff --stat
+
+# 2. Verify tests pass
+dotnet test
+
+# 3. Commit changes
+git add -A
+git commit -m "message"
+
+# 4. Close bead
+bd close <id> --reason="Summary of completion"
+bd sync
+```
+
+**Why Verification Matters:**
+- Prevents closing beads without actual implementation
+- Ensures tests are run and passing
+- Maintains traceability between beads and commits
+- Catches scope creep before it becomes lost work
