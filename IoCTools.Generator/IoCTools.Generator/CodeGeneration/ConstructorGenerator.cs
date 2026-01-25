@@ -229,7 +229,6 @@ internal static partial class ConstructorGenerator
                 }
 
             // Only generate fields for dependencies not already declared
-            // Skip ConfigurationInjection dependencies as they're only constructor parameters, not stored fields
             // CRITICAL FIX: Also check if field has [InjectConfiguration] attribute - these fields already exist in source
             var configFieldNames = new HashSet<string>();
             foreach (var configField in configFields) configFieldNames.Add(configField.FieldName);
@@ -239,29 +238,10 @@ internal static partial class ConstructorGenerator
             var allLevelZeroDependencies = hierarchyDependencies.DerivedDependencies ??
                                            new List<(ITypeSymbol, string, DependencySource)>();
 
+            // Apply unified field generation logic
             var fieldsToGenerate = allLevelZeroDependencies
-                .Where(f => !existingFieldNames.Contains(f.FieldName))
-                .Where(f => f.Source != DependencySource.ConfigurationInjection)
-                .Where(f => !configFieldNames
-                    .Contains(f.FieldName)) // CRITICAL: Don't generate fields for [InjectConfiguration] fields
+                .Where(f => ShouldGenerateField(f, existingFieldNames, configFieldNames))
                 .ToList();
-
-            // DEBUG LOG: Verify we have DependsOn fields to generate (removed unused variables to fix CS0219)
-            // var dependsOnCount = allLevelZeroDependencies.Count(f => f.Source == DependencySource.DependsOn);
-            // var filteredDependsOnCount = fieldsToGenerate.Count(f => f.Source == DependencySource.DependsOn);
-
-            // CRITICAL FIX: If all DependsOn fields were filtered out but we should have some, this indicates a bug
-            var dependsOnCount = allLevelZeroDependencies.Count(f => f.Source == DependencySource.DependsOn);
-            var filteredDependsOnCount = fieldsToGenerate.Count(f => f.Source == DependencySource.DependsOn);
-            if (dependsOnCount > 0 && filteredDependsOnCount == 0)
-            {
-                // Re-add DependsOn fields that were incorrectly filtered out
-                var missingDependsOnFields = allLevelZeroDependencies
-                    .Where(f => f.Source == DependencySource.DependsOn)
-                    .Where(f => !existingFieldNames.Contains(f.FieldName))
-                    .ToList();
-                fieldsToGenerate.AddRange(missingDependsOnFields);
-            }
 
             // CRITICAL FIX: Handle collision between [DependsOn] and [Inject] for same ServiceType in field generation
             // If both exist for same ServiceType, don't generate DependsOn field when Inject field exists
@@ -651,5 +631,23 @@ internal static partial class ConstructorGenerator
         }
 
         return baseCallStr;
+    }
+
+    private static bool ShouldGenerateField(
+        (ITypeSymbol ServiceType, string FieldName, DependencySource Source) dep,
+        HashSet<string> existingFieldNames,
+        HashSet<string> configFieldNames)
+    {
+        // Configuration Injection is only a constructor parameter, not a stored field
+        if (dep.Source == DependencySource.ConfigurationInjection)
+            return false;
+
+        // Config fields with [InjectConfiguration] are defined by user attributes
+        if (configFieldNames.Contains(dep.FieldName))
+            return false;
+
+        // For ALL other dependencies (Inject AND DependsOn), skip if the name
+        // is already taken by a manual field or generated in another partial
+        return !existingFieldNames.Contains(dep.FieldName);
     }
 }
