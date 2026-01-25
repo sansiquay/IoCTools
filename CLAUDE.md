@@ -98,9 +98,24 @@ Add these MSBuild properties to your project file:
 
   <!-- Configure severity for unregistered implementations (default: Error) -->
   <IoCToolsManualSeverity>Info</IoCToolsManualSeverity>
-  
+
   <!-- Disable all dependency validation diagnostics (default: false) -->
   <IoCToolsDisableDiagnostics>true</IoCToolsDisableDiagnostics>
+</PropertyGroup>
+```
+
+**Configure Cross-Assembly Interface Patterns:**
+
+When using clean architecture patterns where interfaces are defined in one assembly but implemented in another (unreferenced) assembly, you can configure patterns to ignore IOC001/IOC002 diagnostics for these cross-assembly interfaces:
+
+```xml
+<PropertyGroup>
+  <!--
+    Patterns for cross-assembly interfaces to ignore (semicolon-separated).
+    Supports * wildcard for matching any characters.
+    Default: *.Abstractions.*;*.Contracts.*;*.Interfaces.*;*.ILoggerService<*
+  -->
+  <IoCToolsIgnoredTypePatterns>*.Abstractions.*;*.Contracts.*;*.Interfaces.*;*.MyProject.Services.*</IoCToolsIgnoredTypePatterns>
 </PropertyGroup>
 ```
 

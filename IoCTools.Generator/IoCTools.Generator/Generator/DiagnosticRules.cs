@@ -122,28 +122,12 @@ internal static class DiagnosticRules
                 continue;
 
             var serviceTypeName = dependency.ServiceType.ToDisplayString();
-            var knownCrossAssemblyInterfaces = new[]
-            {
-                "Delta.Domain.BoundedContexts.Consumers.Dependencies.IConsumerRepository",
-                "Delta.Domain.BoundedContexts.Events.Dependencies.IEventRepository",
-                "Delta.Domain.BoundedContexts.Store.Dependencies.IStoreItemRepository",
-                "Delta.Common.Abstractions.Interfaces.IClock",
-                "Delta.Common.Abstractions.Interfaces.IEnvironmentProvider",
-                "Delta.Application.Abstractions.Interfaces.IConsumerConnectionService",
-                "Delta.Application.Abstractions.Interfaces.ISerializationService",
-                "Delta.Application.Abstractions.Interfaces.IEventDistributionService",
-                "Delta.Application.Abstractions.Interfaces.IUnitOfWorkService",
-                "Delta.Application.Abstractions.Interfaces.IHealthMonitoringService",
-                "Delta.Application.Abstractions.Interfaces.IMetadataAwareCache",
-                "Delta.Application.Abstractions.Interfaces.IIntegrationEventSchedulingService",
-                "Delta.Application.Abstractions.Interfaces.IIntegrationEventService",
-                "Delta.Domain.Abstractions.Interfaces.ISchemaFactory",
-                "Delta.Domain.Abstractions.Interfaces.IEventPatternMatcher"
-            };
-            var isGenericLoggerService =
-                serviceTypeName.StartsWith("Delta.Application.Abstractions.Interfaces.ILoggerService<") &&
-                serviceTypeName.EndsWith(">");
-            if (knownCrossAssemblyInterfaces.Contains(serviceTypeName) || isGenericLoggerService) continue;
+
+            // Check if the type matches any configured ignored patterns
+            // This allows configuration of cross-assembly interfaces that are provided
+            // by external assemblies without triggering IOC001/IOC002 diagnostics
+            if (diagnosticConfig.CompiledIgnoredPatterns.Any(pattern => pattern.IsMatch(serviceTypeName)))
+                continue;
 
             // Special handling for IEnumerable<T> dependencies
             var enumerableTypeInfo = TypeHelpers.ExtractIEnumerableFromWrappedType(dependencyType);

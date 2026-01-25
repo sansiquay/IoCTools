@@ -42,7 +42,53 @@ internal static class DiagnosticUtilities
             bool.TryParse(disableLifetimeStr, out var disableLifetime))
             config.LifetimeValidationEnabled = !disableLifetime;
 
+        // Parse IoCToolsIgnoredTypePatterns for cross-assembly interface matching
+        if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns))
+            config.CompiledIgnoredPatterns = CompileIgnoredTypePatterns(ignoredPatterns);
+
         return config;
+    }
+
+    private static Regex[] CompileIgnoredTypePatterns(string patternsString)
+    {
+        if (string.IsNullOrWhiteSpace(patternsString))
+            return GetDefaultIgnoredPatterns();
+
+        var patterns = patternsString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (patterns.Length == 0)
+            return GetDefaultIgnoredPatterns();
+
+        var compiled = new List<Regex>();
+        foreach (var pattern in patterns)
+        {
+            var trimmedPattern = pattern.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedPattern))
+                continue;
+
+            // Convert glob-style wildcards to regex
+            // *.Abstractions.* -> ^.*\.Abstractions\..*$
+            // *.ILoggerService<*> -> ^.*\.ILoggerService<.*>$
+            var regexPattern = "^" + Regex.Escape(trimmedPattern)
+                .Replace("\\*", ".*")
+                .Replace("<", "\\<")
+                .Replace(">", "\\>") + "$";
+
+            compiled.Add(new Regex(regexPattern, RegexOptions.Compiled));
+        }
+
+        return compiled.Count > 0 ? compiled.ToArray() : GetDefaultIgnoredPatterns();
+    }
+
+    private static Regex[] GetDefaultIgnoredPatterns()
+    {
+        // Default patterns for cross-assembly clean-architecture scenarios
+        return new[]
+        {
+            new Regex("^.*\\.Abstractions\\..*$", RegexOptions.Compiled),
+            new Regex("^.*\\.Contracts\\..*$", RegexOptions.Compiled),
+            new Regex("^.*\\.Interfaces\\..*$", RegexOptions.Compiled),
+            new Regex("^.*\\.ILoggerService<.*>$", RegexOptions.Compiled)
+        };
     }
 
     private static DiagnosticSeverity ParseDiagnosticSeverity(string severity)

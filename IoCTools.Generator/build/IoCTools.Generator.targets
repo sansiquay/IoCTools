@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    IoCTools.Generator.targets
+
+    Exposes MSBuild properties to the source generator analyzer, allowing users
+    to configure IoCTools behavior via their .csproj files.
+  -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="IoCToolsIgnoredTypePatterns" />
+  </ItemGroup>
+</Project>
