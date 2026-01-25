@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\IoCTools.Abstractions\Annotations\*.cs" Link="Annotations\%(FileName)%(Extension)" />
+    <Compile Include="..\..\..\IoCTools.Abstractions\Enumerations\*.cs" Link="Enumerations\%(FileName)%(Extension)" />
+  </ItemGroup>
+
+</Project>

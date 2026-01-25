@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 namespace IoCTools.Tools.Cli;
 
 using System.Diagnostics;
@@ -40,6 +42,10 @@ internal sealed class ProjectContext : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var projectPath = Path.GetFullPath(options.ProjectPath);
+
+        // Check for multi-targeting before proceeding
+        CheckMultiTargeting(projectPath, options.Framework);
+
         if (NeedsRestore(projectPath))
             await RestoreProjectAsync(projectPath, cancellationToken);
 
@@ -67,6 +73,49 @@ internal sealed class ProjectContext : IAsyncDisposable
             throw new InvalidOperationException("Unable to compile project for analysis.");
 
         return new ProjectContext(workspace, project, compilation);
+    }
+
+    private static void CheckMultiTargeting(string projectPath, string? framework)
+    {
+        if (!File.Exists(projectPath))
+            return;
+
+        try
+        {
+            var projectContent = File.ReadAllText(projectPath);
+            var doc = XDocument.Parse(projectContent);
+            var ns = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003");
+
+            // Check for <TargetFrameworks> (plural) which indicates multi-targeting
+            // Try with namespace first (old-style projects), then without (SDK-style)
+            var targetFrameworksElement = doc.Descendants(ns + "TargetFrameworks").FirstOrDefault()
+                ?? doc.Descendants("TargetFrameworks").FirstOrDefault();
+
+            if (targetFrameworksElement != null && targetFrameworksElement.Value != null)
+            {
+                var tfms = targetFrameworksElement.Value.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .Where(t => t.Length > 0)
+                    .ToArray();
+
+                if (tfms.Length > 1 && string.IsNullOrWhiteSpace(framework))
+                {
+                    var tfmList = string.Join(", ", tfms);
+                    throw new InvalidOperationException(
+                        $"Project '{Path.GetFileName(projectPath)}' targets multiple frameworks: {tfmList}.\n" +
+                        $"Use the --framework <tfm> option to specify which framework to analyze.\n" +
+                        $"Example: --framework {tfms[0]}");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException)
+        {
+            throw; // Re-throw our validation error
+        }
+        catch
+        {
+            // If we can't parse the project file, continue - MSBuild will handle it later
+        }
     }
 
     private static void RegisterMsBuild()
