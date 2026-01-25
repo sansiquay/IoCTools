@@ -165,6 +165,37 @@ internal static class RegistrationSummaryBuilder
             _ => null
         };
     }
+
+    public static RegistrationSummary FilterByType(RegistrationSummary summary, string typeFilter)
+    {
+        if (string.IsNullOrWhiteSpace(typeFilter))
+            return summary;
+
+        var filtered = summary.Records
+            .Where(r => TypeMatchesFilter(r.ServiceType, typeFilter) ||
+                        TypeMatchesFilter(r.ImplementationType, typeFilter))
+            .ToArray();
+
+        return new RegistrationSummary(summary.ExtensionPath, filtered);
+    }
+
+    private static bool TypeMatchesFilter(string? typeName, string filter)
+    {
+        if (typeName == null)
+            return false;
+
+        // Exact match: "MyService" == "MyService"
+        if (string.Equals(typeName, filter, StringComparison.Ordinal))
+            return true;
+
+        // Qualified match: "MyNamespace.MyService" ends with ".MyService"
+        // This handles the case where user provides simple name but code has qualified type
+        var qualifiedPattern = "." + filter;
+        if (typeName.EndsWith(qualifiedPattern, StringComparison.Ordinal))
+            return true;
+
+        return false;
+    }
 }
 
 internal sealed record RegistrationSummary(string ExtensionPath, IReadOnlyList<RegistrationRecord> Records);

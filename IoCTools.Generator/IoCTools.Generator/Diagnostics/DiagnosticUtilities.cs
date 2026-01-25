@@ -1,6 +1,7 @@
 namespace IoCTools.Generator.Diagnostics;
 
 using Helpers;
+using System.Text.RegularExpressions;
 
 using Microsoft.CodeAnalysis.Diagnostics;
 

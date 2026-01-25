@@ -200,14 +200,23 @@ public static class Program
 
         if (options.OutputSource)
         {
-            var source = await File.ReadAllTextAsync(path!, token);
             if (options.TypeFilter != null)
             {
-                var filtered = ExtractTypeRegistrations(source, options.TypeFilter);
-                Console.WriteLine(filtered ?? $"// No registrations found for type '{options.TypeFilter}'");
+                var summary = RegistrationSummaryBuilder.Build(path!);
+                var filtered = RegistrationSummaryBuilder.FilterByType(summary, options.TypeFilter);
+                if (filtered.Records.Count > 0)
+                {
+                    foreach (var record in filtered.Records)
+                        Console.WriteLine(record.RawExpression);
+                }
+                else
+                {
+                    Console.WriteLine($"// No registrations found for type '{options.TypeFilter}'");
+                }
             }
             else
             {
+                var source = await File.ReadAllTextAsync(path!, token);
                 Console.WriteLine(source);
             }
         }
@@ -217,26 +226,6 @@ public static class Program
             RegistrationPrinter.Write(summary);
         }
         return 0;
-    }
-
-    private static string? ExtractTypeRegistrations(string source, string typeFilter)
-    {
-        // Extract lines containing the type filter from registration code
-        var lines = source.Split('\n');
-        var matches = new List<string>();
-        var typeName = typeFilter.Contains('.') ? typeFilter.Split('.')[^1] : typeFilter;
-
-        foreach (var line in lines)
-        {
-            if (line.Contains(typeName, StringComparison.Ordinal) &&
-                (line.Contains("Add", StringComparison.Ordinal) ||
-                 line.Contains("services.", StringComparison.Ordinal)))
-            {
-                matches.Add(line.TrimEnd('\r'));
-            }
-        }
-
-        return matches.Count > 0 ? string.Join(Environment.NewLine, matches) : null;
     }
 
     private static async Task<int> RunServicesPathAsync(string[] args,
