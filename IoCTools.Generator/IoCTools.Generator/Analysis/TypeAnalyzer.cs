@@ -143,9 +143,9 @@ internal static class TypeAnalyzer
         var hasDependsOnAttribute = HasDependsOnAttributeInHierarchy(classSymbol);
 
         var hasRegisterAsAllAttribute = classSymbol.GetAttributes()
-            .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+            .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
         var hasRegisterAsAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
+            attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute`") == true &&
             attr.AttributeClass?.IsGenericType == true);
         var isHostedService = IsAssignableFromIHostedService(classSymbol);
         var isPartialWithInterfaces = IsPartialWithInterfaces(classSymbol);
@@ -255,7 +255,9 @@ internal static class TypeAnalyzer
         var current = classSymbol;
         while (current != null && current.SpecialType != SpecialType.System_Object)
         {
-            if (current.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true))
+            // Use fully-qualified namespace check to avoid matching user-defined attributes
+            if (current.GetAttributes().Any(attr =>
+                attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.DependsOnAttribute`") == true))
                 return true;
             current = current.BaseType;
         }

@@ -65,9 +65,13 @@ internal static class BaseLifetimeConsistencyValidator
         var directLifetime = ServiceDiscovery.GetDirectLifetimeAttributes(type).HasAny;
         if (directLifetime) return true;
 
-        var hasDependsOnAttribute = type.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
-        var hasRegisterAsAllAttribute = type.GetAttributes().Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
-        var hasRegisterAsAttribute = type.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
+        // Use fully-qualified namespace checks to avoid matching user-defined attributes with similar names
+        var hasDependsOnAttribute = type.GetAttributes().Any(attr =>
+            attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.DependsOnAttribute`") == true);
+        var hasRegisterAsAllAttribute = type.GetAttributes().Any(attr =>
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
+        var hasRegisterAsAttribute = type.GetAttributes().Any(attr =>
+            attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute`") == true);
         var hasConditionalServiceAttribute = type.GetAttributes().Any(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
         var hasInjectFields = type.GetMembers().OfType<IFieldSymbol>()
