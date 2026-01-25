@@ -1,0 +1,247 @@
+namespace IoCTools.Generator.Diagnostics;
+
+internal static partial class DiagnosticDescriptors
+{
+    public static readonly DiagnosticDescriptor RegisterAsAllRequiresService = new(
+        "IOC004",
+        "RegisterAsAll attribute requires Service attribute",
+        "Class '{0}' has [RegisterAsAll] attribute but is missing lifetime attribute",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Add lifetime attribute ([Scoped], [Singleton], or [Transient]) to the class to enable multi-interface registration.");
+
+    public static readonly DiagnosticDescriptor SkipRegistrationWithoutRegisterAsAll = new(
+        "IOC005",
+        "SkipRegistration attribute has no effect without RegisterAsAll",
+        "Class '{0}' has [SkipRegistration] attribute but no [RegisterAsAll] attribute",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Fix the attribute combination by: 1) Adding [RegisterAsAll] attribute to make [SkipRegistration] meaningful, or 2) Removing the unnecessary [SkipRegistration] attribute.");
+
+    public static readonly DiagnosticDescriptor DuplicateServiceRegistration = new(
+        "IOC027",
+        "Potential duplicate service registration",
+        "Service '{0}' may be registered multiple times due to inheritance or attribute combinations",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Review service registration patterns to ensure no unintended duplicates. The generator automatically deduplicates identical registrations.");
+
+    public static readonly DiagnosticDescriptor RegisterAsRequiresService = new(
+        "IOC028",
+        "RegisterAs attribute requires service indicators",
+        "Class '{0}' has [RegisterAs] attribute but lacks service indicators like [Lifetime], [Inject] fields, or other registration attributes",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Add [Lifetime], [Inject] fields, or other service indicators to enable selective interface registration.");
+
+    public static readonly DiagnosticDescriptor RegisterAsInterfaceNotImplemented = new(
+        "IOC029",
+        "RegisterAs specifies unimplemented interface",
+        "Class '{0}' has [RegisterAs] attribute specifying interface '{1}' but does not implement this interface",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Ensure that all interfaces specified in [RegisterAs] are actually implemented by the class.");
+
+    public static readonly DiagnosticDescriptor RegisterAsDuplicateInterface = new(
+        "IOC030",
+        "RegisterAs contains duplicate interface",
+        "Class '{0}' has [RegisterAs] attribute with duplicate interface '{1}'",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Remove duplicate interface specifications from the [RegisterAs] attribute.");
+
+    public static readonly DiagnosticDescriptor RegisterAsNonInterfaceType = new(
+        "IOC031",
+        "RegisterAs specifies non-interface type",
+        "Class '{0}' has [RegisterAs] attribute specifying non-interface type '{1}'",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "RegisterAs can only specify interface types. Use concrete class types for direct registration.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsAttribute = new(
+        "IOC032",
+        "RegisterAs attribute is redundant",
+        "Class '{0}' already registers interfaces {1} by default. Remove redundant [RegisterAs] attribute or reduce the interface list.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "RegisterAs should only be used when selectively registering a subset of interfaces.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsWithRegisterAsAll = new(
+        "IOC034",
+        "RegisterAsAll already registers every interface",
+        "Class '{0}' uses both [RegisterAsAll] and [RegisterAs]; selective RegisterAs attributes have no effect when RegisterAsAll is present",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Remove redundant [RegisterAs] attributes or drop [RegisterAsAll] if selective registration is required.");
+
+    public static readonly DiagnosticDescriptor InjectFieldPreferDependsOn = new(
+        "IOC035",
+        "Inject field can be simplified to DependsOn",
+        "Field '{0}' in class '{1}' uses [Inject] but matches the default DependsOn naming for dependency '{2}'. Prefer [DependsOn<{2}>] unless you require a custom field name or mutability.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Replace the [Inject] field with a [DependsOn] attribute so the generator can produce constructor parameters and backing fields automatically. Keep [Inject] only when a custom field name or non-readonly behavior is required.");
+
+    public static readonly DiagnosticDescriptor MultipleLifetimeAttributes = new(
+        "IOC036",
+        "Multiple lifetime attributes declared",
+        "Class '{0}' applies multiple lifetime attributes ({1}). Choose a single lifetime to avoid conflicting registrations.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Remove redundant lifetime attributes so only one of [Scoped], [Singleton], or [Transient] remains on the class.");
+
+    public static readonly DiagnosticDescriptor SkipRegistrationOverridesOtherAttributes = new(
+        "IOC037",
+        "SkipRegistration override other registration attributes",
+        "Class '{0}' uses [SkipRegistration] along with {1}, but SkipRegistration prevents those attributes from taking effect",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Remove redundant registration attributes or drop [SkipRegistration] so the class can register as intended.");
+
+    public static readonly DiagnosticDescriptor SkipRegistrationIneffectiveInDirectMode = new(
+        "IOC038",
+        "SkipRegistration for interfaces has no effect in RegisterAsAll(DirectOnly)",
+        "Class '{0}' declares [SkipRegistration] for interfaces, but RegisterAsAll is set to DirectOnly so no interfaces would register anyway",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Change RegisterAsAll to RegistrationMode.All/Exclusionary or remove the ineffective [SkipRegistration] declaration.");
+
+    public static readonly DiagnosticDescriptor PreferParamsStyleAttributeArguments = new(
+        "IOC047",
+        "Use params-style attribute arguments",
+        "Attribute '{0}' on '{1}' uses the '{2}' named argument; pass these values via the params argument instead (e.g., memberNames: value or configurationKeys: value)",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "Prefer params-style constructor arguments for [DependsOn] member names and [DependsOnConfiguration] keys so analyzers and generators can align argument order and defaults consistently.");
+
+    public static readonly DiagnosticDescriptor RedundantMemberName = new(
+        "IOC085",
+        "Member name matches default",
+        "Member name '{0}' for dependency '{1}' on '{2}' matches the generator's default name; remove the explicit name to reduce redundancy",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "You can omit memberNames when they equal the generator's default (based on naming convention, strip-I, and prefix settings). Keeping only overrides reduces noise and future merge conflicts.");
+
+    public static readonly DiagnosticDescriptor RegisterAsMissingLifetime = new(
+        "IOC069",
+        "RegisterAs requires a lifetime attribute",
+        "Class '{0}' uses [RegisterAs] but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Registration attributes still need a lifetime indicator; add a lifetime attribute once on the class.");
+
+    public static readonly DiagnosticDescriptor DependsOnMissingLifetime = new(
+        "IOC070",
+        "DependsOn/Inject used without lifetime",
+        "Class '{0}' declares dependencies but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "When a class has [DependsOn] or [Inject], add a lifetime so it will be registered and validated.");
+
+    public static readonly DiagnosticDescriptor ConditionalMissingLifetime = new(
+        "IOC071",
+        "ConditionalService missing lifetime",
+        "Class '{0}' uses [ConditionalService] but has no lifetime attribute. Add [Scoped], [Singleton], or [Transient].",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Conditional services still require an explicit lifetime; add one to enable registration.");
+
+    public static readonly DiagnosticDescriptor HostedServiceMissingLifetime = new(
+        "IOC072",
+        "Hosted service lifetime should be implicit",
+        "Class '{0}' implements IHostedService/BackgroundService and declares a lifetime attribute. Hosted services are registered implicitly; remove the lifetime attribute unless the class also exposes additional service interfaces.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Let IoCTools register hosted services implicitly. Only add a lifetime when the hosted service also registers additional interfaces.");
+
+    public static readonly DiagnosticDescriptor MissingRegisterAsAllForMultiInterface = new(
+        "IOC074",
+        "Multi-interface class could use RegisterAsAll",
+        "Class '{0}' implements multiple interfaces but only has a lifetime attribute. Consider adding [RegisterAsAll] to register all interfaces automatically.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When a class implements multiple interfaces, [RegisterAsAll] makes intent explicit and prevents partial registrations.");
+
+    public static readonly DiagnosticDescriptor ManualRegistrationDuplicatesIoCTools = new(
+        "IOC081",
+        "Manual registration duplicates IoCTools registration",
+        "Service '{0}' is registered manually with lifetime '{1}' but IoCTools already registers it with the same lifetime. Remove the manual registration and rely on IoCTools attributes ({2}).",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid duplicate manual registrations when IoCTools already emits the same service/implementation.");
+
+    public static readonly DiagnosticDescriptor ManualRegistrationLifetimeMismatch = new(
+        "IOC082",
+        "Manual registration lifetime differs from IoCTools",
+        "Service '{0}' is registered manually with lifetime '{1}' but IoCTools registers it with lifetime '{2}'. Align lifetimes or remove the manual registration.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Keep manual registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.");
+
+    public static readonly DiagnosticDescriptor ManualOptionsRegistrationDuplicatesIoCTools = new(
+        "IOC083",
+        "Manual options registration duplicates IoCTools binding",
+        "Options type '{0}' is manually bound via AddOptions/Configure, but IoCTools already binds it from configuration. Remove the manual binding and rely on generated options registration.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "IoCTools automatically binds configuration-backed options types referenced via InjectConfiguration/DependsOnConfiguration. Avoid manual AddOptions/Configure calls for these types to prevent duplicate registrations and diverging configuration.");
+
+    public static readonly DiagnosticDescriptor ManualRegistrationCouldUseAttributes = new(
+        "IOC086",
+        "Manual registration could use IoCTools attributes",
+        "'{0}' is registered manually as {1} but the implementation '{2}' lacks IoCTools lifetime attributes. Consider adding [Scoped]/[Singleton]/[Transient] (and [RegisterAs]) instead of manual registration.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
+        "IOC063",
+        "RegisterAs attribute is redundant on derived class",
+        "Class '{0}' inherits RegisterAs interfaces {1} from '{2}'. Remove redundant [RegisterAs] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Put [RegisterAs] on the base class once when all derived types share the same interface list; derived classes need it only when narrowing or extending the list.");
+
+    public static readonly DiagnosticDescriptor RegisterAsBaseSuggestion = new(
+        "IOC064",
+        "Move shared RegisterAs to base class",
+        "Services derived from '{0}' all specify [RegisterAs({1})]. Move the attribute to the base class to reduce duplication.",
+        "IoCTools",
+        DiagnosticSeverity.Info,
+        true,
+        "When multiple derived classes repeat the same RegisterAs interfaces, place the attribute on their shared base type instead.");
+
+    public static readonly DiagnosticDescriptor RedundantRegisterAsAllInheritance = new(
+        "IOC065",
+        "RegisterAsAll attribute is redundant on derived class",
+        "Class '{0}' inherits [RegisterAsAll] intent from '{1}'. Remove redundant [RegisterAsAll] on the derived class.",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Only one [RegisterAsAll] is needed in an inheritance chain; place it on the base when all descendants should register all implemented interfaces.");
+}
