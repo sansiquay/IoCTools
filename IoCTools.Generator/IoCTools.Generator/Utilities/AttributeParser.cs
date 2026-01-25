@@ -249,109 +249,64 @@ internal static class AttributeParser
         bool stripI,
         string prefix)
     {
-        var workingTypeName = originalTypeName;
+        // Extract semantic base name for the field
+        var fieldBaseName = ExtractSemanticFieldName(originalTypeName);
 
-        // Apply stripI logic: only strip 'I' when explicitly requested
-        if (stripI && workingTypeName.StartsWith("I") && workingTypeName.Length > 1 && char.IsUpper(workingTypeName[1]))
-            workingTypeName = workingTypeName.Substring(1);
+        // Apply naming convention and prefix handling
+        var fieldName = ApplyPrefixToFieldName(fieldBaseName, namingConvention, prefix);
 
+        // Handle C# reserved keywords by adding a suffix
+        return EscapeReservedKeyword(fieldName);
+    }
+
+    private static string ExtractSemanticFieldName(string originalTypeName)
+    {
         // CRITICAL FIX: Always use semantic naming for field generation
         // Field names should be semantically meaningful regardless of stripI parameter
         // stripI only affects the naming convention application, not the fundamental semantic naming
-        string fieldBaseName;
         if (originalTypeName.StartsWith("I") && originalTypeName.Length > 1 && char.IsUpper(originalTypeName[1]))
             // For interface types, always use semantic naming (strip 'I') for field names
-            // This ensures consistent field naming: IService -> _service, IDerivedService -> _derivedService  
-            fieldBaseName = originalTypeName.Substring(1);
-        else
-            // For non-interface types, use the original type name
-            fieldBaseName = originalTypeName;
+            // This ensures consistent field naming: IService -> _service, IDerivedService -> _derivedService
+            return originalTypeName.Substring(1);
 
-        // Generate the final field name based on prefix type
-        string fieldName;
+        // For non-interface types, use the original type name
+        return originalTypeName;
+    }
 
+    private static string ApplyNamingConvention(string name, string namingConvention)
+    {
+        return namingConvention switch
+        {
+            "CamelCase" => char.ToLowerInvariant(name[0]) + name.Substring(1),
+            "PascalCase" => char.ToUpperInvariant(name[0]) + name.Substring(1),
+            "SnakeCase" => Regex.Replace(name, @"(?<!^)([A-Z])", "_$1").ToLower(),
+            _ => name
+        };
+    }
+
+    private static string ApplyPrefixToFieldName(string fieldBaseName, string namingConvention, string prefix)
+    {
         if (prefix == "")
         {
             // Empty prefix: apply naming convention to type name, no prefixes at all
-            switch (namingConvention)
-            {
-                case "CamelCase":
-                    fieldName = char.ToLowerInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "PascalCase":
-                    fieldName = char.ToUpperInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "SnakeCase":
-                    fieldName = Regex.Replace(fieldBaseName, @"(?<!^)([A-Z])", "_$1").ToLower();
-                    break;
-                default:
-                    fieldName = fieldBaseName;
-                    break;
-            }
+            return ApplyNamingConvention(fieldBaseName, namingConvention);
         }
-        else if (prefix == "_")
+
+        if (prefix == "_")
         {
             // Default prefix: apply naming convention to type name, then add underscore prefix
-            switch (namingConvention)
-            {
-                case "CamelCase":
-                    fieldName = "_" + char.ToLowerInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "PascalCase":
-                    fieldName = "_" + char.ToUpperInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "SnakeCase":
-                    fieldName = "_" + Regex.Replace(fieldBaseName, @"(?<!^)([A-Z])", "_$1").ToLower();
-                    break;
-                default:
-                    fieldName = "_" + fieldBaseName;
-                    break;
-            }
+            return "_" + ApplyNamingConvention(fieldBaseName, namingConvention);
         }
-        else if (prefix.EndsWith("_"))
+
+        if (prefix.EndsWith("_"))
         {
             // Custom prefix ending with underscore: apply naming convention to type name, use prefix as-is
-            var formattedTypeName = fieldBaseName;
-            switch (namingConvention)
-            {
-                case "CamelCase":
-                    formattedTypeName = char.ToLowerInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "PascalCase":
-                    formattedTypeName = char.ToUpperInvariant(fieldBaseName[0]) + fieldBaseName.Substring(1);
-                    break;
-                case "SnakeCase":
-                    formattedTypeName = Regex.Replace(fieldBaseName, @"(?<!^)([A-Z])", "_$1").ToLower();
-                    break;
-            }
-
-            fieldName = prefix + formattedTypeName;
-        }
-        else
-        {
-            // Custom prefix not ending with underscore: format prefix+type together, then add underscore
-            var combinedName = prefix + fieldBaseName;
-            switch (namingConvention)
-            {
-                case "CamelCase":
-                    fieldName = "_" + char.ToLowerInvariant(combinedName[0]) + combinedName.Substring(1);
-                    break;
-                case "PascalCase":
-                    fieldName = "_" + char.ToUpperInvariant(combinedName[0]) + combinedName.Substring(1);
-                    break;
-                case "SnakeCase":
-                    fieldName = "_" + Regex.Replace(combinedName, @"(?<!^)([A-Z])", "_$1").ToLower();
-                    break;
-                default:
-                    fieldName = "_" + combinedName;
-                    break;
-            }
+            return prefix + ApplyNamingConvention(fieldBaseName, namingConvention);
         }
 
-        // Handle C# reserved keywords by adding a suffix
-        fieldName = EscapeReservedKeyword(fieldName);
-
-        return fieldName;
+        // Custom prefix not ending with underscore: format prefix+type together, then add underscore
+        var combinedName = prefix + fieldBaseName;
+        return "_" + ApplyNamingConvention(combinedName, namingConvention);
     }
 
     public static string GenerateConfigurationFieldName(string originalTypeName,
