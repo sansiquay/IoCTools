@@ -3,6 +3,16 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 internal static class ManualConstructorMixingValidator
 {
     /// <summary>
+    ///     File suffix for IoCTools-generated constructor files.
+    ///     This is part of the generator's contract and should not be changed without a major version update.
+    /// </summary>
+    private const string GeneratedConstructorFileSuffix = "_Constructor.g.cs";
+
+    /// <summary>
+    ///     File extension for generated code files (.NET convention).
+    /// </summary>
+    private const string GeneratedCodeFileExtension = ".g.cs";
+    /// <summary>
     ///     Detects classes that declare IoCTools-managed dependencies but also define manual constructors.
     ///     Mixing these states results in unpredictable constructor generation, so we surface a blocking error
     ///     and short-circuit other dependency diagnostics.
@@ -27,9 +37,23 @@ internal static class ManualConstructorMixingValidator
             .Where(ctor => ctor.MethodKind == MethodKind.Constructor)
             // Only constructors that have user-authored syntax count as manual; synthesized ctors are ignored.
             .Where(ctor => ctor.DeclaringSyntaxReferences.Length > 0)
-            // Exclude IoCTools-generated constructors (in .g.cs files) to prevent false positives
+            // Exclude IoCTools-generated constructors to prevent false positives.
+            // We check for the generated code file pattern as a reliable indicator.
+            // This is part of the generator's contract - generated constructors always
+            // reside in files ending with _Constructor.g.cs or the general .g.cs extension.
             .Where(ctor => !ctor.DeclaringSyntaxReferences.Any(
-                syntaxRef => syntaxRef.GetSyntax()?.SyntaxTree.FilePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) == true))
+                syntaxRef =>
+                {
+                    var filePath = syntaxRef.GetSyntax()?.SyntaxTree.FilePath;
+                    if (string.IsNullOrEmpty(filePath)) return false;
+
+                    // Check for IoCTools-specific generated constructor files first
+                    if (filePath.EndsWith(GeneratedConstructorFileSuffix, StringComparison.OrdinalIgnoreCase))
+                        return true;
+
+                    // Also exclude any .g.cs file (general generated code convention)
+                    return filePath.EndsWith(GeneratedCodeFileExtension, StringComparison.OrdinalIgnoreCase);
+                }))
             .ToList();
 
         var parameterListSyntax = GetParameterList(classDeclaration);
