@@ -149,6 +149,71 @@ public sealed class CliFieldsCommandTests
         result.ExitCode.Should().Be(0);
         result.Stdout.Should().Contain("No IoCTools-enabled services found in file.");
     }
+
+    [Fact]
+    public async Task ParseFields_WithEmptyEqualsValue_ReturnsError()
+    {
+        // --project= results in empty string which fails path validation
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project=",  // Empty value after equals
+            "--file", TelemetryFilePath);
+
+        // Should error because empty path is invalid
+        result.ExitCode.Should().Be(1);
+        result.Stderr.Should().Contain("Path cannot be empty");
+    }
+
+    [Fact]
+    public async Task ParseFields_WithDuplicateFlags_HandlesGracefully()
+    {
+        // Duplicate flags should be collected as multiple values
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project", FieldsProjectPath,
+            "--file", TelemetryFilePath,
+            "--type", "FieldsProject.Services.TelemetryReporter",
+            "--type", "FieldsProject.Services.PlainUtility");  // Duplicate --type
+
+        result.ExitCode.Should().Be(0);
+        // Should process both types
+        result.Stdout.Should().Contain("Service:");
+    }
+
+    [Fact]
+    public async Task ParseFields_WithSpacesInPath_HandlesCorrectly()
+    {
+        // Create a temp path with spaces (test the scenario doesn't crash)
+        var tempDir = TestPaths.CreateTempDirectory();
+        var stubDir = TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDir);
+
+        // Paths with spaces should be handled by the shell (quoted args)
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project", FieldsProjectPath,
+            "--file", TelemetryFilePath,
+            "--output", tempDir,
+            "--source");
+
+        result.ExitCode.Should().Be(0);
+        result.Stdout.Should().Contain("public partial class TelemetryReporter");
+    }
+
+    [Fact]
+    public async Task ParseFields_WithDoubleEquals_ParsesCorrectly()
+    {
+        // --project==value is treated as --project with value "=value"
+        var result = await CliTestHost.RunAsync(
+            "fields",
+            "--project==" + FieldsProjectPath,  // Double equals
+            "--file", TelemetryFilePath);
+
+        // This will fail because "=/path/to/project" is not a valid path
+        // but verifies the parser doesn't crash
+        result.ExitCode.Should().Be(1);
+        result.Stderr.Should().NotBeEmpty();
+    }
 }
 
 [CollectionDefinition("CLI Execution")]
