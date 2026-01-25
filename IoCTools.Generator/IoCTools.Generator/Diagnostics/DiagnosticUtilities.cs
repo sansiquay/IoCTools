@@ -6,26 +6,10 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 internal static class DiagnosticUtilities
 {
+    private delegate bool TryGetValueDelegate(string key, out string value);
+
     public static DiagnosticConfiguration GetDiagnosticConfiguration(GeneratorExecutionContext context)
-    {
-        var config = new DiagnosticConfiguration();
-        if (context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.IoCToolsNoImplementationSeverity",
-                out var noImplSeverity))
-            config.NoImplementationSeverity = ParseDiagnosticSeverity(noImplSeverity);
-        if (context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.IoCToolsManualSeverity",
-                out var manualSeverity))
-            config.ManualImplementationSeverity = ParseDiagnosticSeverity(manualSeverity);
-        if (context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.IoCToolsDisableDiagnostics",
-                out var disableStr) && bool.TryParse(disableStr, out var disable))
-            config.DiagnosticsEnabled = !disable;
-        if (context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.IoCToolsLifetimeValidationSeverity",
-                out var lifetimeSeverity) && !string.IsNullOrWhiteSpace(lifetimeSeverity))
-            config.LifetimeValidationSeverity = ParseDiagnosticSeverity(lifetimeSeverity);
-        if (context.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.IoCToolsDisableLifetimeValidation",
-                out var disableLifetimeStr) && bool.TryParse(disableLifetimeStr, out var disableLifetime))
-            config.LifetimeValidationEnabled = !disableLifetime;
-        return config;
-    }
+        => ParseConfiguration(context.AnalyzerConfigOptions.GlobalOptions.TryGetValue);
 
     public static DiagnosticConfiguration GetDiagnosticConfiguration(Compilation _)
         => new()
@@ -38,22 +22,26 @@ internal static class DiagnosticUtilities
         };
 
     public static DiagnosticConfiguration GetDiagnosticConfiguration(AnalyzerConfigOptionsProvider options)
+        => ParseConfiguration(options.GlobalOptions.TryGetValue);
+
+    private static DiagnosticConfiguration ParseConfiguration(TryGetValueDelegate tryGetValue)
     {
         var config = new DiagnosticConfiguration();
-        if (options.GlobalOptions.TryGetValue("build_property.IoCToolsNoImplementationSeverity",
-                out var noImplSeverity))
+
+        if (tryGetValue("build_property.IoCToolsNoImplementationSeverity", out var noImplSeverity))
             config.NoImplementationSeverity = ParseDiagnosticSeverity(noImplSeverity);
-        if (options.GlobalOptions.TryGetValue("build_property.IoCToolsManualSeverity", out var manualSeverity))
+        if (tryGetValue("build_property.IoCToolsManualSeverity", out var manualSeverity))
             config.ManualImplementationSeverity = ParseDiagnosticSeverity(manualSeverity);
-        if (options.GlobalOptions.TryGetValue("build_property.IoCToolsDisableDiagnostics", out var disableStr) &&
+        if (tryGetValue("build_property.IoCToolsDisableDiagnostics", out var disableStr) &&
             bool.TryParse(disableStr, out var disable))
             config.DiagnosticsEnabled = !disable;
-        if (options.GlobalOptions.TryGetValue("build_property.IoCToolsLifetimeValidationSeverity",
-                out var lifetimeSeverity) && !string.IsNullOrWhiteSpace(lifetimeSeverity))
+        if (tryGetValue("build_property.IoCToolsLifetimeValidationSeverity", out var lifetimeSeverity) &&
+            !string.IsNullOrWhiteSpace(lifetimeSeverity))
             config.LifetimeValidationSeverity = ParseDiagnosticSeverity(lifetimeSeverity);
-        if (options.GlobalOptions.TryGetValue("build_property.IoCToolsDisableLifetimeValidation",
-                out var disableLifetimeStr) && bool.TryParse(disableLifetimeStr, out var disableLifetime))
+        if (tryGetValue("build_property.IoCToolsDisableLifetimeValidation", out var disableLifetimeStr) &&
+            bool.TryParse(disableLifetimeStr, out var disableLifetime))
             config.LifetimeValidationEnabled = !disableLifetime;
+
         return config;
     }
 
