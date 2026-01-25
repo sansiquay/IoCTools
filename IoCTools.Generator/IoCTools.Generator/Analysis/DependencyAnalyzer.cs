@@ -61,7 +61,7 @@ internal static class DependencyAnalyzer
             new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
 
         var isExternalService = currentType.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ExternalServiceAttribute));
 
         // [ExternalService] classes: Exclude dependencies from inheritance (they're managed elsewhere)
         // For regular classes: include both [Inject] and [DependsOn] dependencies

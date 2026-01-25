@@ -9,11 +9,11 @@ internal static class ServiceDiscovery
         while (current != null)
         {
             var hasScopedAttribute = current.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ScopedAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ScopedAttribute));
             var hasSingletonAttribute = current.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.SingletonAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.SingletonAttribute));
             var hasTransientAttribute = current.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.TransientAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.TransientAttribute));
 
             if (hasScopedAttribute || hasSingletonAttribute || hasTransientAttribute)
                 return (true, hasScopedAttribute, hasSingletonAttribute, hasTransientAttribute);
@@ -38,11 +38,11 @@ internal static class ServiceDiscovery
         INamedTypeSymbol classSymbol)
     {
         var hasScopedAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ScopedAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ScopedAttribute));
         var hasSingletonAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.SingletonAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.SingletonAttribute));
         var hasTransientAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.TransientAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.TransientAttribute));
 
         var hasAny = hasScopedAttribute || hasSingletonAttribute || hasTransientAttribute;
         return (hasAny, hasScopedAttribute, hasSingletonAttribute, hasTransientAttribute);

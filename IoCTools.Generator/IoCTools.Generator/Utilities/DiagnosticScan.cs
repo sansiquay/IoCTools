@@ -1,8 +1,12 @@
 namespace IoCTools.Generator.Utilities;
 
 using System.Text;
+using System.Linq;
+using System.Collections.Generic;
 
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 internal static class DiagnosticScan
 {
@@ -44,8 +48,7 @@ internal static class DiagnosticScan
             }
 
             var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() ==
-                "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
             var hasInjectFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
                 .Any(field => field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectAttribute"));
             var hasInjectConfigurationFields =

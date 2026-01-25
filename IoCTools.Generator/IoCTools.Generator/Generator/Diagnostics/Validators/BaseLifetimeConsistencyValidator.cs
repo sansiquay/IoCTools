@@ -69,7 +69,7 @@ internal static class BaseLifetimeConsistencyValidator
         var hasRegisterAsAllAttribute = type.GetAttributes().Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
         var hasRegisterAsAttribute = type.GetAttributes().Any(attr => attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
         var hasConditionalServiceAttribute = type.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
         var hasInjectFields = type.GetMembers().OfType<IFieldSymbol>()
             .Any(field => field.GetAttributes()
                 .Any(attr => attr.AttributeClass?.ToDisplayString() ==

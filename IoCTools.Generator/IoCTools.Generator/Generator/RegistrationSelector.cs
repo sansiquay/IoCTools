@@ -268,7 +268,7 @@ internal static class RegistrationSelector
             }
 
             var registerAsAllAttribute = classSymbol.GetAttributes().FirstOrDefault(attr =>
-                attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
             var hasInjectConfigurationOnly =
                 ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(classSymbol);

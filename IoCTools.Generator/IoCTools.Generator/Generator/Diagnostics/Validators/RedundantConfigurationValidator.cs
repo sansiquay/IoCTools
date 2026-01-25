@@ -624,8 +624,7 @@ internal static class RedundantConfigurationValidator
             true && attribute.AttributeClass?.IsGenericType == true;
 
     private static bool IsExternalServiceAttribute(AttributeData attribute)
-        => attribute.AttributeClass?.Name == "ExternalServiceAttribute" ||
-           attribute.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
+        => AttributeTypeChecker.IsAttribute(attribute, AttributeTypeChecker.ExternalServiceAttribute);
 
     private static bool HaveSameConditionalArguments(AttributeData left, AttributeData right)
     {

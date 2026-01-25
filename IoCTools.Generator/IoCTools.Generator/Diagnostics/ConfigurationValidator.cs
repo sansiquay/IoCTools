@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Diagnostics;
 
+using IoCTools.Generator.Utilities;
+
 internal static class ConfigurationValidator
 {
     // Types that can be bound from configuration without issues
@@ -68,8 +70,7 @@ internal static class ConfigurationValidator
 
         // Check if class has [ExternalService] attribute (skip validation)
         var classHasExternalServiceAttribute = classSymbol.GetAttributes()
-            .Any(attr => attr.AttributeClass?.ToDisplayString() ==
-                         "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
+            .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ExternalServiceAttribute));
 
         if (classHasExternalServiceAttribute) return;
 
@@ -102,9 +103,7 @@ internal static class ConfigurationValidator
             foreach (var member in currentType.GetMembers().OfType<IFieldSymbol>())
             {
                 var hasInjectConfigurationAttribute = member.GetAttributes()
-                    .Any(attr =>
-                        attr.AttributeClass?.ToDisplayString() ==
-                        "IoCTools.Abstractions.Annotations.InjectConfigurationAttribute");
+                    .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.InjectConfigurationAttribute));
 
                 if (hasInjectConfigurationAttribute)
                 {
@@ -178,8 +177,7 @@ internal static class ConfigurationValidator
 
         // Get the InjectConfiguration attribute
         var injectConfigAttribute = fieldSymbol.GetAttributes()
-            .FirstOrDefault(attr => attr.AttributeClass?.ToDisplayString() ==
-                                    "IoCTools.Abstractions.Annotations.InjectConfigurationAttribute");
+            .FirstOrDefault(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.InjectConfigurationAttribute));
 
         if (injectConfigAttribute == null) return;
 
@@ -306,7 +304,7 @@ internal static class ConfigurationValidator
                         var elementValidation = ValidateTypeForConfiguration(typeArg);
                         if (!elementValidation.IsValid)
                             return (false,
-                                $"Collection element type is not supported: {elementValidation.ErrorMessage}");
+                                "Collection element type is not supported: " + elementValidation.ErrorMessage);
                     }
 
                 return (true, string.Empty);
@@ -329,7 +327,7 @@ internal static class ConfigurationValidator
                         var elementValidation = ValidateTypeForConfiguration(typeArg);
                         if (!elementValidation.IsValid)
                             return (false,
-                                $"Collection element type is not supported: {elementValidation.ErrorMessage}");
+                                "Collection element type is not supported: " + elementValidation.ErrorMessage);
                     }
 
                 return (true, string.Empty);
@@ -345,7 +343,7 @@ internal static class ConfigurationValidator
                         var elementValidation = ValidateTypeForConfiguration(typeArg);
                         if (!elementValidation.IsValid)
                             return (false,
-                                $"Dictionary type argument is not supported: {elementValidation.ErrorMessage}");
+                                "Dictionary type argument is not supported: " + elementValidation.ErrorMessage);
                     }
 
                 return (true, string.Empty);
@@ -364,7 +362,7 @@ internal static class ConfigurationValidator
         {
             var elementValidation = ValidateTypeForConfiguration(arrayType.ElementType);
             if (!elementValidation.IsValid)
-                return (false, $"Array element type is not supported: {elementValidation.ErrorMessage}");
+                return (false, "Array element type is not supported: " + elementValidation.ErrorMessage);
             return (true, string.Empty);
         }
 

@@ -165,10 +165,9 @@ internal static class AttributeParser
     }
 
     public static bool IsDependsOnConfigurationAttribute(AttributeData attribute) =>
-        attribute.AttributeClass?.BaseType?.ToDisplayString() ==
-        "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase" ||
+        AttributeTypeChecker.IsType(attribute.AttributeClass?.BaseType, AttributeTypeChecker.DependsOnConfigurationAttributeBase) ||
         attribute.AttributeClass?.ToDisplayString().StartsWith(
-            "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttribute<") == true;
+            AttributeTypeChecker.DependsOnConfigurationAttributeGeneric) == true;
 
     public static (string namingConvention, bool stripI, string prefix, bool stripSettingsSuffix)
         GetConfigurationNamingOptionsFromAttribute(AttributeData attribute)

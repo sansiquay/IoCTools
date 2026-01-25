@@ -134,7 +134,7 @@ internal static class TypeAnalyzer
         var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
 
         var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
 
         var hasInjectFields = HasInjectFieldsInHierarchy(classSymbol);
 

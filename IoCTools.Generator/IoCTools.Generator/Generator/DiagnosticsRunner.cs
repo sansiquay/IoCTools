@@ -337,9 +337,9 @@ internal static class DiagnosticsRunner
                 var hasServiceRelatedAttribute = referencedType.GetAttributes().Any(attr =>
                     attr.AttributeClass?.ToDisplayString() ==
                     "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute" ||
-                    attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.ScopedAttribute" ||
-                    attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.SingletonAttribute" ||
-                    attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.TransientAttribute" ||
+                    AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ScopedAttribute) ||
+                    AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.SingletonAttribute) ||
+                    AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.TransientAttribute) ||
                     attr.AttributeClass?.Name == "RegisterAsAllAttribute" ||
                     (attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
                      attr.AttributeClass?.IsGenericType == true));

@@ -1,18 +1,19 @@
 namespace IoCTools.Generator.Utilities;
 
+using Microsoft.CodeAnalysis;
+using System.Linq;
+
 internal static class DependencySetUtilities
 {
-    private const string DependencySetMetadataName = "IoCTools.Abstractions.IDependencySet";
-
     public static bool IsDependencySet(INamedTypeSymbol symbol)
     {
         if (symbol == null) return false;
 
-        if (symbol.ToDisplayString() == DependencySetMetadataName) return true;
+        if (AttributeTypeChecker.IsType(symbol, AttributeTypeChecker.DependencySetInterface)) return true;
 
-        return symbol.AllInterfaces.Any(i => i.ToDisplayString() == DependencySetMetadataName);
+        return symbol.AllInterfaces.Any(i => AttributeTypeChecker.IsType(i, AttributeTypeChecker.DependencySetInterface));
     }
 
     public static INamedTypeSymbol? GetDependencySetInterface(Compilation compilation) =>
-        compilation.GetTypeByMetadataName(DependencySetMetadataName);
+        compilation.GetTypeByMetadataName(AttributeTypeChecker.DependencySetInterface);
 }

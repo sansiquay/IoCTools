@@ -133,7 +133,7 @@ internal static class RegistrationEmitter
         INamedTypeSymbol classSymbol)
     {
         var registerAsAllAttribute = classSymbol.GetAttributes().FirstOrDefault(attr =>
-            attr.AttributeClass?.ToDisplayString() == "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
         if (registerAsAllAttribute == null) return;
 
         var skipRegistrationAttributes = classSymbol.GetAttributes()
