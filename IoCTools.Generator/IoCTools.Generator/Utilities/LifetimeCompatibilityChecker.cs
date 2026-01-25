@@ -75,6 +75,17 @@ internal static class LifetimeCompatibilityChecker
     }
 
     /// <summary>
+    ///     Determines whether inheritance chain lifetime validation should run for a given service lifetime.
+    ///     Only Singleton and Transient services need inheritance validation because they cannot depend on Scoped services.
+    /// </summary>
+    /// <param name="serviceLifetime">Lifetime of the service (e.g., "Singleton", "Scoped", "Transient")</param>
+    /// <returns>True if inheritance validation should run, false otherwise</returns>
+    public static bool ShouldValidateInheritanceChain(string? serviceLifetime)
+    {
+        return serviceLifetime == "Singleton" || serviceLifetime == "Transient";
+    }
+
+    /// <summary>
     ///     Parses a string lifetime to the ServiceLifetime enum.
     /// </summary>
     /// <param name="lifetime">String lifetime (e.g., "Singleton")</param>

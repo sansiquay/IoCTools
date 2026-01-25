@@ -57,9 +57,8 @@ internal static class DiagnosticScan
                 .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
             var hasRegisterAsAllAttribute = classSymbol.GetAttributes()
                 .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
-            var hasRegisterAsAttribute = classSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                attr.AttributeClass?.IsGenericType == true);
+            var hasRegisterAsAttribute = classSymbol.GetAttributes()
+                .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
             var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(classSymbol);
             var isPartialWithInterfaces = typeDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)) &&
                                           classSymbol.Interfaces.Any();

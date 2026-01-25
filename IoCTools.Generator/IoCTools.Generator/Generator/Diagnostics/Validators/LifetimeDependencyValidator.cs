@@ -15,10 +15,9 @@ internal static class LifetimeDependencyValidator
     {
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
         if (serviceLifetime == null) return;
-        
-        // We only care about Singleton and Transient checks here
-        // Scoped can depend on anything
-        if (serviceLifetime != "Singleton" && serviceLifetime != "Transient") return;
+
+        // We only care about Singleton and Transient checks here (Scoped can depend on anything)
+        if (!LifetimeCompatibilityChecker.ShouldValidateInheritanceChain(serviceLifetime)) return;
 
         var currentType = classSymbol.BaseType;
         while (currentType != null && currentType.SpecialType != SpecialType.System_Object)

@@ -79,6 +79,60 @@ For testing internal methods (e.g., helper utilities in the CLI project), use th
 
 This pattern allows test projects to access `internal` methods without exposing them publicly, enabling comprehensive unit testing of implementation details while maintaining proper encapsulation.
 
+### Testing Patterns
+
+#### Enum and Value Type Testing
+
+When testing methods that process enums or other value types with finite value sets, follow this pattern (see `LifetimeCompatibilityCheckerTests.cs` as an example):
+
+**1. Cover all enum value combinations:**
+```csharp
+[Fact]
+public void GetViolationType_SingletonScoped_ReturnsSingletonDependsOnScoped()
+{
+    var result = LifetimeCompatibilityChecker.GetViolationType("Singleton", "Scoped");
+    result.Should().Be(LifetimeViolationType.SingletonDependsOnScoped);
+}
+```
+
+**2. Test null input handling:**
+```csharp
+[Fact]
+public void GetViolationType_NullConsumer_ReturnsCompatible()
+{
+    var result = LifetimeCompatibilityChecker.GetViolationType(null, "Scoped");
+    result.Should().Be(LifetimeViolationType.Compatible);
+}
+```
+
+**3. Test invalid/unexpected input:**
+```csharp
+[Fact]
+public void GetViolationType_InvalidLifetime_ReturnsCompatible()
+{
+    var result = LifetimeCompatibilityChecker.GetViolationType("Invalid", "Scoped");
+    result.Should().Be(LifetimeViolationType.Compatible);
+}
+```
+
+**4. Use `#region` directives to organize related tests:**
+```csharp
+#region GetViolationType - Singleton Consumer
+// Tests for Singleton consumer scenarios
+#endregion
+
+#region GetViolationType - Null and Invalid Inputs
+// Tests for edge cases
+#endregion
+```
+
+This ensures:
+- All enum value combinations are tested
+- Null inputs are handled gracefully
+- Invalid inputs don't cause crashes
+- Edge cases are explicitly validated
+- Tests are organized and maintainable
+
 ### Diagnostics and Validation
 IoCTools includes a comprehensive diagnostic system (IOC001-IOC086) that validates dependency injection configuration at build time with cross-assembly awareness. The diagnostic system provides configurable MSBuild severity levels and catches common DI mistakes before runtime.
 
@@ -349,6 +403,46 @@ IoCTools/
 - **Runtime Overhead**: Zero runtime overhead - all code generated at compile time
 - **Memory Usage**: Generated constructors use efficient dependency patterns
 - **Diagnostic Cost**: Comprehensive validation with minimal build time impact
+
+### Platform Constraints
+
+**Generator Target Framework**: `IoCTools.Generator` targets `netstandard2.0` to ensure compatibility with a broad range of .NET frameworks (.NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+).
+
+**Language Feature Limitations**: Due to the `netstandard2.0` target, the following modern C# features are **NOT available** in the generator code:
+
+- **Record types** (`record class`, `record struct`) - Use regular classes/structs or tuples instead
+- **Init-only properties** (`init` accessor) - Use private setters with constructor parameters
+- **Required members** (`required` modifier) - Use constructor validation for required fields
+- **Nullable reference types annotations** - Use reference type nullability analysis with caution
+- **Pattern matching enhancements** (some advanced patterns) - Stick to basic pattern matching
+
+**Workarounds**:
+- For record-like behavior, use classes with readonly fields and constructor-based initialization
+- For init-only property semantics, use private setters and validate in constructor
+- For value tuples, use `System.ValueTuple` which is available in netstandard2.0
+- For hash code computation, create manual `GetHashCode()` implementations (no `HashCode` type)
+
+**Example** - Instead of:
+```csharp
+private readonly record struct ServiceKey(string Name, string Lifetime);
+```
+
+Use:
+```csharp
+private readonly struct ServiceKey : IEquatable<ServiceKey>
+{
+    public string Name { get; }
+    public string Lifetime { get; }
+    public ServiceKey(string name, string lifetime) { Name = name; Lifetime = lifetime; }
+    public bool Equals(ServiceKey other) => Name == other.Name && Lifetime == other.Lifetime;
+    public override bool Equals(object obj) => obj is ServiceKey sk && Equals(sk);
+    public override int GetHashCode()
+    {
+        // Manual hash code since HashCode type isn't available
+        return (Name?.GetHashCode() * 397) ^ (Lifetime?.GetHashCode() * 113);
+    }
+}
+```
 
 ### Working with the Sample Application
 The sample application serves multiple purposes:

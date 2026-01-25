@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 
 using Diagnostics.Validators;
+using IoCTools.Generator.Utilities;
 
 using Microsoft.CodeAnalysis;
 
@@ -117,7 +118,6 @@ internal static class DiagnosticRules
                 continue;
 
             if (FrameworkTypeUtilities.IsFrameworkType(dependencyType) ||
-                FrameworkTypes.KnownTypes.Contains(dependencyType) ||
                 allRegisteredServices.Contains(dependencyType))
                 continue;
 
@@ -596,20 +596,10 @@ internal static class DiagnosticRules
                 var implementationLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
                     implicitLifetime);
                 if (implementationLifetime == null) continue;
-                if (serviceLifetime == "Singleton" && implementationLifetime == "Scoped")
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
-                else if (serviceLifetime == "Singleton" && implementationLifetime == "Transient")
-                {
-                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                        classDeclaration.GetLocation(), classSymbol.Name,
-                        $"{dependencyTypeName} -> {implementation.Name}");
-                    context.ReportDiagnostic(diagnostic);
-                }
+
+                var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implementationLifetime);
+                ReportLifetimeViolationDiagnostic(context, classDeclaration, classSymbol, dependencyTypeName,
+                    implementation.Name, violationType);
             }
         }
 
@@ -626,20 +616,10 @@ internal static class DiagnosticRules
                     var implementationLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
                         implicitLifetime);
                     if (implementationLifetime == null) continue;
-                    if (serviceLifetime == "Singleton" && implementationLifetime == "Scoped")
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (serviceLifetime == "Singleton" && implementationLifetime == "Transient")
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
+
+                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implementationLifetime);
+                    ReportLifetimeViolationDiagnostic(context, classDeclaration, classSymbol, dependencyTypeName,
+                        implementation.Name, violationType);
                 }
             }
         }
@@ -656,22 +636,35 @@ internal static class DiagnosticRules
                     var implementationLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
                         implicitLifetime);
                     if (implementationLifetime == null) continue;
-                    if (serviceLifetime == "Singleton" && implementationLifetime == "Scoped")
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
-                    else if (serviceLifetime == "Singleton" && implementationLifetime == "Transient")
-                    {
-                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                            classDeclaration.GetLocation(), classSymbol.Name,
-                            $"{dependencyTypeName} -> {implementation.Name}");
-                        context.ReportDiagnostic(diagnostic);
-                    }
+
+                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implementationLifetime);
+                    ReportLifetimeViolationDiagnostic(context, classDeclaration, classSymbol, dependencyTypeName,
+                        implementation.Name, violationType);
                 }
             }
+    }
+
+    private static void ReportLifetimeViolationDiagnostic(
+        SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        string dependencyTypeName,
+        string implementationName,
+        LifetimeViolationType violationType)
+    {
+        DiagnosticDescriptor descriptor;
+        if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
+            descriptor = DiagnosticDescriptors.SingletonDependsOnScoped;
+        else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
+            descriptor = DiagnosticDescriptors.SingletonDependsOnTransient;
+        else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
+            descriptor = DiagnosticDescriptors.TransientDependsOnScoped;
+        else
+            return; // Compatible - no diagnostic
+
+        var diagnostic = Diagnostic.Create(descriptor, classDeclaration.GetLocation(), classSymbol.Name,
+            $"{dependencyTypeName} -> {implementationName}");
+        context.ReportDiagnostic(diagnostic);
     }
 
     // Helpers (scoped to diagnostics rules)

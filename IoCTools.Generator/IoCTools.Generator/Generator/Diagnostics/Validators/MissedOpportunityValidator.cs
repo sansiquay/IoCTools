@@ -85,7 +85,7 @@ internal static class MissedOpportunityValidator
         var hasDependsOn = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name?.StartsWith("DependsOn") == true);
         var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
         var hasRegisterAsAll = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "RegisterAsAllAttribute");
-        var hasRegisterAs = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
+        var hasRegisterAs = classSymbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
         var hasConditional = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "ConditionalServiceAttribute");
         var isExternal = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "ExternalServiceAttribute");
         var hasSkipRegistration = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "SkipRegistrationAttribute" ||

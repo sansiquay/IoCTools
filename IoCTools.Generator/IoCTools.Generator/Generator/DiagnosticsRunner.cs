@@ -208,7 +208,7 @@ internal static class DiagnosticsRunner
 
         // IOC015
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
-        if (serviceLifetime == "Singleton" || serviceLifetime == "Transient")
+        if (LifetimeCompatibilityChecker.ShouldValidateInheritanceChain(serviceLifetime))
             DiagnosticRules.ValidateInheritanceChainLifetimesForSourceProduction(context, classDeclaration, classSymbol,
                 serviceLifetimes, allImplementations, implicitLifetime, diagnosticConfig);
 
@@ -294,9 +294,8 @@ internal static class DiagnosticsRunner
                         .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
                     var hasRegisterAsAllAttribute = currentType.GetAttributes()
                         .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
-                    var hasRegisterAsAttribute = currentType.GetAttributes().Any(attr =>
-                        attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                        attr.AttributeClass?.IsGenericType == true);
+                    var hasRegisterAsAttribute = currentType.GetAttributes()
+                        .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
                     var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(currentType);
                     var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(currentType);
                     var hasExplicitServiceIntent = hasConditionalServiceAttribute || hasRegisterAsAllAttribute ||
@@ -356,8 +355,7 @@ internal static class DiagnosticsRunner
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.SingletonAttribute) ||
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.TransientAttribute) ||
                     attr.AttributeClass?.Name == "RegisterAsAllAttribute" ||
-                    (attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                     attr.AttributeClass?.IsGenericType == true));
+                    AttributeTypeChecker.IsRegisterAsAttribute(attr));
                 var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(referencedType);
                 if (hasServiceRelatedAttribute || isHostedService ||
                     (!referencedType.IsAbstract && referencedType.TypeKind == TypeKind.Class))

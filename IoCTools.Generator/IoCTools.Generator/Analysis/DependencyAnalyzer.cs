@@ -22,6 +22,32 @@ internal enum DependencyCollectionMode
 internal static class DependencyAnalyzer
 {
     /// <summary>
+    ///     Priority constants for dependency source ordering during duplicate resolution.
+    ///     Lower values = higher priority (come first).
+    /// </summary>
+    /// <remarks>
+    ///     During duplicate filtering (lines 246-247, 266-267), we prefer Inject over Config over DependsOn
+    ///     because [Inject] represents explicit field declarations by the developer, while [DependsOn]
+    ///     is a more declarative/implicit pattern. Configuration injection falls in between.
+    /// </remarks>
+    private const int INJECT_PRIORITY = 0;
+    private const int CONFIG_PRIORITY = 1;
+    private const int DEPENDSON_PRIORITY = 2;
+
+    /// <summary>
+    ///     Priority constants for final constructor parameter ordering.
+    ///     Lower values = appear earlier in constructor parameter list.
+    /// </summary>
+    /// <remarks>
+    ///     In the final constructor (lines 500-501), DependsOn comes first because it represents
+    ///     base class dependencies which must be passed via base(). Then Inject for derived class
+    ///     explicit fields, then Config for derived class configuration binding.
+    /// </remarks>
+    private const int CONSTRUCTOR_DEPENDSON_PRIORITY = 0;
+    private const int CONSTRUCTOR_INJECT_PRIORITY = 1;
+    private const int CONSTRUCTOR_CONFIG_PRIORITY = 2;
+
+    /// <summary>
     ///     Context object that holds mutable collections during dependency collection.
     ///     Eliminates parameter explosion when extracting helper methods.
     /// </summary>
@@ -227,7 +253,7 @@ internal static class DependencyAnalyzer
         // Remove duplicates (keep the first occurrence - closest to derived class)
         var uniqueDependencies = allDependencies
             .GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default)
-            .Select(g => g.OrderBy(d => d.Level).ThenBy(d => d.Source == Models.DependencySource.Inject ? 0 : 1).First())
+            .Select(g => g.OrderBy(d => d.Level).ThenBy(d => d.Source == Models.DependencySource.Inject ? INJECT_PRIORITY : DEPENDSON_PRIORITY).First())
             .Select(d => (d.ServiceType, d.FieldName, d.Source))
             .ToList();
 
@@ -243,8 +269,8 @@ internal static class DependencyAnalyzer
                     : ad.ServiceType.ToDisplayString()
             })
             .Select(g => g.OrderBy(ad =>
-                    ad.Source == Models.DependencySource.Inject ? 0 :
-                    ad.Source == Models.DependencySource.ConfigurationInjection ? 1 : 2)
+                    ad.Source == Models.DependencySource.Inject ? INJECT_PRIORITY :
+                    ad.Source == Models.DependencySource.ConfigurationInjection ? CONFIG_PRIORITY : DEPENDSON_PRIORITY)
                 .First())
             .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
             .ToList();
@@ -263,8 +289,8 @@ internal static class DependencyAnalyzer
                     : ad.ServiceType.ToDisplayString()
             })
             .Select(g => g.OrderBy(ad => ad.Level).ThenBy(ad =>
-                    ad.Source == Models.DependencySource.Inject ? 0 :
-                    ad.Source == Models.DependencySource.ConfigurationInjection ? 1 : 2)
+                    ad.Source == Models.DependencySource.Inject ? INJECT_PRIORITY :
+                    ad.Source == Models.DependencySource.ConfigurationInjection ? CONFIG_PRIORITY : DEPENDSON_PRIORITY)
                 .First())
             .OrderBy(ad => ad.Level)
             .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
@@ -493,12 +519,12 @@ internal static class DependencyAnalyzer
         // Group by both ServiceType AND FieldName to allow multiple fields of same type, keep closest to derived class
         var uniqueDependencies = context.AllDependencies
             .GroupBy(d => $"{SymbolEqualityComparer.Default.GetHashCode(d.ServiceType)}_{d.FieldName}")
-            .Select(g => g.OrderBy(d => d.Source == DependencySource.Inject ? 0 : 1).ThenBy(d => d.Level).First())
+            .Select(g => g.OrderBy(d => d.Source == DependencySource.Inject ? INJECT_PRIORITY : DEPENDSON_PRIORITY).ThenBy(d => d.Level).First())
             // SIMPLE, PREDICTABLE ORDERING: Base dependencies first (higher level), then derived (level 0)
             .OrderByDescending(d => d.Level) // Higher levels (base classes) come first
             .ThenBy(d =>
-                d.Source == DependencySource.DependsOn ? 0 :
-                d.Source == DependencySource.Inject ? 1 : 2) // DependsOn, Inject, Config
+                d.Source == DependencySource.DependsOn ? CONSTRUCTOR_DEPENDSON_PRIORITY :
+                d.Source == DependencySource.Inject ? CONSTRUCTOR_INJECT_PRIORITY : CONSTRUCTOR_CONFIG_PRIORITY) // DependsOn, Inject, Config
             .Select(d => (d.ServiceType, d.FieldName, d.Source))
             .ToList();
 

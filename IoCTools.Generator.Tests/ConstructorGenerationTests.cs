@@ -879,6 +879,181 @@ public partial class ChildService : ParentService
     }
 
     [Fact]
+    public void Constructor_VeryDeepInheritanceChain_FiveLevels_WorksCorrectly()
+    {
+        // Arrange - Test 5-level inheritance chain with DependsOn
+        // DependsOn is a class-level attribute for constructor parameter ordering
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+public interface IServiceC { }
+public interface IServiceD { }
+public interface IServiceE { }
+
+public class ServiceA : IServiceA { }
+public class ServiceB : IServiceB { }
+public class ServiceC : IServiceC { }
+public class ServiceD : IServiceD { }
+public class ServiceE : IServiceE { }
+
+[Scoped]
+[DependsOn<IServiceA>]
+public partial class Level1
+{
+}
+
+[Scoped]
+[DependsOn<IServiceB>]
+public partial class Level2 : Level1
+{
+}
+
+[Scoped]
+[DependsOn<IServiceC>]
+public partial class Level3 : Level2
+{
+}
+
+[Scoped]
+[DependsOn<IServiceD>]
+public partial class Level4 : Level3
+{
+}
+
+[Scoped]
+[DependsOn<IServiceE>]
+public partial class Level5 : Level4
+{
+    public int TotalDependencies => 5;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - All levels should generate correctly
+        result.HasErrors.Should().BeFalse();
+
+        var level1Source = result.GetConstructorSource("Level1");
+        var level2Source = result.GetConstructorSource("Level2");
+        var level3Source = result.GetConstructorSource("Level3");
+        var level4Source = result.GetConstructorSource("Level4");
+        var level5Source = result.GetConstructorSource("Level5");
+
+        level1Source.Should().NotBeNull("Level1 should generate");
+        level2Source.Should().NotBeNull("Level2 should generate");
+        level3Source.Should().NotBeNull("Level3 should generate");
+        level4Source.Should().NotBeNull("Level4 should generate");
+        level5Source.Should().NotBeNull("Level5 should generate");
+
+        // Verify proper constructor chaining - Level5 calls Level4 constructor
+        level5Source.Content.Should().Contain("base(");
+
+        // Verify all dependencies are in the deepest constructor
+        level5Source.Content.Should().Contain("IServiceA");
+        level5Source.Content.Should().Contain("IServiceB");
+        level5Source.Content.Should().Contain("IServiceC");
+        level5Source.Content.Should().Contain("IServiceD");
+        level5Source.Content.Should().Contain("IServiceE");
+    }
+
+    [Fact]
+    public void Constructor_MixedSourceTypes_FiveLevelInheritance_WorksCorrectly()
+    {
+        // Arrange - Mix of Inject and DependsOn across 5 levels
+        // Inject fields are used in the class, DependsOn is just for constructor ordering
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+public interface IServiceC { }
+public interface IServiceD { }
+public interface IServiceE { }
+
+public class ServiceA : IServiceA { }
+public class ServiceB : IServiceB { }
+public class ServiceC : IServiceC { }
+public class ServiceD : IServiceD { }
+public class ServiceE : IServiceE { }
+
+[Scoped]
+public partial class Level1
+{
+    [Inject] private readonly IServiceA _serviceA;  // Used in class
+    public IServiceA ServiceA => _serviceA;
+}
+
+[Scoped]
+[DependsOn<IServiceB>]
+public partial class Level2 : Level1
+{
+    // Level2 just needs IServiceB in constructor but doesn't store it
+}
+
+[Scoped]
+public partial class Level3 : Level2
+{
+    [Inject] private readonly IServiceC _serviceC;  // Used in class
+    public IServiceC ServiceC => _serviceC;
+}
+
+[Scoped]
+[DependsOn<IServiceD>]
+public partial class Level4 : Level3
+{
+    // Level4 just needs IServiceD in constructor but doesn't store it
+}
+
+[Scoped]
+public partial class Level5 : Level4
+{
+    [Inject] private readonly IServiceE _serviceE;  // Used in class
+    public IServiceE ServiceE => _serviceE;
+
+    public int TotalInjectedServices => 3;  // A, C, E have fields
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - All levels should generate correctly
+        result.HasErrors.Should().BeFalse();
+
+        var level1Source = result.GetConstructorSource("Level1");
+        var level2Source = result.GetConstructorSource("Level2");
+        var level3Source = result.GetConstructorSource("Level3");
+        var level4Source = result.GetConstructorSource("Level4");
+        var level5Source = result.GetConstructorSource("Level5");
+
+        level1Source.Should().NotBeNull("Level1 should generate");
+        level2Source.Should().NotBeNull("Level2 should generate");
+        level3Source.Should().NotBeNull("Level3 should generate");
+        level4Source.Should().NotBeNull("Level4 should generate");
+        level5Source.Should().NotBeNull("Level5 should generate");
+
+        // Verify Inject fields get field assignments
+        level1Source.Content.Should().Contain("_serviceA = serviceA");
+        level3Source.Content.Should().Contain("_serviceC = serviceC");
+        level5Source.Content.Should().Contain("_serviceE = serviceE");
+
+        // Verify DependsOn dependencies create constructor parameters and fields
+        // DependsOn automatically generates fields (underscore-prefixed) if not explicitly declared
+        level2Source.Content.Should().Contain("IServiceB serviceB");
+        level2Source.Content.Should().Contain("_serviceB = serviceB");  // Auto-generated field
+
+        level4Source.Content.Should().Contain("IServiceD serviceD");
+        level4Source.Content.Should().Contain("_serviceD = serviceD");  // Auto-generated field
+    }
+
+    [Fact]
     public void Constructor_CompilationVerification_AllGeneratedConstructorsCompile()
     {
         // Arrange - Comprehensive test to verify all generated constructors actually compile

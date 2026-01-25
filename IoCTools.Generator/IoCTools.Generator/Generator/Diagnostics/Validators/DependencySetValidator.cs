@@ -75,7 +75,7 @@ internal static class DependencySetValidator
                 or "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute"
                 or "IoCTools.Abstractions.Annotations.ManualServiceAttribute"
                 or "IoCTools.Abstractions.Annotations.ExternalServiceAttribute" ||
-            (a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true && a.AttributeClass.IsGenericType) ||
+            AttributeTypeChecker.IsRegisterAsAttribute(a) ||
             a.AttributeClass?.ToDisplayString() ==
             "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
 

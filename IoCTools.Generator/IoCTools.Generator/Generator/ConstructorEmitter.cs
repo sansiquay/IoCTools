@@ -18,8 +18,7 @@ internal static class ConstructorEmitter
                 return;
 
             var hasRegisterAsOnly = serviceInfo.ClassSymbol.GetAttributes()
-                .Any(attr => attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                             attr.AttributeClass?.IsGenericType == true);
+                .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
 
             var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(serviceInfo.ClassSymbol);
             var hasInjectConfigurationFields =

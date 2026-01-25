@@ -70,7 +70,7 @@ internal static class RegistrationEmitter
     private static List<ServiceRegistration> DeduplicateServiceRegistrations(
         List<ServiceRegistration> serviceRegistrations)
     {
-        var deduplicationMap = new Dictionary<string, ServiceRegistration>();
+        var deduplicationMap = new Dictionary<(string, string, string, bool, bool, string, string, bool), ServiceRegistration>();
         foreach (var service in serviceRegistrations)
         {
             var isConditional = service is ConditionalServiceRegistration;
@@ -105,8 +105,17 @@ internal static class RegistrationEmitter
                 SymbolEqualityComparer.Default.Equals(service.ClassSymbol, service.InterfaceSymbol);
             var registrationType = isConcreteRegistration ? "concrete" : "interface";
 
-            var key =
-                $"{classType}|{interfaceType}|{service.Lifetime}|{service.UseSharedInstance}|{isConditional}|{conditionKey}|{registrationType}|{service.HasConfigurationInjection}";
+            // Tuple-based deduplication key with named elements for clarity
+            var key = (
+                ClassType: classType,
+                InterfaceType: interfaceType,
+                Lifetime: service.Lifetime,
+                UseSharedInstance: service.UseSharedInstance,
+                IsConditional: isConditional,
+                ConditionKey: conditionKey,
+                RegistrationType: registrationType,
+                HasConfigurationInjection: service.HasConfigurationInjection
+            );
 
             if (!deduplicationMap.ContainsKey(key)) deduplicationMap[key] = service;
         }

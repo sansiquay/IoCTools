@@ -43,9 +43,7 @@ internal static class ServiceRegistrationScan
                     .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
 
                 var hasRegisterAsAttribute = namedType.GetAttributes()
-                    .Any(attr =>
-                        attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                        attr.AttributeClass?.IsGenericType == true);
+                    .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
 
                 var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(namedType);
 
@@ -98,9 +96,7 @@ internal static class ServiceRegistrationScan
                     .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
 
                 var hasRegisterAsAttribute = nestedType.GetAttributes()
-                    .Any(attr =>
-                        attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                        attr.AttributeClass?.IsGenericType == true);
+                    .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
 
                 var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(nestedType);
 

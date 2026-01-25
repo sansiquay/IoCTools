@@ -144,9 +144,8 @@ internal static class TypeAnalyzer
 
         var hasRegisterAsAllAttribute = classSymbol.GetAttributes()
             .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
-        var hasRegisterAsAttribute = classSymbol.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute`") == true &&
-            attr.AttributeClass?.IsGenericType == true);
+        var hasRegisterAsAttribute = classSymbol.GetAttributes()
+            .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
         var isHostedService = IsAssignableFromIHostedService(classSymbol);
         var isPartialWithInterfaces = IsPartialWithInterfaces(classSymbol);
 

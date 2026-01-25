@@ -70,8 +70,8 @@ internal static class BaseLifetimeConsistencyValidator
             attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.DependsOnAttribute`") == true);
         var hasRegisterAsAllAttribute = type.GetAttributes().Any(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
-        var hasRegisterAsAttribute = type.GetAttributes().Any(attr =>
-            attr.AttributeClass?.ToDisplayString().StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute`") == true);
+        var hasRegisterAsAttribute = type.GetAttributes()
+            .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
         var hasConditionalServiceAttribute = type.GetAttributes().Any(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
         var hasInjectFields = type.GetMembers().OfType<IFieldSymbol>()

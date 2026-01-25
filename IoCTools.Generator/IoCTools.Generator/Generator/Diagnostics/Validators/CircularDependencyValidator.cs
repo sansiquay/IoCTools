@@ -12,7 +12,7 @@ internal static class CircularDependencyValidator
     {
         if (!diagnosticConfig.DiagnosticsEnabled) return;
 
-        var detector = new CircularDependencyDetector();
+        var dependencyGraph = new Dictionary<string, List<string>>();
         var serviceNameToSymbolMap = new Dictionary<string, INamedTypeSymbol>();
         var interfaceToImplementationMap = new Dictionary<string, string>();
         var processedServices = new HashSet<string>();
@@ -53,15 +53,18 @@ internal static class CircularDependencyValidator
                 var dependencyInterfaceName = TypeNameUtilities.ExtractServiceNameFromType(dependency);
                 if (dependencyInterfaceName != null)
                 {
+                    if (!dependencyGraph.ContainsKey(serviceName))
+                        dependencyGraph[serviceName] = new List<string>();
+
                     if (interfaceToImplementationMap.TryGetValue(dependencyInterfaceName, out var impl))
-                        detector.AddDependency(serviceName, impl);
+                        dependencyGraph[serviceName].Add(impl);
                     else
-                        detector.AddDependency(serviceName, dependencyInterfaceName);
+                        dependencyGraph[serviceName].Add(dependencyInterfaceName);
                 }
             }
         }
 
-        var circularDependencies = detector.DetectCircularDependencies();
+        var circularDependencies = CircularDependencyDetector.DetectCircularDependencies(dependencyGraph);
         foreach (var cycle in circularDependencies)
         {
             var cycleServices = cycle.Split(new[] { " → " }, StringSplitOptions.RemoveEmptyEntries);

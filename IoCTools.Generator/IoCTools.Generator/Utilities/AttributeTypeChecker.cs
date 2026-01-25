@@ -9,6 +9,7 @@ internal static class AttributeTypeChecker
     public const string SingletonAttribute = "IoCTools.Abstractions.Annotations.SingletonAttribute";
     public const string TransientAttribute = "IoCTools.Abstractions.Annotations.TransientAttribute";
     public const string RegisterAsAllAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute";
+    public const string RegisterAsAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAttribute";
     public const string ConditionalServiceAttribute = "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute";
     public const string ExternalServiceAttribute = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
     public const string DependsOnConfigurationAttributeBase = "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase";
@@ -58,5 +59,22 @@ internal static class AttributeTypeChecker
     {
         if (symbol == null || targetType == null) return false;
         return SymbolEqualityComparer.Default.Equals(symbol, targetType);
+    }
+
+    /// <summary>
+    /// Checks if an attribute is a RegisterAsAttribute of any arity.
+    /// RegisterAsAttribute is generic (RegisterAsAttribute&lt;T&gt;, RegisterAsAttribute&lt;T1,T2&gt;, etc.)
+    /// so we check the name matches exactly and verify it's a generic type.
+    /// </summary>
+    public static bool IsRegisterAsAttribute(AttributeData? attribute)
+    {
+        if (attribute?.AttributeClass == null) return false;
+
+        // Name property returns the metadata name without arity for generic types
+        // So RegisterAsAttribute<T1> has Name = "RegisterAsAttribute"
+        var nameMatches = attribute.AttributeClass.Name == "RegisterAsAttribute";
+        var isGeneric = attribute.AttributeClass.IsGenericType;
+
+        return nameMatches && isGeneric;
     }
 }

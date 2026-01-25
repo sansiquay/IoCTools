@@ -367,7 +367,7 @@ internal static class RedundantConfigurationValidator
         if (implementedInterfaces.Count < 2) return;
 
         var hasRegisterAsAll = classSymbol.GetAttributes().Any(IsRegisterAsAllAttribute);
-        var hasRegisterAs = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
+        var hasRegisterAs = classSymbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
         if (hasRegisterAsAll || hasRegisterAs) return;
 
         var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
@@ -552,12 +552,7 @@ internal static class RedundantConfigurationValidator
     }
 
     private static bool IsRegisterAsAttribute(AttributeData attribute)
-    {
-        var display = attribute.AttributeClass?.ToDisplayString();
-        return attribute.AttributeClass?.IsGenericType == true &&
-               display != null &&
-               display.StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute", StringComparison.Ordinal);
-    }
+        => AttributeTypeChecker.IsRegisterAsAttribute(attribute);
 
     private static bool IsRegisterAsAllAttribute(AttributeData attribute)
         => attribute.AttributeClass?.ToDisplayString() ==

@@ -161,10 +161,8 @@ internal static class RegistrationSelector
                 attr.AttributeClass?.ToDisplayString() ==
                 "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
 
-            var hasRegisterAs = classSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString()
-                    ?.StartsWith("IoCTools.Abstractions.Annotations.RegisterAsAttribute") == true &&
-                attr.AttributeClass.IsGenericType);
+            var hasRegisterAs = classSymbol.GetAttributes()
+                .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
 
             var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
             var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
@@ -195,8 +193,6 @@ internal static class RegistrationSelector
 
             if (!hasExplicitServiceIntent)
                 return serviceRegistrations;
-
-            var (hasLifetimeAttr, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
 
             var conditionalServiceAttrs = classSymbol.GetAttributes()
                 .Where(attr =>
@@ -297,8 +293,7 @@ internal static class RegistrationSelector
             else
             {
                 var registerAsAttributes = classSymbol.GetAttributes()
-                    .Where(attr => attr.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                                   attr.AttributeClass?.IsGenericType == true)
+                    .Where(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr))
                     .ToList();
 
                 if (registerAsAttributes.Any())

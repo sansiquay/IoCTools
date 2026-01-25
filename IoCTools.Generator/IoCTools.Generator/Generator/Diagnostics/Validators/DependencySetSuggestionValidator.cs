@@ -247,7 +247,7 @@ internal static class DependencySetSuggestionValidator
     {
         foreach (var attribute in symbol.GetAttributes())
         {
-            if (attribute.AttributeClass?.Name?.StartsWith("RegisterAsAttribute", StringComparison.Ordinal) != true)
+            if (!AttributeTypeChecker.IsRegisterAsAttribute(attribute))
                 continue;
             foreach (var arg in attribute.AttributeClass.TypeArguments)
             {

@@ -1,5 +1,48 @@
 namespace IoCTools.Generator.Analysis;
 
+/// <summary>
+///     Context object holding all state for dependency set expansion.
+///     Reduces parameter count in recursive methods and improves maintainability.
+/// </summary>
+internal sealed class ExpansionContext
+{
+    public ExpansionContext(
+        Compilation compilation,
+        SemanticModel consumerSemanticModel,
+        HashSet<string>? allRegisteredServices,
+        Dictionary<string, List<INamedTypeSymbol>>? allImplementations,
+        SourceProductionContext? context,
+        TypeDeclarationSyntax? consumerDeclaration,
+        INamedTypeSymbol consumerSymbol)
+    {
+        Compilation = compilation;
+        ConsumerSemanticModel = consumerSemanticModel;
+        AllRegisteredServices = allRegisteredServices;
+        AllImplementations = allImplementations;
+        Context = context;
+        ConsumerDeclaration = consumerDeclaration;
+        ConsumerSymbol = consumerSymbol;
+        SeenTypes = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+        Dependencies = new List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)>();
+        Configurations = new List<(ConfigurationInjectionInfo Config, INamedTypeSymbol? OriginSet)>();
+        RecursionStack = new Stack<INamedTypeSymbol>();
+    }
+
+    public Compilation Compilation { get; }
+    public SemanticModel ConsumerSemanticModel { get; }
+    public HashSet<string>? AllRegisteredServices { get; }
+    public Dictionary<string, List<INamedTypeSymbol>>? AllImplementations { get; }
+    public SourceProductionContext? Context { get; }
+    public TypeDeclarationSyntax? ConsumerDeclaration { get; }
+    public INamedTypeSymbol ConsumerSymbol { get; }
+
+    // Mutable state during expansion
+    public Dictionary<ITypeSymbol, string> SeenTypes { get; }
+    public List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)> Dependencies { get; }
+    public List<(ConfigurationInjectionInfo Config, INamedTypeSymbol? OriginSet)> Configurations { get; }
+    public Stack<INamedTypeSymbol> RecursionStack { get; }
+}
+
 internal sealed class DependencySetExpansionResult
 {
     public DependencySetExpansionResult(
@@ -30,11 +73,14 @@ internal static class DependencySetExpander
         SourceProductionContext? context = null,
         TypeDeclarationSyntax? consumerDeclaration = null)
     {
-        var compilation = semanticModel.Compilation;
-        var seenTypes = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
-        var dependencies =
-            new List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)>();
-        var configurations = new List<(ConfigurationInjectionInfo Config, INamedTypeSymbol? OriginSet)>();
+        var expansionContext = new ExpansionContext(
+            semanticModel.Compilation,
+            semanticModel,
+            allRegisteredServices,
+            allImplementations,
+            context,
+            consumerDeclaration,
+            typeSymbol);
 
         var rawDepends = DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(typeSymbol,
             allRegisteredServices, allImplementations);
@@ -43,107 +89,81 @@ internal static class DependencySetExpander
         {
             if (dep.ServiceType is INamedTypeSymbol depNamed && DependencySetUtilities.IsDependencySet(depNamed))
             {
-                ExpandSet(depNamed, compilation, semanticModel, allRegisteredServices, allImplementations, seenTypes,
-                    dependencies, configurations, context, consumerDeclaration, new Stack<INamedTypeSymbol>(),
-                    typeSymbol);
+                ExpandSet(expansionContext, depNamed);
                 continue;
             }
 
-            AddDependency(dep.ServiceType, dep.FieldName, dep.IsExternal, null, seenTypes, dependencies, context,
-                consumerDeclaration, typeSymbol);
+            AddDependency(expansionContext, dep.ServiceType, dep.FieldName, dep.IsExternal, null);
         }
 
-        return new DependencySetExpansionResult(dependencies, configurations);
+        return new DependencySetExpansionResult(expansionContext.Dependencies, expansionContext.Configurations);
     }
 
-    private static void ExpandSet(
-        INamedTypeSymbol setSymbol,
-        Compilation compilation,
-        SemanticModel consumerSemanticModel,
-        HashSet<string>? allRegisteredServices,
-        Dictionary<string, List<INamedTypeSymbol>>? allImplementations,
-        Dictionary<ITypeSymbol, string> seenTypes,
-        List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)> dependencies,
-        List<(ConfigurationInjectionInfo Config, INamedTypeSymbol? OriginSet)> configurations,
-        SourceProductionContext? context,
-        TypeDeclarationSyntax? consumerDeclaration,
-        Stack<INamedTypeSymbol> recursionStack,
-        INamedTypeSymbol consumerSymbol)
+    private static void ExpandSet(ExpansionContext context, INamedTypeSymbol setSymbol)
     {
-        if (recursionStack.Any(s => SymbolEqualityComparer.Default.Equals(s, setSymbol)))
+        if (context.RecursionStack.Any(s => SymbolEqualityComparer.Default.Equals(s, setSymbol)))
         {
-            var cycle = string.Join(" -> ", recursionStack.Select(s => s.Name).Concat(new[] { setSymbol.Name }));
-            ReportDiagnostic(context, DiagnosticDescriptors.DependencySetCycleDetected,
-                consumerDeclaration?.GetLocation() ?? setSymbol.Locations.FirstOrDefault(), setSymbol.Name, cycle);
+            var cycle = string.Join(" -> ", context.RecursionStack.Select(s => s.Name).Concat(new[] { setSymbol.Name }));
+            ReportDiagnostic(context.Context, DiagnosticDescriptors.DependencySetCycleDetected,
+                context.ConsumerDeclaration?.GetLocation() ?? setSymbol.Locations.FirstOrDefault(), setSymbol.Name, cycle);
             return;
         }
 
-        recursionStack.Push(setSymbol);
+        context.RecursionStack.Push(setSymbol);
 
-        var setContent = GetSetContent(setSymbol, compilation, consumerSemanticModel, allRegisteredServices,
-            allImplementations);
+        var setContent = GetSetContent(context, setSymbol);
 
         foreach (var dep in setContent.Dependencies)
         {
             if (dep.ServiceType is INamedTypeSymbol nestedSet && DependencySetUtilities.IsDependencySet(nestedSet))
             {
-                ExpandSet(nestedSet, compilation, consumerSemanticModel, allRegisteredServices, allImplementations,
-                    seenTypes, dependencies, configurations, context, consumerDeclaration, recursionStack,
-                    consumerSymbol);
+                ExpandSet(context, nestedSet);
                 continue;
             }
 
-            AddDependency(dep.ServiceType, dep.FieldName, dep.IsExternal, setSymbol, seenTypes, dependencies,
-                context, consumerDeclaration, consumerSymbol);
+            AddDependency(context, dep.ServiceType, dep.FieldName, dep.IsExternal, setSymbol);
         }
 
         foreach (var config in setContent.Configuration)
-            configurations.Add((config, setSymbol));
+            context.Configurations.Add((config, setSymbol));
 
-        recursionStack.Pop();
+        context.RecursionStack.Pop();
     }
 
     private static void AddDependency(
+        ExpansionContext context,
         ITypeSymbol serviceType,
         string fieldName,
         bool isExternal,
-        INamedTypeSymbol? originSet,
-        Dictionary<ITypeSymbol, string> seenTypes,
-        List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal, INamedTypeSymbol? OriginSet)> dependencies,
-        SourceProductionContext? context,
-        TypeDeclarationSyntax? consumerDeclaration,
-        INamedTypeSymbol consumerSymbol)
+        INamedTypeSymbol? originSet)
     {
-        if (seenTypes.TryGetValue(serviceType, out var existingName))
+        if (context.SeenTypes.TryGetValue(serviceType, out var existingName))
         {
             if (!string.Equals(existingName, fieldName, StringComparison.Ordinal))
-                ReportDiagnostic(context, DiagnosticDescriptors.DependencySetNameCollision,
-                    consumerDeclaration?.GetLocation() ?? consumerSymbol.Locations.FirstOrDefault(),
+                ReportDiagnostic(context.Context, DiagnosticDescriptors.DependencySetNameCollision,
+                    context.ConsumerDeclaration?.GetLocation() ?? context.ConsumerSymbol.Locations.FirstOrDefault(),
                     TypeNameUtilities.FormatTypeNameForDiagnostic(serviceType), existingName, fieldName,
-                    consumerSymbol.Name);
+                    context.ConsumerSymbol.Name);
 
             return;
         }
 
-        seenTypes[serviceType] = fieldName;
-        dependencies.Add((serviceType, fieldName, isExternal, originSet));
+        context.SeenTypes[serviceType] = fieldName;
+        context.Dependencies.Add((serviceType, fieldName, isExternal, originSet));
     }
 
     private static (List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal)> Dependencies,
         List<ConfigurationInjectionInfo> Configuration) GetSetContent(
-            INamedTypeSymbol setSymbol,
-            Compilation compilation,
-            SemanticModel consumerSemanticModel,
-            HashSet<string>? allRegisteredServices,
-            Dictionary<string, List<INamedTypeSymbol>>? allImplementations)
+            ExpansionContext context,
+            INamedTypeSymbol setSymbol)
     {
         var setSyntax = setSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree;
         var semanticModel = setSyntax != null
-            ? compilation.GetSemanticModel(setSyntax)
-            : consumerSemanticModel;
+            ? context.Compilation.GetSemanticModel(setSyntax)
+            : context.ConsumerSemanticModel;
 
-        var deps = DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(setSymbol, allRegisteredServices,
-            allImplementations);
+        var deps = DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(setSymbol,
+            context.AllRegisteredServices, context.AllImplementations);
         var configs = ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(setSymbol, semanticModel);
 
         return (deps, configs);

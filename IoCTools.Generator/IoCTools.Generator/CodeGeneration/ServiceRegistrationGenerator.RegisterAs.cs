@@ -1,10 +1,11 @@
 namespace IoCTools.Generator.CodeGeneration;
 
+using IoCTools.Generator.Utilities;
+
 internal static partial class ServiceRegistrationGenerator
 {
     private static bool IsRegisterAsAttribute(AttributeData attr)
-        => attr.AttributeClass != null && attr.AttributeClass.Name?.StartsWith("RegisterAsAttribute") == true &&
-           attr.AttributeClass.IsGenericType;
+        => AttributeTypeChecker.IsRegisterAsAttribute(attr);
 
     private delegate void ReportDiagnosticDelegate(Diagnostic diagnostic);
 

@@ -27,9 +27,7 @@ internal static class ServiceClassPipeline
                     var hasDependsOn = symbol.GetAttributes()
                         .Any(a => a.AttributeClass?.Name?.StartsWith("DependsOn") == true);
                     var hasRegAll = symbol.GetAttributes().Any(a => a.AttributeClass?.Name == "RegisterAsAllAttribute");
-                    var hasRegAs = symbol.GetAttributes().Any(a =>
-                        a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true &&
-                        a.AttributeClass?.IsGenericType == true);
+                    var hasRegAs = symbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
                     var hasConditional = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() ==
                                                                          "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
                     var (hasLifetime, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(symbol);

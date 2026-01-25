@@ -9,6 +9,7 @@ internal static class FrameworkTypeUtilities
         "Microsoft.Extensions.Configuration.IConfigurationSection",
         "System.Net.Http.HttpClient",
         "Microsoft.Extensions.DependencyInjection.IServiceProvider",
+        "System.IServiceProvider",
         "Microsoft.Extensions.DependencyInjection.IServiceScopeFactory",
         "Microsoft.Extensions.DependencyInjection.IServiceScope",
         "Microsoft.Extensions.Hosting.IHostEnvironment",

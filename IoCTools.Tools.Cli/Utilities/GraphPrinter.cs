@@ -37,6 +37,7 @@ internal static class GraphPrinter
                     if (r.Kind == RegistrationKind.Configuration) continue;
                     var service = Sanitize(r.ServiceType);
                     var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
+                    if (service == impl) continue; // Skip self-edges
                     Console.WriteLine($"  {service} --> {impl}");
                 }
 
@@ -49,6 +50,7 @@ internal static class GraphPrinter
                     if (r.Kind == RegistrationKind.Configuration) continue;
                     var service = Sanitize(r.ServiceType);
                     var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
+                    if (service == impl) continue; // Skip self-edges
                     Console.WriteLine($"{service} --> {impl}");
                 }
 
