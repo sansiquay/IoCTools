@@ -238,20 +238,77 @@ internal static class AttributeParser
         return defaultMode;
     }
 
-    public static string GenerateFieldName(string originalTypeName,
-        string namingConvention,
-        bool stripI,
-        string prefix)
-    {
-        // Extract semantic base name for the field
-        var fieldBaseName = ExtractSemanticFieldName(originalTypeName);
-
-        // Apply naming convention and prefix handling
-        var fieldName = ApplyPrefixToFieldName(fieldBaseName, namingConvention, prefix);
-
-        // Handle C# reserved keywords by adding a suffix
-        return EscapeReservedKeyword(fieldName);
-    }
+    /// <summary>
+    ///     Generates a field name from a type name, handling naming conventions, prefixes, and C# reserved keywords.
+    /// </summary>
+    /// <param name="originalTypeName">
+    ///     The original type name (e.g., "IService", "string", "MyOptions").
+    /// </param>
+    /// <param name="namingConvention">
+    ///     The naming convention to apply: "CamelCase", "PascalCase", or "SnakeCase".
+    ///     Default is "CamelCase".
+    /// </param>
+    /// <param name="stripI">
+    ///     This parameter is deprecated and no longer affects semantic field naming.
+    ///     Field names are always derived semantically (e.g., IService → _service).
+    /// </param>
+    /// <param name="prefix">
+    ///     The prefix to add to the field name. Special values:
+    ///     <list type="bullet">
+    ///         <item><description>"":</description> Empty prefix applies naming convention only (no underscores)</item>
+    ///         <item><description>"_":</description> Default prefix adds underscore before the convention</item>
+    ///         <item><description>Custom prefix ending with "_":</description> Used as-is without additional underscore</item>
+    ///         <item><description>Custom prefix not ending with "_":</description> Gets "_" + convention applied</item>
+    ///     </list>
+    /// </param>
+    /// <returns>
+    ///     A valid C# identifier for use as a field name.
+    /// </returns>
+    /// <remarks>
+    ///     <para><b>Reserved Keyword Handling:</b></para>
+    ///     <para>
+    ///         Reserved C# keywords are escaped ONLY when the final identifier would be a reserved keyword.
+    ///         This means:
+    ///     </para>
+    ///     <list type="bullet">
+    ///         <item><description>"" + "string" (empty prefix + camelCase) → "_stringValue" (escaped because "string" is reserved)</description></item>
+    ///         <item><description>"_" + "string" (default prefix + camelCase) → "_string" (NOT escaped because "_string" is not reserved)</description></item>
+    ///         <item><description>"custom_" + "string" (custom prefix ending with "_") → "custom_string" (NOT escaped because "custom_string" is not reserved)</description></item>
+    ///         <item><description>"custom" + "string" (custom prefix NOT ending in "_") → "_customStringValue" (escaped because "customStringValue" starts with "custom" which is reserved)</description></item>
+    ///     </list>
+    ///     <para>
+    ///         The key insight: escaping applies to the FINAL identifier, not intermediate values.
+    ///         An underscore prefix followed by a reserved keyword does NOT require escaping because "_keyword" is valid.
+    ///     </para>
+    ///
+    ///     <para><b>Interface Type Handling:</b></para>
+    ///     <para>
+    ///         Interface types (starting with 'I' followed by an uppercase letter) always have the 'I' stripped:
+    ///     </para>
+    ///     <list type="bullet">
+    ///         <item><description>"IService" → "service"</description></item>
+    ///         <item><description>"IDerivedService" → "derivedService"</description></item>
+    ///         <item><description>"IMy" (single letter) → "IMy" (not an interface pattern, kept as-is)</description></item>
+    ///     </list>
+    ///
+    ///     <para><b>Examples:</b></para>
+    ///     <code>
+    ///         // Interface type, default prefix, camelCase
+    ///         GenerateFieldName("IService", "CamelCase", true, "_") → "_service"
+    ///
+    ///         // Non-interface type, default prefix, camelCase
+    ///         GenerateFieldName("MyService", "CamelCase", true, "_") → "_myService"
+    ///
+    ///         // Reserved keyword "string" as interface, default prefix
+    ///         GenerateFieldName("Istring", "CamelCase", true, "") → "stringValue"
+    ///
+    ///         // Reserved keyword "string", empty prefix (gets escaped)
+    ///         GenerateFieldName("string", "CamelCase", true, "") → "stringValue"
+    ///
+    ///         // Reserved keyword "string" with "_" prefix (NOT escaped)
+    ///         GenerateFieldName("string", "CamelCase", true, "_") → "_string"
+    ///     </code>
+    /// </remarks>
 
     private static string ExtractSemanticFieldName(string originalTypeName)
     {
