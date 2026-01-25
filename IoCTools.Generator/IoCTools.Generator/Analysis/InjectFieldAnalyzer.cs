@@ -11,76 +11,8 @@ internal static class InjectFieldAnalyzer
     {
         var fields = new List<(ITypeSymbol ServiceType, string FieldName)>();
 
-        foreach (var declaringSyntaxRef in typeSymbol.DeclaringSyntaxReferences)
-            try
-            {
-                if (declaringSyntaxRef.GetSyntax() is not TypeDeclarationSyntax typeDeclaration) continue;
-
-                foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                {
-                    var modifiers = fieldDeclaration.Modifiers;
-                    if (modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword) || m.IsKind(SyntaxKind.ConstKeyword)))
-                        continue;
-
-                    var hasInject = false;
-                    foreach (var attributeList in fieldDeclaration.AttributeLists)
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var name = attribute.Name.ToString();
-                            if (name == "Inject" || name == "InjectAttribute" ||
-                                (name.EndsWith("Inject") && !name.Contains("Configuration")) ||
-                                (name.EndsWith("InjectAttribute") && !name.Contains("Configuration")))
-                            {
-                                hasInject = true;
-                                break;
-                            }
-                        }
-
-                    if (!hasInject) continue;
-
-                    foreach (var variable in fieldDeclaration.Declaration.Variables)
-                    {
-                        var fieldName = variable.Identifier.Text;
-                        if (fields.Any(f => f.FieldName == fieldName)) continue;
-
-                        var fieldSymbol = semanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
-                        if (fieldSymbol?.Type != null)
-                        {
-                            var substituted = TypeSubstitution.SubstituteTypeParameters(fieldSymbol.Type, typeSymbol);
-                            fields.Add((substituted, fieldName));
-                        }
-                        else
-                        {
-                            var fieldType = semanticModel.GetTypeInfo(fieldDeclaration.Declaration.Type).Type;
-                            if (fieldType != null)
-                            {
-                                var substituted = TypeSubstitution.SubstituteTypeParameters(fieldType, typeSymbol);
-                                fields.Add((substituted, fieldName));
-                            }
-                        }
-                    }
-                }
-            }
-            catch (ArgumentException)
-            {
-                // Fallback for generics where syntax walk can throw
-                if (!typeSymbol.IsGenericType) continue;
-
-                var symbolFields = typeSymbol.GetMembers().OfType<IFieldSymbol>()
-                    .Where(f => !f.IsStatic && !f.IsConst)
-                    .Where(f => f.GetAttributes().Any(a => a.AttributeClass?.Name == "InjectAttribute"));
-
-                foreach (var field in symbolFields)
-                {
-                    var name = field.Name;
-                    if (fields.Any(f => f.FieldName == name)) continue;
-                    var substituted = TypeSubstitution.SubstituteTypeParameters(field.Type, typeSymbol);
-                    fields.Add((substituted, name));
-                }
-            }
-
-        // Extra safety for generics when syntax path finds nothing
-        if (typeSymbol.IsGenericType && fields.Count == 0)
+        // For generic types, use symbol-based discovery to avoid ArgumentException from syntax walk
+        if (typeSymbol.IsGenericType)
         {
             var symbolFields = typeSymbol.GetMembers().OfType<IFieldSymbol>()
                 .Where(f => !f.IsStatic && !f.IsConst)
@@ -92,6 +24,59 @@ internal static class InjectFieldAnalyzer
                 if (fields.Any(f => f.FieldName == name)) continue;
                 var substituted = TypeSubstitution.SubstituteTypeParameters(field.Type, typeSymbol);
                 fields.Add((substituted, name));
+            }
+
+            return fields;
+        }
+
+        // For non-generic types, use syntax walk for detailed attribute inspection
+        foreach (var declaringSyntaxRef in typeSymbol.DeclaringSyntaxReferences)
+        {
+            if (declaringSyntaxRef.GetSyntax() is not TypeDeclarationSyntax typeDeclaration) continue;
+
+            foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
+            {
+                var modifiers = fieldDeclaration.Modifiers;
+                if (modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword) || m.IsKind(SyntaxKind.ConstKeyword)))
+                    continue;
+
+                var hasInject = false;
+                foreach (var attributeList in fieldDeclaration.AttributeLists)
+                    foreach (var attribute in attributeList.Attributes)
+                    {
+                        var name = attribute.Name.ToString();
+                        if (name == "Inject" || name == "InjectAttribute" ||
+                            (name.EndsWith("Inject") && !name.Contains("Configuration")) ||
+                            (name.EndsWith("InjectAttribute") && !name.Contains("Configuration")))
+                        {
+                            hasInject = true;
+                            break;
+                        }
+                    }
+
+                if (!hasInject) continue;
+
+                foreach (var variable in fieldDeclaration.Declaration.Variables)
+                {
+                    var fieldName = variable.Identifier.Text;
+                    if (fields.Any(f => f.FieldName == fieldName)) continue;
+
+                    var fieldSymbol = semanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
+                    if (fieldSymbol?.Type != null)
+                    {
+                        var substituted = TypeSubstitution.SubstituteTypeParameters(fieldSymbol.Type, typeSymbol);
+                        fields.Add((substituted, fieldName));
+                    }
+                    else
+                    {
+                        var fieldType = semanticModel.GetTypeInfo(fieldDeclaration.Declaration.Type).Type;
+                        if (fieldType != null)
+                        {
+                            var substituted = TypeSubstitution.SubstituteTypeParameters(fieldType, typeSymbol);
+                            fields.Add((substituted, fieldName));
+                        }
+                    }
+                }
             }
         }
 
@@ -108,12 +93,36 @@ internal static class InjectFieldAnalyzer
         var baseFields = GetInjectedFieldsForType(typeSymbol, semanticModel);
         var results = new List<(ITypeSymbol ServiceType, string FieldName, bool IsExternal)>();
 
-        // Walk syntax again only to detect [ExternalService] attribute on fields if present
+        // Walk syntax to detect [ExternalService] attribute on fields if present
+        // Skip syntax walk for generic types to avoid ArgumentException - use symbol-based check instead
         var fieldsMarkedExternal = new HashSet<string>();
-        foreach (var declaringSyntaxRef in typeSymbol.DeclaringSyntaxReferences)
-            try
+
+        if (typeSymbol.IsGenericType)
+        {
+            // For generic types, use symbol-based ExternalService detection
+            var symbolFields = typeSymbol.GetMembers().OfType<IFieldSymbol>()
+                .Where(f => !f.IsStatic && !f.IsConst)
+                .Where(f => f.GetAttributes().Any(a =>
+                    a.AttributeClass?.Name == "ExternalServiceAttribute" ||
+                    a.AttributeClass?.Name == "InjectAttribute"));
+
+            foreach (var field in symbolFields)
+            {
+                if (field.GetAttributes().Any(a =>
+                        a.AttributeClass?.Name == "ExternalServiceAttribute" ||
+                        (a.AttributeClass?.Name?.EndsWith("ExternalService") == true)))
+                {
+                    fieldsMarkedExternal.Add(field.Name);
+                }
+            }
+        }
+        else
+        {
+            // For non-generic types, use syntax walk for detailed attribute inspection
+            foreach (var declaringSyntaxRef in typeSymbol.DeclaringSyntaxReferences)
             {
                 if (declaringSyntaxRef.GetSyntax() is not TypeDeclarationSyntax typeDeclaration) continue;
+
                 foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
                 {
                     var hasInject = false;
@@ -137,10 +146,7 @@ internal static class InjectFieldAnalyzer
                         fieldsMarkedExternal.Add(variable.Identifier.Text);
                 }
             }
-            catch (ArgumentException)
-            {
-                // ignore; best-effort annotation
-            }
+        }
 
         foreach (var (service, name) in baseFields)
         {
