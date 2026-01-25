@@ -882,6 +882,38 @@ public partial class LazyService
         diagnostics.Should().NotBeEmpty(); // Should detect violations with Lazy<T>
     }
 
+    [Fact]
+    public void LifetimeGeneric_IEnumerableWithInheritedLifetimes_ReportsCorrectly()
+    {
+        // Test that IEnumerable<T> validation correctly handles implementations
+        // that inherit their lifetime from base classes
+        var sourceCode = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace TestNamespace;
+
+public interface IService { }
+
+[Scoped]
+public abstract class ServiceBase : IService { }
+
+public partial class ScopedServiceImpl : ServiceBase { }
+
+[Singleton]
+public partial class ConsumerService
+{
+    [Inject] private readonly IEnumerable<IService> _services;
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
+        var diagnostics = result.GetDiagnosticsByCode("IOC012");
+
+        // Should detect that Singleton depending on IEnumerable<IService> with Scoped implementation
+        diagnostics.Should().NotBeEmpty("Singleton should not depend on Scoped services via IEnumerable");
+    }
+
     #endregion
 
     #region Performance with Complex Generics
