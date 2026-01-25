@@ -105,32 +105,50 @@ internal static class LifetimeDependencyValidator
             if (dependencyLifetime == null) continue;
 
             var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, dependencyLifetime);
-            if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
-            {
-                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.SingletonDependsOnScoped, diagnosticConfig.LifetimeValidationSeverity);
-                var diagnostic = Diagnostic.Create(descriptor,
-                    classDeclaration.GetLocation(), classSymbol.Name, dependencyTypeName);
-                context.ReportDiagnostic(diagnostic);
-            }
-            else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
-            {
+            ReportLifetimeViolationIfNeeded(context, classDeclaration, classSymbol, violationType, dependencyTypeName,
+                implementationName, diagnosticConfig.LifetimeValidationSeverity, allRegisteredServices);
+        }
+    }
+
+    private static void ReportLifetimeViolationIfNeeded(
+        SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        LifetimeViolationType violationType,
+        string dependencyTypeName,
+        string? implementationName,
+        DiagnosticSeverity lifetimeValidationSeverity,
+        HashSet<string> allRegisteredServices)
+    {
+        if (violationType == LifetimeViolationType.Compatible)
+            return;
+
+        var location = classDeclaration.GetLocation();
+        var serviceName = classSymbol.Name;
+
+        switch (violationType)
+        {
+            case LifetimeViolationType.SingletonDependsOnScoped:
+                var scopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
+                var scopedDiagnostic = Diagnostic.Create(scopedDescriptor, location, serviceName, dependencyTypeName);
+                context.ReportDiagnostic(scopedDiagnostic);
+                break;
+            case LifetimeViolationType.SingletonDependsOnTransient:
                 var displayName = implementationName ??
                                   DependencyLifetimeResolver.FindImplementationNameForInterface(dependencyTypeName,
                                       allRegisteredServices) ??
                                   TypeHelpers.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
-                var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                    classDeclaration.GetLocation(), classSymbol.Name, displayName);
-                context.ReportDiagnostic(diagnostic);
-            }
-            else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
-            {
-                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.TransientDependsOnScoped, diagnosticConfig.LifetimeValidationSeverity);
-                var diagnostic = Diagnostic.Create(descriptor,
-                    classDeclaration.GetLocation(), classSymbol.Name, dependencyTypeName);
-                context.ReportDiagnostic(diagnostic);
-            }
+                var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
+                    location, serviceName, displayName);
+                context.ReportDiagnostic(transientDiagnostic);
+                break;
+            case LifetimeViolationType.TransientDependsOnScoped:
+                var transientScopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
+                var transientScopedDiagnostic = Diagnostic.Create(transientScopedDescriptor, location, serviceName, dependencyTypeName);
+                context.ReportDiagnostic(transientScopedDiagnostic);
+                break;
         }
     }
 
