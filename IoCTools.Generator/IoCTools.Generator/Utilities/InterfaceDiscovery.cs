@@ -2,6 +2,11 @@ namespace IoCTools.Generator.Utilities;
 
 internal static class InterfaceDiscovery
 {
+    /// <summary>
+    /// Gets all interfaces implemented by a service class, excluding System interfaces.
+    /// Returns empty list on error to maintain generator resilience - interface discovery
+    /// failures should not prevent compilation, but may result in missing registrations.
+    /// </summary>
     internal static List<INamedTypeSymbol> GetAllInterfacesForService(INamedTypeSymbol classSymbol)
     {
         try
@@ -14,34 +19,33 @@ internal static class InterfaceDiscovery
                             true)
                 .ToList();
         }
-        catch
+        catch (InvalidOperationException)
         {
+            // Can occur during collection modification or invalid LINQ operations
+            return new List<INamedTypeSymbol>();
+        }
+        catch (NullReferenceException)
+        {
+            // Can occur if typeSymbol or its interfaces are in an invalid state
             return new List<INamedTypeSymbol>();
         }
     }
 
-    internal static void CollectAllInterfacesRecursive(INamedTypeSymbol typeSymbol,
+    private static void CollectAllInterfacesRecursive(INamedTypeSymbol typeSymbol,
         HashSet<INamedTypeSymbol> allInterfaces)
     {
-        try
-        {
-            if (typeSymbol == null) return;
+        if (typeSymbol == null) return;
 
-            foreach (var interfaceSymbol in typeSymbol.Interfaces)
-                if (interfaceSymbol != null && allInterfaces.Add(interfaceSymbol))
-                    CollectAllInterfacesRecursive(interfaceSymbol, allInterfaces);
+        foreach (var interfaceSymbol in typeSymbol.Interfaces)
+            if (interfaceSymbol != null && allInterfaces.Add(interfaceSymbol))
+                CollectAllInterfacesRecursive(interfaceSymbol, allInterfaces);
 
-            var baseType = typeSymbol.BaseType;
-            if (baseType != null && baseType.SpecialType != SpecialType.System_Object)
-                CollectAllInterfacesRecursive(baseType, allInterfaces);
+        var baseType = typeSymbol.BaseType;
+        if (baseType != null && baseType.SpecialType != SpecialType.System_Object)
+            CollectAllInterfacesRecursive(baseType, allInterfaces);
 
-            foreach (var interfaceSymbol in typeSymbol.AllInterfaces)
-                if (interfaceSymbol != null)
-                    allInterfaces.Add(interfaceSymbol);
-        }
-        catch
-        {
-            // Swallow to keep generator resilient; worst case we miss an interface registration.
-        }
+        foreach (var interfaceSymbol in typeSymbol.AllInterfaces)
+            if (interfaceSymbol != null)
+                allInterfaces.Add(interfaceSymbol);
     }
 }
