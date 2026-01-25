@@ -712,6 +712,249 @@ public partial class {className}{baseClause}
 
     #endregion
 
+    #region Incremental Compilation Testing
+
+    /// <summary>
+    ///     Compiles source code with the IoCTools generator, persists generated .g.cs files to disk,
+    ///     then runs a second compilation that includes those files. This simulates incremental build scenarios
+    ///     where the generator must correctly identify its own previously-generated output.
+    /// </summary>
+    /// <param name="sourceCode">Source code to compile</param>
+    /// <param name="analyzerBuildProperties">Optional MSBuild properties for diagnostic configuration</param>
+    /// <returns>Tuple of first pass result and second pass (incremental) result</returns>
+    public static (GeneratorTestResult FirstPass, GeneratorTestResult SecondPass) CompileWithIncrementalGeneration(
+        string sourceCode,
+        Dictionary<string, string>? analyzerBuildProperties = null)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "IoCTools_Incremental_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            // First pass: generate files normally
+            var firstPass = CompileWithGenerator(sourceCode, true, analyzerBuildProperties);
+
+            // Write generated sources to disk as .g.cs files
+            var generatedFiles = new List<string>();
+            foreach (var generatedSource in firstPass.GeneratedSources)
+            {
+                // The hint contains the full file path (e.g., "/IoCTools_Generator/ConstructorGeneration/MyService_Constructor.g.cs")
+                var fileName = Path.GetFileName(generatedSource.Hint);
+                var fullPath = Path.Combine(tempDir, fileName);
+                File.WriteAllText(fullPath, generatedSource.Content);
+                generatedFiles.Add(fullPath);
+            }
+
+            // Also write the original source file
+            var sourcePath = Path.Combine(tempDir, "Source.cs");
+            File.WriteAllText(sourcePath, sourceCode);
+
+            // Second pass: compile again, including the generated .g.cs files
+            var sourceSyntaxTree = CSharpSyntaxTree.ParseText(sourceCode,
+                new CSharpParseOptions(LanguageVersion.Preview),
+                path: sourcePath);
+
+            var generatedSyntaxTrees = new List<SyntaxTree>();
+            foreach (var generatedFile in generatedFiles)
+            {
+                var content = File.ReadAllText(generatedFile);
+                var tree = CSharpSyntaxTree.ParseText(content,
+                    new CSharpParseOptions(LanguageVersion.Preview),
+                    path: generatedFile);
+                generatedSyntaxTrees.Add(tree);
+            }
+
+            // Reuse the same reference setup as CompileWithGenerator
+            var references = new HashSet<string>();
+            var metadataRefs = new List<MetadataReference>();
+
+            var corelibLocation = typeof(object).Assembly.Location;
+            references.Add(corelibLocation);
+            metadataRefs.Add(MetadataReference.CreateFromFile(corelibLocation));
+
+            var essentialTypes = new[]
+            {
+                typeof(TimeSpan), typeof(DateTime), typeof(decimal), typeof(Attribute), typeof(IEnumerable<>),
+                typeof(GCSettings)
+            };
+
+            foreach (var type in essentialTypes)
+            {
+                var location = type.Assembly.Location;
+                if (!references.Contains(location))
+                {
+                    references.Add(location);
+                    metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                }
+            }
+
+            var iocToolsTypes = new[]
+            {
+                typeof(ScopedAttribute), typeof(SingletonAttribute), typeof(TransientAttribute), typeof(InjectAttribute),
+                typeof(InjectConfigurationAttribute), typeof(ConditionalServiceAttribute), typeof(ExternalServiceAttribute),
+                typeof(RegisterAsAllAttribute),
+                typeof(RegisterAsAttribute<object>), typeof(RegisterAsAttribute<object, object>),
+                typeof(RegisterAsAttribute<object, object, object>),
+                typeof(SkipRegistrationAttribute), typeof(IServiceCollection), typeof(ServiceCollectionServiceExtensions),
+                typeof(ServiceCollectionContainerBuilderExtensions)
+            };
+
+            foreach (var type in iocToolsTypes)
+            {
+                var location = type.Assembly.Location;
+                if (!references.Contains(location))
+                {
+                    references.Add(location);
+                    metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                }
+            }
+
+            var optionalTypes = new[] { typeof(BackgroundService), typeof(Task), typeof(CancellationToken) };
+            foreach (var type in optionalTypes)
+                try
+                {
+                    var location = type.Assembly.Location;
+                    if (!references.Contains(location))
+                    {
+                        references.Add(location);
+                        metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                    }
+                }
+                catch { }
+
+            var configTypes = new[] { typeof(IConfiguration), typeof(IOptions<>), typeof(ILogger<>) };
+            foreach (var type in configTypes)
+                try
+                {
+                    var location = type.Assembly.Location;
+                    if (!references.Contains(location))
+                    {
+                        references.Add(location);
+                        metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                    }
+                }
+                catch { }
+
+            var dataAnnotationTypes = new[] { typeof(RequiredAttribute), typeof(RangeAttribute), typeof(StringLengthAttribute) };
+            foreach (var type in dataAnnotationTypes)
+                try
+                {
+                    var location = type.Assembly.Location;
+                    if (!references.Contains(location))
+                    {
+                        references.Add(location);
+                        metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                    }
+                }
+                catch { }
+
+            var additionalAssemblies = new[]
+            {
+                "netstandard", "System.Runtime", "System.Collections.Concurrent", "System.Collections.Specialized",
+                "System.Collections.Immutable", "Microsoft.Extensions.Configuration.Binder",
+                "System.ComponentModel.Primitives", "System.ComponentModel", "System.ComponentModel.DataAnnotations"
+            };
+
+            foreach (var assemblyName in additionalAssemblies)
+                try
+                {
+                    var assembly = Assembly.Load(assemblyName);
+                    var location = assembly.Location;
+                    if (!references.Contains(location))
+                    {
+                        references.Add(location);
+                        metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                    }
+                }
+                catch { }
+
+            var externalTypes = new[]
+            {
+                typeof(Uri), typeof(TextWriter), typeof(Console), typeof(Path), typeof(Directory), typeof(File),
+                typeof(Activator), typeof(Environment)
+            };
+
+            foreach (var type in externalTypes)
+                try
+                {
+                    var location = type.Assembly.Location;
+                    if (!references.Contains(location))
+                    {
+                        references.Add(location);
+                        metadataRefs.Add(MetadataReference.CreateFromFile(location));
+                    }
+                }
+                catch { }
+
+            // Combine source and generated syntax trees for second compilation
+            var allSyntaxTrees = new List<SyntaxTree> { sourceSyntaxTree };
+            allSyntaxTrees.AddRange(generatedSyntaxTrees);
+
+            var compilation = CSharpCompilation.Create(
+                "TestAssembly_Incremental",
+                allSyntaxTrees,
+                metadataRefs,
+                new CSharpCompilationOptions(
+                    OutputKind.DynamicallyLinkedLibrary,
+                    allowUnsafe: false,
+                    nullableContextOptions: NullableContextOptions.Enable));
+
+            // Run generator again on the compilation that includes previous generated files
+            var generator = new DependencyInjectionGenerator();
+            var additionalTexts = new List<AdditionalText>();
+            AnalyzerConfigOptionsProvider? configProvider = null;
+
+            if (analyzerBuildProperties is not null && analyzerBuildProperties.Count > 0)
+            {
+                var normalizedProperties = NormalizeBuildProperties(analyzerBuildProperties);
+                if (normalizedProperties.Count > 0)
+                {
+                    additionalTexts.Add(CreateEditorConfigFromNormalized(normalizedProperties));
+                    configProvider = new InMemoryAnalyzerConfigOptionsProvider(normalizedProperties);
+                }
+            }
+
+            var driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() },
+                additionalTexts.ToArray(),
+                new CSharpParseOptions(LanguageVersion.Preview));
+
+            if (configProvider != null)
+                driver = (CSharpGeneratorDriver)driver.WithUpdatedAnalyzerConfigOptions(configProvider);
+
+            driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+
+            var generatedSources = new List<GeneratedSource>();
+            var originalSyntaxTreeCount = allSyntaxTrees.Count;
+
+            foreach (var tree in outputCompilation.SyntaxTrees.Skip(originalSyntaxTreeCount))
+            {
+                var hint = tree.FilePath;
+                var content = tree.ToString();
+                generatedSources.Add(new GeneratedSource(hint, content));
+            }
+
+            var secondPass = new GeneratorTestResult(
+                outputCompilation,
+                generatedSources,
+                diagnostics.ToList(),
+                outputCompilation.GetDiagnostics().ToList());
+
+            return (firstPass, secondPass);
+        }
+        finally
+        {
+            // Clean up temp directory
+            try
+            {
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, recursive: true);
+            }
+            catch { }
+        }
+    }
+
+    #endregion
+
     #region MSBuild Configuration Simulation
 
     /// <summary>

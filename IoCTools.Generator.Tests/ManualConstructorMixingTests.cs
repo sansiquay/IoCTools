@@ -133,4 +133,42 @@ public partial class ClockService
         var constructorSource = result.GetConstructorSource("ClockService");
         constructorSource.Should().NotBeNull("Constructor should be generated for ClockService");
     }
+
+    [Fact]
+    public void GeneratedConstructor_WithIncrementalCompilation_DoesNotProduceIOC041()
+    {
+        // Regression test for bug where generated constructors in .g.cs files
+        // were incorrectly flagged as manual during incremental compilation.
+        // This test simulates a real build scenario where:
+        // 1. First compilation generates .g.cs files and writes them to disk
+        // 2. Second compilation reads those .g.cs files and must correctly
+        //    identify them as generated (not manual) constructors
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IClock { }
+
+public partial class ClockService
+{
+    [Inject] private readonly IClock _clock;
+}
+";
+
+        // Run incremental compilation: first pass generates files, second pass reads them from disk
+        var (firstPass, secondPass) = SourceGeneratorTestHelper.CompileWithIncrementalGeneration(source);
+
+        // First pass: should generate constructor with no conflicts
+        firstPass.GetDiagnosticsByCode("IOC041").Should().BeEmpty("First pass: Generated constructor should not trigger IOC041");
+        firstPass.GetConstructorSource("ClockService").Should().NotBeNull("First pass: Constructor should be generated");
+
+        // Second pass: when .g.cs files exist on disk, should still not report IOC041
+        // This is the key test - the bug manifested in the second pass when the generator
+        // saw its own generated .g.cs file and incorrectly flagged it as "manual"
+        secondPass.GetDiagnosticsByCode("IOC041").Should().BeEmpty("Second pass: Generated constructor from .g.cs should not trigger IOC041");
+
+        // Verify constructor generation still works in second pass
+        secondPass.GetConstructorSource("ClockService").Should().NotBeNull("Second pass: Constructor should be present");
+    }
 }
