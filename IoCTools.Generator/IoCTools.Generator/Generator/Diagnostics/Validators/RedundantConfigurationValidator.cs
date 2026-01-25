@@ -21,9 +21,6 @@ internal static class RedundantConfigurationValidator
         ValidateRegisterAsRedundancy(context, classDeclaration, classSymbol);
         ValidateRegisterAsAllRedundancy(context, classDeclaration, classSymbol);
         ValidateConditionalServiceRedundancy(context, classDeclaration, classSymbol);
-        ValidateMissingLifetimeForRegisterAs(context, classDeclaration, classSymbol);
-        ValidateMissingLifetimeForDependsOnOrInject(context, classDeclaration, classSymbol);
-        ValidateMissingLifetimeForConditionalService(context, classDeclaration, classSymbol);
         ValidateMissingLifetimeForHostedService(context, classDeclaration, classSymbol);
         SuggestRegisterAsAllForMultiInterface(context, classDeclaration, classSymbol);
         ValidateInheritedLifetimeRedundancy(context, classDeclaration, classSymbol);
@@ -314,35 +311,6 @@ internal static class RedundantConfigurationValidator
                 baseType.Name);
             context.ReportDiagnostic(diagnostic);
         }
-    }
-
-    private static void ValidateMissingLifetimeForRegisterAs(SourceProductionContext context,
-        TypeDeclarationSyntax classDeclaration,
-        INamedTypeSymbol classSymbol)
-    {
-        var hasRegisterAs = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name?.StartsWith("RegisterAsAttribute") == true);
-        if (!hasRegisterAs) return;
-        // Implicit lifetime covers RegisterAs; no diagnostic required.
-    }
-
-    private static void ValidateMissingLifetimeForDependsOnOrInject(SourceProductionContext context,
-        TypeDeclarationSyntax classDeclaration,
-        INamedTypeSymbol classSymbol)
-    {
-        var hasDependsOn = classSymbol.GetAttributes().Any(IsDependsOnAttribute);
-        var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
-        // Implicit lifetime applies even when dependencies are declared; no diagnostic required.
-        _ = hasDependsOn;
-        _ = hasInjectFields;
-    }
-
-    private static void ValidateMissingLifetimeForConditionalService(SourceProductionContext context,
-        TypeDeclarationSyntax classDeclaration,
-        INamedTypeSymbol classSymbol)
-    {
-        var hasConditional = classSymbol.GetAttributes().Any(IsConditionalServiceAttribute);
-        if (!hasConditional) return;
-        // Implicit lifetime applies; no diagnostic required.
     }
 
     private static void ValidateMissingLifetimeForHostedService(SourceProductionContext context,
