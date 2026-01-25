@@ -31,8 +31,10 @@ internal static partial class ServiceRegistrationGenerator
         var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
 
+        // For InstanceSharing.Shared: concrete class registration only with explicit lifetime or conditional
+        // For InstanceSharing.Separate: always register concrete class when interfaces are specified
         var shouldRegisterConcreteClass = instanceSharing == "Shared"
-            ? hasLifetimeAttribute || hasConditionalServiceAttribute || specifiedInterfaces.Any()
+            ? hasLifetimeAttribute || hasConditionalServiceAttribute
             : hasLifetimeAttribute || hasConditionalServiceAttribute || specifiedInterfaces.Any();
 
         foreach (var specifiedType in specifiedInterfaces)
