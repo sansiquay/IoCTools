@@ -1,3 +1,5 @@
+using IoCTools.Generator.Utilities;
+
 namespace IoCTools.Generator.Models;
 
 internal class InheritanceHierarchyDependencies(
@@ -126,15 +128,16 @@ internal class InheritanceChainLifetimeAnalysis
                 var dependencyLifetime = GetDependencyLifetime(dependency.ServiceType);
                 if (dependencyLifetime == null) continue;
 
-                // Check for lifetime violations
-                if (IsLifetimeIncompatible(serviceLifetime, dependencyLifetime))
+                // Check for lifetime violations using centralized checker
+                var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, dependencyLifetime);
+                if (violationType != LifetimeViolationType.Compatible)
                     violations.Add(new InheritanceLifetimeViolation(
                         dependency.ServiceType,
                         dependency.FieldName,
                         dependency.Source,
                         level,
                         dependencyLifetime,
-                        GetViolationType(serviceLifetime, dependencyLifetime)
+                        violationType
                     ));
             }
         }
@@ -158,22 +161,6 @@ internal class InheritanceChainLifetimeAnalysis
     {
         var dependencyTypeName = dependencyType.ToDisplayString();
         return _serviceLifetimes.TryGetValue(dependencyTypeName, out var lifetime) ? lifetime : null;
-    }
-
-    private static bool IsLifetimeIncompatible(string serviceLifetime,
-        string dependencyLifetime) => serviceLifetime == "Singleton" &&
-                                      (dependencyLifetime == "Scoped" || dependencyLifetime == "Transient");
-
-    private static LifetimeViolationType GetViolationType(string serviceLifetime,
-        string dependencyLifetime)
-    {
-        if (serviceLifetime == "Singleton" && dependencyLifetime == "Scoped")
-            return LifetimeViolationType.SingletonDependsOnScoped;
-
-        if (serviceLifetime == "Singleton" && dependencyLifetime == "Transient")
-            return LifetimeViolationType.SingletonDependsOnTransient;
-
-        return LifetimeViolationType.Other;
     }
 }
 
@@ -261,14 +248,4 @@ internal class InheritanceLifetimeViolation
 
         return DependencyType.Name;
     }
-}
-
-/// <summary>
-///     Types of lifetime violations
-/// </summary>
-internal enum LifetimeViolationType
-{
-    SingletonDependsOnScoped,
-    SingletonDependsOnTransient,
-    Other
 }

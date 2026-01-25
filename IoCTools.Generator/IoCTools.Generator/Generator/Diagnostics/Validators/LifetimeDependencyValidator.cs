@@ -1,4 +1,5 @@
 using IoCTools.Generator.Diagnostics;
+using IoCTools.Generator.Utilities;
 
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
@@ -88,7 +89,8 @@ internal static class LifetimeDependencyValidator
                     dependencyTypeName, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
             if (dependencyLifetime == null) continue;
 
-            if (serviceLifetime == "Singleton" && dependencyLifetime == "Scoped")
+            var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, dependencyLifetime);
+            if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
             {
                 var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
                     DiagnosticDescriptors.SingletonDependsOnScoped, diagnosticConfig.LifetimeValidationSeverity);
@@ -96,7 +98,7 @@ internal static class LifetimeDependencyValidator
                     classDeclaration.GetLocation(), classSymbol.Name, dependencyTypeName);
                 context.ReportDiagnostic(diagnostic);
             }
-            else if (serviceLifetime == "Singleton" && dependencyLifetime == "Transient")
+            else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
             {
                 var displayName = implementationName ??
                                   DependencyLifetimeResolver.FindImplementationNameForInterface(dependencyTypeName,
@@ -130,14 +132,15 @@ internal static class LifetimeDependencyValidator
                 if (!processed.Add(implementation.ToDisplayString())) continue;
                 var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
                 if (implLifetime == null) continue;
-                if (serviceLifetime == "Singleton" && implLifetime == "Scoped")
+                var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
+                if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
                 {
                     var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
                         classDeclaration.GetLocation(), classSymbol.Name,
                         $"{dependencyTypeName} -> {implementation.Name}");
                     context.ReportDiagnostic(diagnostic);
                 }
-                else if (serviceLifetime == "Singleton" && implLifetime == "Transient")
+                else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
                 {
                     var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
                         classDeclaration.GetLocation(), classSymbol.Name,
@@ -159,14 +162,15 @@ internal static class LifetimeDependencyValidator
                     var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
                         implicitLifetime);
                     if (implLifetime == null) continue;
-                    if (serviceLifetime == "Singleton" && implLifetime == "Scoped")
+                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
+                    if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
                     {
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
                             classDeclaration.GetLocation(), classSymbol.Name,
                             $"{dependencyTypeName} -> {implementation.Name}");
                         context.ReportDiagnostic(diagnostic);
                     }
-                    else if (serviceLifetime == "Singleton" && implLifetime == "Transient")
+                    else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
                     {
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
                             classDeclaration.GetLocation(), classSymbol.Name,
@@ -187,14 +191,15 @@ internal static class LifetimeDependencyValidator
                     var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation,
                         implicitLifetime);
                     if (implLifetime == null) continue;
-                    if (serviceLifetime == "Singleton" && implLifetime == "Scoped")
+                    var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
+                    if (violationType == LifetimeViolationType.SingletonDependsOnScoped)
                     {
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
                             classDeclaration.GetLocation(), classSymbol.Name,
                             $"{dependencyTypeName} -> {implementation.Name}");
                         context.ReportDiagnostic(diagnostic);
                     }
-                    else if (serviceLifetime == "Singleton" && implLifetime == "Transient")
+                    else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
                     {
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
                             classDeclaration.GetLocation(), classSymbol.Name,
