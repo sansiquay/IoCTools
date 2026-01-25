@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 
 using Diagnostics.Validators;
 
-using IoCTools.Generator.Diagnostics.Configuration;
 using IoCTools.Generator.Utilities;
 
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -68,7 +67,7 @@ internal static class DiagnosticsRunner
             // IOC050/IOC051: manual registrations overlapping IoCTools
             ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, autoConfigOptions);
 
-            var diagnosticConfig = DiagnosticConfigProvider.From(configOptions);
+            var diagnosticConfig = DiagnosticUtilities.GetDiagnosticConfiguration(configOptions);
 
             var validatedClasses = new HashSet<string>(StringComparer.Ordinal);
             foreach (var serviceInfo in services)
@@ -378,7 +377,7 @@ internal static class DiagnosticsRunner
             DiagnosticRules.SuggestSharedBaseLifetimes(context, allImplementations, allRegisteredServices,
                 implicitLifetime);
 
-            var diagnosticConfig = DiagnosticConfigProvider.From(configOptions);
+            var diagnosticConfig = DiagnosticUtilities.GetDiagnosticConfiguration(configOptions);
 
             foreach (var serviceInfo in services)
             {
