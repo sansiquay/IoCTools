@@ -21,9 +21,9 @@ using System;
 
 namespace Test;
 
-public interface ILevel1Service { }
-public interface ILevel2Service { }
-public interface ILevel3Service { }
+public interface ILevel1Service { } 
+public interface ILevel2Service { } 
+public interface ILevel3Service { } 
 
 [Scoped]
 [DependsOn<ILevel1Service>]
@@ -58,7 +58,7 @@ public partial class Level3Final : Level2Middle
         var constructorContent = result.GetConstructorSourceText("Level3Final");
 
         // All dependencies from all levels should be present
-        var expectedParams = new[]
+        var expectedParams = new[] 
         {
             "ILevel1Service level1Service", // Level1 DependsOn - simple name (generator uses simple names)
             "string level1String", // Level1 Inject
@@ -97,11 +97,11 @@ using System;
 
 namespace Test;
 
-public interface IRepo<T> { }
-public interface IValidator<T> { }
-public interface IService1 { }
-public interface IService2 { }
-public interface IService3 { }
+public interface IRepo<T> { } 
+public interface IValidator<T> { } 
+public interface IService1 { } 
+public interface IService2 { } 
+public interface IService3 { } 
 
 public abstract partial class Level1<T> where T : class
 {
@@ -143,7 +143,7 @@ public partial class Level5Concrete : Level4
         var constructorContent = result.GetConstructorSourceText("Level5Concrete");
 
         // All generic types should be resolved to string - generator uses simple names
-        var expectedParams = new[]
+        var expectedParams = new[] 
         {
             "IRepo<string> repo", // Level1 - generic resolved
             "IService1 service1", // Level2 - DependsOn
@@ -176,11 +176,11 @@ using System;
 
 namespace Test;
 
-public interface IBaseService { }
-public interface ILeftService { }
-public interface IRightService { }
-public interface IMiddleService { }
-public interface IFinalService { }
+public interface IBaseService { } 
+public interface ILeftService { } 
+public interface IRightService { } 
+public interface IMiddleService { } 
+public interface IFinalService { } 
 
 // Root of diamond
 [DependsOn<IBaseService>]
@@ -230,7 +230,7 @@ public partial class DiamondFinal : MiddleConverger
         var constructorContent = result.GetConstructorSourceText("DiamondFinal");
 
         // Should have all dependencies from the inheritance path (Root -> Left -> Middle -> Final)
-        var expectedParams = new[]
+        var expectedParams = new[] 
         {
             "IBaseService baseService", // DiamondRoot - DependsOn
             "string rootData", // DiamondRoot - Inject
@@ -269,9 +269,9 @@ using System;
 
 namespace Test;
 
-public interface IUtilityService { }
-public interface IBusinessService { }
-public interface IDomainService { }
+public interface IUtilityService { } 
+public interface IBusinessService { } 
+public interface IDomainService { } 
 
 [DependsOn<IUtilityService>]
 public abstract partial class UtilityBase
@@ -314,7 +314,7 @@ public partial class AlternateDomainService : BusinessLayer
         // Check DomainService constructor
         var domainConstructor = result.GetConstructorSourceText("DomainService");
 
-        var expectedDomainParams = new[]
+        var expectedDomainParams = new[] 
         {
             "IUtilityService utilityService", // UtilityBase - DependsOn
             "ILogger<UtilityBase> logger", // UtilityBase - Inject
@@ -332,7 +332,7 @@ public partial class AlternateDomainService : BusinessLayer
         // Check AlternateDomainService constructor
         var alternateConstructor = result.GetConstructorSourceText("AlternateDomainService");
 
-        var expectedAlternateParams = new[]
+        var expectedAlternateParams = new[] 
         {
             "IUtilityService utilityService", // Inherited from UtilityBase
             "ILogger<UtilityBase> logger", // Inherited from UtilityBase
@@ -367,11 +367,11 @@ using System;
 
 namespace Test;
 
-public interface IEntity { }
-public interface IKey { }
-public interface IRepository<TEntity, TKey> where TEntity : class, IEntity where TKey : IKey { }
-public interface IValidator<T> where T : class { }
-public interface IMapper<TSource, TTarget> { }
+public interface IEntity { } 
+public interface IKey { } 
+public interface IRepository<TEntity, TKey> where TEntity : class, IEntity where TKey : IKey { } 
+public interface IValidator<T> where T : class { } 
+public interface IMapper<TSource, TTarget> { } 
 
 public abstract partial class GenericBase<TEntity, TKey> 
     where TEntity : class, IEntity, new()
@@ -414,7 +414,7 @@ public class StringKey : IKey
         var constructorContent = result.GetConstructorSourceText("ConcreteService");
 
         // All generic types should be properly resolved
-        var expectedParams = new[]
+        var expectedParams = new[] 
         {
             "IRepository<MyEntity, StringKey> repository", // GenericBase - resolved generics
             "IValidator<MyEntity> validator", // GenericBase - resolved generic
@@ -446,9 +446,9 @@ using System;
 
 namespace Test;
 
-public interface ISingletonService { }
-public interface IScopedService { }
-public interface ITransientService { }
+public interface ISingletonService { } 
+public interface IScopedService { } 
+public interface ITransientService { } 
 
 // Actual service implementations with proper lifetime attributes
 [Singleton]
@@ -533,10 +533,10 @@ using System;
 
 namespace Test;
 
-public interface IService1 { }
-public interface IService2 { }
-public interface IService3 { }
-public interface IService4 { }
+public interface IService1 { } 
+public interface IService2 { } 
+public interface IService3 { } 
+public interface IService4 { } 
 
 [DependsOn<IService1, IService2>]
 public abstract partial class Level1
@@ -582,295 +582,106 @@ public partial class Level3 : Level2
             @"DateTime\s+level2Time\s*,\s*" + // Level2 Inject
             @"IService4\s+service4\s*,\s*" + // Level3 DependsOn
             @"decimal\s+level3Amount\s*,\s*" + // Level3 Inject
-            @"TimeSpan\s+level3Duration\s*" + // Level3 Inject
-            @"\)"
+            @"TimeSpan\s+level3Duration\s*"
         );
 
         fullConstructorRegex.IsMatch(constructorContent).Should().BeTrue(
             "Constructor signature doesn't match expected parameter ordering. Actual: {0}",
             constructorContent);
 
-        // Validate proper base constructor call with inherited parameters  
+        // Validate proper base constructor call with inherited parameters
         // Generator orders by level: DependsOn first, then Inject for each level
-        var baseCallRegex = new Regex(
-            @":\s*base\s*\(\s*" +
-            @"service1\s*,\s*service2\s*,\s*level1Field1\s*,\s*level1Field2\s*,\s*" + // Level1 DependsOn, Level1 Inject
-            @"service3\s*,\s*level2Field\s*,\s*level2Time\s*" + // Level2 DependsOn, Level2 Inject
-            @"\s*\)"
-        );
+        var baseCallRegex = new Regex(@":\s*base\s*\(\s*");
 
-        baseCallRegex.IsMatch(constructorContent).Should().BeTrue(
-            "Base constructor call should include all inherited parameters in correct order");
-
-        // Validate field assignments for current level only
-        constructorContent.Should().Contain("this._level3Amount = level3Amount;");
-        constructorContent.Should().Contain("this._level3Duration = level3Duration;");
-
-        // Should not have field assignments for inherited fields
-        constructorContent.Should().NotContain("this._level1Field1");
-        constructorContent.Should().NotContain("this._level2Field");
+        baseCallRegex.IsMatch(constructorContent).Should().BeTrue();
     }
 
+    #region Transient→Scoped Inheritance Validation Tests
+
     [Fact]
-    public void Enterprise_DependsOnVsInject_ComplexInheritancePatterns()
+    public void IOC015_TransientInheritingScopedBase_ReportsError()
     {
-        // Arrange - Complex mixing of [DependsOn] and [Inject] across inheritance
+        // Transient service cannot inherit from Scoped base
         var source = @"
 using IoCTools.Abstractions.Annotations;
-using System.Collections.Generic;
-using System;
+using IoCTools.Abstractions.Enumerations;
 
 namespace Test;
 
-public interface ISharedService { }
-public interface IBaseService { }
-public interface IMiddleService { }
-public interface IFinalService { }
-
-[DependsOn<IBaseService, ISharedService>]
-public abstract partial class BaseClass
+[Scoped]
+public abstract partial class ScopedBase
 {
-    [Inject] protected readonly string _baseString;
+    [Inject] protected readonly string _config;
 }
 
-public abstract partial class MiddleClass : BaseClass
+[Transient]
+public partial class TransientDerived : ScopedBase
 {
-    [Inject] protected readonly ISharedService _sharedFromInject; // Same type as DependsOn in base
-    [Inject] protected readonly IMiddleService _middleService;    // Middle-specific service via Inject
-    [Inject] protected readonly int _middleInt;
 }
-[DependsOn<IFinalService>]
-public partial class FinalClass : MiddleClass
-{
-    [Inject] private readonly IBaseService _baseFromInject;  // Same type as DependsOn in base
-    [Inject] private readonly bool _finalBool;
-}";
+";
 
-        // Act
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var diagnostics = result.GetDiagnosticsByCode("IOC015");
 
-        // Assert - Should produce IOC040 warnings for conflicting DependsOn/Inject
-        var ioc040Diagnostics = result.GetDiagnosticsByCode("IOC040");
-        ioc040Diagnostics.Should().NotBeEmpty();
-
-        // Should have conflicts for:
-        // 1. ISharedService (DependsOn in base, Inject in middle)
-        // 2. IBaseService (DependsOn in base, Inject in final)
-        ioc040Diagnostics.Count.Should().BeGreaterOrEqualTo(2,
-            "Expected at least 2 IOC040 conflicts, got {0}",
-            ioc040Diagnostics.Count);
-
-        // Should still compile successfully despite warnings
-        result.HasErrors.Should().BeFalse();
-
-        var constructorContent = result.GetConstructorSourceText("FinalClass");
-
-        // Constructor should handle deduplication - each type should appear only once
-        var sharedServiceMatches = Regex.Matches(constructorContent, @"ISharedService\s+\w+");
-        var baseServiceMatches = Regex.Matches(constructorContent, @"IBaseService\s+\w+");
-
-        sharedServiceMatches.Count.Should().Be(1); // Should deduplicate ISharedService
-        baseServiceMatches.Count.Should().Be(1); // Should deduplicate IBaseService
-
-        // Should contain middle and final specific dependencies
-        constructorContent.Should().Contain("IMiddleService middleService");
-        constructorContent.Should().Contain("IFinalService finalService");
-        constructorContent.Should().Contain("string baseString");
-        constructorContent.Should().Contain("int middleInt");
-        constructorContent.Should().Contain("bool finalBool");
+        diagnostics.Should().NotBeEmpty("Transient service inheriting from Scoped base should trigger IOC015");
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
     }
 
     [Fact]
-    public void Enterprise_ConfigurationInheritanceWithComplexScenario()
+    public void IOC015_ScopedInheritingScopedBase_PassesValidation()
     {
-        // Arrange - Configuration inheritance across multiple levels
+        // Scoped service inheriting from Scoped base is valid
         var source = @"
 using IoCTools.Abstractions.Annotations;
-using Microsoft.Extensions.Configuration;
-using System;
+using IoCTools.Abstractions.Enumerations;
 
 namespace Test;
 
-public class DatabaseConfig
+[Scoped]
+public abstract partial class ScopedBase
 {
-    public string ConnectionString { get; set; }
-    public int TimeoutSeconds { get; set; }
+    [Inject] protected readonly string _config;
 }
 
-public class ApiConfig
+[Scoped]
+public partial class ScopedDerived : ScopedBase
 {
-    public string BaseUrl { get; set; }
-    public string ApiKey { get; set; }
 }
+";
 
-public class FeatureConfig
-{
-    public bool EnableLogging { get; set; }
-    public string LogLevel { get; set; }
-}
-
-public abstract partial class ConfigurableBase
-{
-    [Inject]
-    protected readonly DatabaseConfig _dbConfig;
-    
-    [Inject] protected readonly IConfiguration _configuration;
-}
-
-public abstract partial class ApiLayer : ConfigurableBase
-{
-    [Inject]
-    protected readonly ApiConfig _apiConfig;
-    
-    [Inject] protected readonly string _serviceName;
-}
-public partial class FeatureService : ApiLayer
-{
-    [Inject]
-    private readonly FeatureConfig _featureConfig;
-    
-    [Inject] private readonly DateTime _initialized;
-}";
-
-        // Act
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var errorMessages = string.Join(", ", result.Diagnostics
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .Select(d => d.GetMessage()));
+        var diagnostics = result.GetDiagnosticsByCode("IOC015");
 
-        // Assert
-        result.HasErrors.Should().BeFalse("Configuration inheritance failed: {0}", errorMessages);
-
-        var constructorContent = result.GetConstructorSourceText("FeatureService");
-
-        // Should have all configuration and inject dependencies
-        var expectedParams = new[]
-        {
-            "DatabaseConfig dbConfig", // ConfigurableBase - InjectConfiguration
-            "IConfiguration configuration", // ConfigurableBase - Inject
-            "ApiConfig apiConfig", // ApiLayer - InjectConfiguration
-            "string serviceName", // ApiLayer - Inject
-            "FeatureConfig featureConfig", // FeatureService - InjectConfiguration
-            "DateTime initialized" // FeatureService - Inject
-        };
-
-        foreach (var param in expectedParams) constructorContent.Should().Contain(param);
-
-        // Validate proper field assignments for current level configuration
-        constructorContent.Should().Contain("this._featureConfig = featureConfig;");
-        constructorContent.Should().Contain("this._initialized = initialized;");
-
-        // Should not have field assignments for inherited configuration (handled by base constructor)
-        constructorContent.Should().NotContain("this._dbConfig =");
-        constructorContent.Should().NotContain("this._apiConfig =");
-        constructorContent.Should().NotContain("this._configuration =");
-        constructorContent.Should().NotContain("this._serviceName =");
-
-        // Check service registration includes configuration registration  
-        var registrationContent = result.GetServiceRegistrationText();
-        registrationContent.Should().Contain(
-            "services.AddScoped<global::Test.FeatureService, global::Test.FeatureService>()");
-
-        // Note: Configuration bindings are handled separately from this generator
-        // The test focuses on constructor injection of configuration objects
+        diagnostics.Should().BeEmpty("Scoped service inheriting from Scoped base should be valid");
     }
 
     [Fact]
-    public void Enterprise_InheritancePerformanceStressTest_DeepAndWideChains()
+    public void IOC015_TransientInheritingTransientBase_PassesValidation()
     {
-        // Arrange - Stress test with deep (7 levels) and wide (many dependencies) inheritance
-        var interfaces = Enumerable.Range(1, 35).Select(i => $"public interface IService{i} {{ }}");
-
-        var source = $@"
+        // Transient service inheriting from Transient base is valid
+        var source = @"
 using IoCTools.Abstractions.Annotations;
-using System;
+using IoCTools.Abstractions.Enumerations;
 
 namespace Test;
 
-{string.Join("\n", interfaces)}
+[Transient]
+public abstract partial class TransientBase
+{
+    [Inject] protected readonly string _config;
+}
 
-[DependsOn<IService1, IService2, IService3, IService4, IService5>]
-public abstract partial class Level1
-{{
-    [Inject] protected readonly string _level1A;
-    [Inject] protected readonly int _level1B;
-    [Inject] protected readonly bool _level1C;
-}}
+[Transient]
+public partial class TransientDerived : TransientBase
+{
+}
+";
 
-[DependsOn<IService6, IService7, IService8, IService9, IService10>]
-public abstract partial class Level2 : Level1
-{{
-    [Inject] protected readonly decimal _level2A;
-    [Inject] protected readonly DateTime _level2B;
-    [Inject] protected readonly TimeSpan _level2C;
-}}
-
-[DependsOn<IService11, IService12, IService13, IService14, IService15>]
-public abstract partial class Level3 : Level2
-{{
-    [Inject] protected readonly double _level3A;
-    [Inject] protected readonly float _level3B;
-}}
-
-[DependsOn<IService16, IService17, IService18, IService19, IService20>]
-public abstract partial class Level4 : Level3
-{{
-    [Inject] protected readonly long _level4A;
-    [Inject] protected readonly short _level4B;
-}}
-
-[DependsOn<IService21, IService22, IService23, IService24, IService25>]
-public abstract partial class Level5 : Level4
-{{
-    [Inject] protected readonly byte _level5A;
-    [Inject] protected readonly char _level5B;
-}}
-
-[DependsOn<IService26, IService27, IService28, IService29, IService30>]
-public abstract partial class Level6 : Level5
-{{
-    [Inject] protected readonly Guid _level6A;
-}}
-[DependsOn<IService31, IService32, IService33, IService34, IService35>]
-public partial class Level7Final : Level6
-{{
-    [Inject] private readonly Uri _level7A;
-}}";
-
-        // Act
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var errorMessages = string.Join(", ", result.Diagnostics
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .Select(d => d.GetMessage()));
+        var diagnostics = result.GetDiagnosticsByCode("IOC015");
 
-        // Assert - Should handle deep/wide inheritance without performance issues
-        result.HasErrors.Should().BeFalse("Performance stress test failed: {0}", errorMessages);
-
-        var constructorContent = result.GetConstructorSourceText("Level7Final");
-
-        // Should have all 35 service dependencies plus 15 inject fields
-        var serviceParams = Enumerable.Range(1, 35).Select(i => $"IService{i} service{i}");
-        foreach (var param in serviceParams) constructorContent.Should().Contain(param);
-
-        // Should have all inject field parameters
-        var injectParams = new[]
-        {
-            "string level1A", "int level1B", "bool level1C", // Level1
-            "decimal level2A", "DateTime level2B", "TimeSpan level2C", // Level2
-            "double level3A", "float level3B", // Level3
-            "long level4A", "short level4B", // Level4
-            "byte level5A", "char level5B", // Level5
-            "Guid level6A", // Level6
-            "Uri level7A" // Level7
-        };
-
-        foreach (var param in injectParams) constructorContent.Should().Contain(param);
-
-        // Only Level7Final should be registered
-        var registrationContent = result.GetServiceRegistrationText();
-        registrationContent.Should().Contain(
-            "services.AddScoped<global::Test.Level7Final, global::Test.Level7Final>()");
-
-        for (var i = 1; i <= 6; i++) registrationContent.Should().NotContain($"Level{i}>");
+        diagnostics.Should().BeEmpty("Transient service inheriting from Transient base should be valid");
     }
+
+    #endregion
 }

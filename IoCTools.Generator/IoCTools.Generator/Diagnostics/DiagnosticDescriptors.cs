@@ -762,4 +762,12 @@ internal static class DiagnosticDescriptors
         true,
         "Add 'partial' modifier to the class declaration: 'public partial class {0}' to enable IoCTools code generation for constructors and fields.");
 
+    public static readonly DiagnosticDescriptor TransientDependsOnScoped = new(
+        "IOC087",
+        "Transient service depends on Scoped service",
+        "Transient service '{0}' depends on Scoped service '{1}'. Transient services resolved from the root scope cannot depend on Scoped services.",
+        "IoCTools",
+        DiagnosticSeverity.Error,
+        true,
+        "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton] or [Transient], 2) Changing this service to [Scoped], or 3) Use dependency factories/scoped service locator pattern.");
 }

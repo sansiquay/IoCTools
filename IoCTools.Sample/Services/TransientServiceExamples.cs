@@ -269,7 +269,6 @@ public interface ILifetimeComparisonService
 public partial class LifetimeComparisonService : ILifetimeComparisonService
 {
     [Inject] private readonly ICacheService _cacheService; // Transient -> Singleton
-    [Inject] private readonly IEmailService _emailService; // Transient -> Scoped
     [Inject] private readonly IGuidGenerator _guidGenerator; // Transient -> Transient
 
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];

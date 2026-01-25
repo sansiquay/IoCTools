@@ -27,7 +27,10 @@ public enum LifetimeViolationType
     SingletonDependsOnScoped,
 
     /// <summary>Singleton service depends on Transient service (Warning)</summary>
-    SingletonDependsOnTransient
+    SingletonDependsOnTransient,
+
+    /// <summary>Transient service depends on Scoped service (Error)</summary>
+    TransientDependsOnScoped
 }
 
 /// <summary>
@@ -48,17 +51,25 @@ internal static class LifetimeCompatibilityChecker
         if (string.IsNullOrEmpty(consumerLifetime) || string.IsNullOrEmpty(dependencyLifetime))
             return LifetimeViolationType.Compatible;
 
-        // Only Singleton has restrictions
-        if (consumerLifetime != "Singleton")
-            return LifetimeViolationType.Compatible;
+        if (consumerLifetime == "Singleton")
+        {
+            // Singleton cannot depend on Scoped (error)
+            if (dependencyLifetime == "Scoped")
+                return LifetimeViolationType.SingletonDependsOnScoped;
 
-        // Singleton cannot depend on Scoped (error)
-        if (dependencyLifetime == "Scoped")
-            return LifetimeViolationType.SingletonDependsOnScoped;
-
-        // Singleton depending on Transient is a warning
-        if (dependencyLifetime == "Transient")
-            return LifetimeViolationType.SingletonDependsOnTransient;
+            // Singleton depending on Transient is a warning
+            if (dependencyLifetime == "Transient")
+                return LifetimeViolationType.SingletonDependsOnTransient;
+        }
+        else if (consumerLifetime == "Transient")
+        {
+            // Transient cannot depend on Scoped (error)
+            // This is because the Transient service might be resolved in a root scope (or no scope) 
+            // where Scoped services cannot be resolved, or it might capture a Scoped service 
+            // that is disposed before the Transient service.
+            if (dependencyLifetime == "Scoped")
+                return LifetimeViolationType.TransientDependsOnScoped;
+        }
 
         return LifetimeViolationType.Compatible;
     }

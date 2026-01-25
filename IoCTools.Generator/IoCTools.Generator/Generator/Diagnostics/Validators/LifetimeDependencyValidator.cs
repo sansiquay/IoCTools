@@ -14,7 +14,11 @@ internal static class LifetimeDependencyValidator
         DiagnosticConfiguration diagnosticConfig)
     {
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
-        if (serviceLifetime != "Singleton") return;
+        if (serviceLifetime == null) return;
+        
+        // We only care about Singleton and Transient checks here
+        // Scoped can depend on anything
+        if (serviceLifetime != "Singleton" && serviceLifetime != "Transient") return;
 
         var currentType = classSymbol.BaseType;
         while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
@@ -22,14 +26,20 @@ internal static class LifetimeDependencyValidator
             var baseServiceLifetime =
                 DependencyLifetimeResolver.GetDependencyLifetimeForSourceProduction(currentType, serviceLifetimes,
                     allImplementations, implicitLifetime);
-            if (baseServiceLifetime == "Scoped")
+            
+            if (baseServiceLifetime != null)
             {
-                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
-                var diagnostic = Diagnostic.Create(descriptor,
-                    classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, baseServiceLifetime);
-                context.ReportDiagnostic(diagnostic);
-                return;
+                var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, baseServiceLifetime);
+                if (violationType != LifetimeViolationType.Compatible)
+                {
+                    // For inheritance, we stick to IOC015 but with correct message
+                    var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
+                    var diagnostic = Diagnostic.Create(descriptor,
+                        classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, baseServiceLifetime);
+                    context.ReportDiagnostic(diagnostic);
+                    return;
+                }
             }
 
             var dependsOnAttributes = currentType.GetAttributes()
@@ -41,14 +51,19 @@ internal static class LifetimeDependencyValidator
                         var depLifetime =
                             DependencyLifetimeResolver.GetDependencyLifetimeForSourceProduction(typeArg,
                                 serviceLifetimes, allImplementations, implicitLifetime);
-                        if (depLifetime == "Scoped")
+                        
+                        if (depLifetime != null)
                         {
-                            var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                                DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
-                            var diagnostic = Diagnostic.Create(descriptor,
-                                classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, depLifetime);
-                            context.ReportDiagnostic(diagnostic);
-                            return;
+                            var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, depLifetime);
+                            if (violationType != LifetimeViolationType.Compatible)
+                            {
+                                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                                    DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
+                                var diagnostic = Diagnostic.Create(descriptor,
+                                    classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, depLifetime);
+                                context.ReportDiagnostic(diagnostic);
+                                return;
+                            }
                         }
                     }
 
@@ -108,6 +123,14 @@ internal static class LifetimeDependencyValidator
                     classDeclaration.GetLocation(), classSymbol.Name, displayName);
                 context.ReportDiagnostic(diagnostic);
             }
+            else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
+            {
+                var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.TransientDependsOnScoped, diagnosticConfig.LifetimeValidationSeverity);
+                var diagnostic = Diagnostic.Create(descriptor,
+                    classDeclaration.GetLocation(), classSymbol.Name, dependencyTypeName);
+                context.ReportDiagnostic(diagnostic);
+            }
         }
     }
 
@@ -147,6 +170,13 @@ internal static class LifetimeDependencyValidator
                         $"{dependencyTypeName} -> {implementation.Name}");
                     context.ReportDiagnostic(diagnostic);
                 }
+                else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
+                {
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
+                        classDeclaration.GetLocation(), classSymbol.Name,
+                        $"{dependencyTypeName} -> {implementation.Name}");
+                    context.ReportDiagnostic(diagnostic);
+                }
             }
         }
 
@@ -177,6 +207,13 @@ internal static class LifetimeDependencyValidator
                             $"{dependencyTypeName} -> {implementation.Name}");
                         context.ReportDiagnostic(diagnostic);
                     }
+                    else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
+                    {
+                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
+                            classDeclaration.GetLocation(), classSymbol.Name,
+                            $"{dependencyTypeName} -> {implementation.Name}");
+                        context.ReportDiagnostic(diagnostic);
+                    }
                 }
             }
         }
@@ -202,6 +239,13 @@ internal static class LifetimeDependencyValidator
                     else if (violationType == LifetimeViolationType.SingletonDependsOnTransient)
                     {
                         var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
+                            classDeclaration.GetLocation(), classSymbol.Name,
+                            $"{dependencyTypeName} -> {implementation.Name}");
+                        context.ReportDiagnostic(diagnostic);
+                    }
+                    else if (violationType == LifetimeViolationType.TransientDependsOnScoped)
+                    {
+                        var diagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
                             classDeclaration.GetLocation(), classSymbol.Name,
                             $"{dependencyTypeName} -> {implementation.Name}");
                         context.ReportDiagnostic(diagnostic);

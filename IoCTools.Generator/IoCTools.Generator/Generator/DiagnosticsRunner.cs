@@ -193,7 +193,7 @@ internal static class DiagnosticsRunner
 
         // IOC015
         var serviceLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(classSymbol, implicitLifetime);
-        if (serviceLifetime == "Singleton")
+        if (serviceLifetime == "Singleton" || serviceLifetime == "Transient")
             DiagnosticRules.ValidateInheritanceChainLifetimesForSourceProduction(context, classDeclaration, classSymbol,
                 serviceLifetimes, allImplementations, implicitLifetime, diagnosticConfig);
 

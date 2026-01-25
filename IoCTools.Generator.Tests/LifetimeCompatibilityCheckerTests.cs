@@ -67,11 +67,24 @@ public class LifetimeCompatibilityCheckerTests
     #region GetViolationType - Transient Consumer
 
     [Fact]
-    public void GetViolationType_TransientAny_ReturnsCompatible()
+    public void GetViolationType_TransientSingleton_ReturnsCompatible()
     {
-        LifetimeCompatibilityChecker.GetViolationType("Transient", "Singleton").Should().Be(LifetimeViolationType.Compatible);
-        LifetimeCompatibilityChecker.GetViolationType("Transient", "Scoped").Should().Be(LifetimeViolationType.Compatible);
-        LifetimeCompatibilityChecker.GetViolationType("Transient", "Transient").Should().Be(LifetimeViolationType.Compatible);
+        var result = LifetimeCompatibilityChecker.GetViolationType("Transient", "Singleton");
+        result.Should().Be(LifetimeViolationType.Compatible);
+    }
+
+    [Fact]
+    public void GetViolationType_TransientScoped_ReturnsTransientDependsOnScoped()
+    {
+        var result = LifetimeCompatibilityChecker.GetViolationType("Transient", "Scoped");
+        result.Should().Be(LifetimeViolationType.TransientDependsOnScoped);
+    }
+
+    [Fact]
+    public void GetViolationType_TransientTransient_ReturnsCompatible()
+    {
+        var result = LifetimeCompatibilityChecker.GetViolationType("Transient", "Transient");
+        result.Should().Be(LifetimeViolationType.Compatible);
     }
 
     #endregion
