@@ -99,6 +99,16 @@ internal static class LifetimeDependencyValidator
                 continue;
             }
 
+            // Handle array types (e.g., IProcessor<string>[])
+            if (dependency.ServiceType is IArrayTypeSymbol arrayType)
+            {
+                var elementTypeName = arrayType.ElementType.ToDisplayString();
+                ValidateIEnumerableLifetimes(context, classDeclaration, classSymbol, serviceLifetime,
+                    elementTypeName, dependencyTypeName, serviceLifetimes,
+                    allRegisteredServices, allImplementations, implicitLifetime);
+                continue;
+            }
+
             var (dependencyLifetime, implementationName) =
                 DependencyLifetimeResolver.GetDependencyLifetimeWithGenericSupportAndImplementationName(
                     dependency.ServiceType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
