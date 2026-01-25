@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator;
 using System.Text;
 
 using CodeGeneration;
+using IoCTools.Generator.Utilities;
 
 using Microsoft.CodeAnalysis.Text;
 
@@ -48,8 +49,7 @@ internal static class ConstructorEmitter
             if (!string.IsNullOrEmpty(constructorCode))
             {
                 var canonicalKey = serviceInfo.ClassSymbol.ToDisplayString();
-                var sanitizedTypeName = canonicalKey.Replace("<", "_").Replace(">", "_")
-                    .Replace(".", "_").Replace(",", "_").Replace(" ", "_");
+                var sanitizedTypeName = FileNameUtilities.Sanitize(canonicalKey);
                 var fileName = $"{sanitizedTypeName}_Constructor.g.cs";
 
                 context.AddSource(fileName, SourceText.From(constructorCode, Encoding.UTF8));

@@ -37,7 +37,7 @@ internal static class ProjectUtilities
         string classDisplayString)
     {
         // Use a consistent file name without hash to prevent duplicates
-        var sanitizedName = classDisplayString.Replace(".", "_").Replace("<", "_").Replace(">", "_");
+        var sanitizedName = FileNameUtilities.Sanitize(classDisplayString);
         return $"{sanitizedName}_{baseFileName}.g.cs";
     }
 
