@@ -27,6 +27,9 @@ internal static class ManualConstructorMixingValidator
             .Where(ctor => ctor.MethodKind == MethodKind.Constructor)
             // Only constructors that have user-authored syntax count as manual; synthesized ctors are ignored.
             .Where(ctor => ctor.DeclaringSyntaxReferences.Length > 0)
+            // Exclude IoCTools-generated constructors (in .g.cs files) to prevent false positives
+            .Where(ctor => !ctor.DeclaringSyntaxReferences.Any(
+                syntaxRef => syntaxRef.GetSyntax()?.SyntaxTree.FilePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) == true))
             .ToList();
 
         var parameterListSyntax = GetParameterList(classDeclaration);

@@ -104,4 +104,34 @@ public class PlainService
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
         result.GetDiagnosticsByCode("IOC041").Should().BeEmpty();
     }
+
+    [Fact]
+    public void GeneratedConstructor_DoesNotProduceIOC041()
+    {
+        // When IoCTools generates a constructor for [Inject] fields,
+        // it should NOT trigger IOC041 (manual constructor conflict).
+        // This is a regression test for the bug where generated constructors
+        // in .g.cs files were incorrectly flagged as manual.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IClock { }
+
+public partial class ClockService
+{
+    [Inject] private readonly IClock _clock;
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Should generate constructor successfully with no conflicts
+        result.GetDiagnosticsByCode("IOC041").Should().BeEmpty("Generated constructor should not trigger IOC041");
+
+        // Verify the constructor was actually generated
+        var constructorSource = result.GetConstructorSource("ClockService");
+        constructorSource.Should().NotBeNull("Constructor should be generated for ClockService");
+    }
 }
