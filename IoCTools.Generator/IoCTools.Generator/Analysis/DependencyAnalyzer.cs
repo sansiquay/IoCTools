@@ -1,5 +1,24 @@
 namespace IoCTools.Generator.Analysis;
 
+/// <summary>
+///     Specifies the mode for dependency collection, allowing the core algorithm
+///     to be shared between constructor generation and diagnostic validation.
+/// </summary>
+internal enum DependencyCollectionMode
+{
+    /// <summary>
+    ///     Collect dependencies for constructor generation.
+    ///     Skips [DependsOn] for external services' inheritance and adds IConfiguration.
+    /// </summary>
+    Constructor,
+
+    /// <summary>
+    ///     Collect dependencies for diagnostic validation.
+    ///     Includes all dependencies regardless of [ExternalService] for thorough validation.
+    /// </summary>
+    Diagnostics
+}
+
 internal static class DependencyAnalyzer
 {
     /// <summary>
@@ -14,17 +33,252 @@ internal static class DependencyAnalyzer
         public List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> DerivedDependencies { get; } = new();
         public bool NeedsIConfigurationGlobally { get; set; }
     }
+
+    /// <summary>
+    ///     Unified core method for collecting inheritance hierarchy dependencies.
+    ///     Supports both constructor generation and diagnostic validation via mode parameter.
+    /// </summary>
+    private static InheritanceHierarchyDependencies GetInheritanceHierarchyDependenciesCore(
+        INamedTypeSymbol classSymbol,
+        SemanticModel semanticModel,
+        DependencyCollectionMode mode,
+        SourceProductionContext? context = null,
+        TypeDeclarationSyntax? classDeclaration = null,
+        HashSet<string>? allRegisteredServices = null,
+        Dictionary<string, List<INamedTypeSymbol>>? allImplementations = null)
+    {
+        // Use DependencyCollectionContext for constructor mode (efficient)
+        // Use raw lists for diagnostics mode (need full tracking)
+        DependencyCollectionContext? collectionContext = null;
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>? allDependencies = null;
+        List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>? allDependenciesWithExternalFlag = null;
+
+        if (mode == DependencyCollectionMode.Constructor)
+        {
+            collectionContext = new DependencyCollectionContext();
+        }
+        else
+        {
+            allDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
+            allDependenciesWithExternalFlag = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
+        }
+
+        var currentType = classSymbol;
+        var level = 0;
+
+        // Collect dependencies from current class and all base classes
+        while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
+        {
+            var currentDependencies =
+                new List<(ITypeSymbol ServiceType, string FieldName, Models.DependencySource Source, bool IsExternal)>();
+
+            var isExternalService = currentType.GetAttributes().Any(attr =>
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ExternalServiceAttribute));
+
+            // Get [Inject] field dependencies
+            bool shouldIncludeInjectFields;
+            if (mode == DependencyCollectionMode.Constructor)
+            {
+                // Constructor mode: include inject fields for external services only at level 0
+                shouldIncludeInjectFields = !isExternalService || level == 0;
+            }
+            else
+            {
+                // Diagnostics mode: always include inject fields
+                shouldIncludeInjectFields = true;
+            }
+
+            if (shouldIncludeInjectFields)
+            {
+                IEnumerable<(ITypeSymbol ServiceType, string FieldName, Models.DependencySource Source, bool IsExternal)> injectDependencies;
+                if (mode == DependencyCollectionMode.Diagnostics)
+                {
+                    // Diagnostics mode: need additional context for cross-assembly validation
+                    injectDependencies = InjectFieldAnalyzer.GetInjectedFieldsForTypeWithExternalFlag(
+                        currentType, semanticModel, allRegisteredServices, allImplementations)
+                        .Select(d => (d.ServiceType, d.FieldName, Models.DependencySource.Inject, d.IsExternal));
+                }
+                else
+                {
+                    // Constructor mode: standard inject field collection
+                    injectDependencies = InjectFieldAnalyzer.GetInjectedFieldsForTypeWithExternalFlag(currentType,
+                        semanticModel)
+                        .Select(d => (d.ServiceType, d.FieldName, Models.DependencySource.Inject, d.IsExternal));
+                }
+
+                currentDependencies.AddRange(injectDependencies);
+            }
+
+            // Get [InjectConfiguration] field dependencies
+            if (shouldIncludeInjectFields)
+            {
+                if (mode == DependencyCollectionMode.Constructor)
+                {
+                    // Constructor mode: use the optimized collection method
+                    CollectConfigurationDependencies(currentType, semanticModel, currentDependencies);
+                }
+                else
+                {
+                    // Diagnostics mode: inline config dependency collection
+                    var configDependencies = GetConfigurationInjectedFieldsForType(currentType, semanticModel);
+                    foreach (var configDep in configDependencies)
+                        if (configDep.IsOptionsPattern)
+                            currentDependencies.Add((configDep.FieldType, configDep.FieldName, Models.DependencySource.Inject, false));
+                        else
+                            currentDependencies.Add((configDep.FieldType, configDep.FieldName,
+                                Models.DependencySource.ConfigurationInjection, false));
+                }
+            }
+
+            // Get [DependsOn] dependencies
+            bool shouldIncludeDependsOn;
+            if (mode == DependencyCollectionMode.Constructor)
+            {
+                // Constructor mode: external services only include own DependsOn at level 0
+                shouldIncludeDependsOn = !isExternalService || level == 0;
+            }
+            else
+            {
+                // Diagnostics mode: always include DependsOn for validation
+                shouldIncludeDependsOn = true;
+            }
+
+            if (shouldIncludeDependsOn)
+            {
+                DependencySetExpansionResult expandedDepends;
+                if (mode == DependencyCollectionMode.Diagnostics)
+                {
+                    // Diagnostics mode: need additional context for dependency set validation
+                    expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel,
+                        allRegisteredServices, allImplementations, context, classDeclaration);
+                }
+                else
+                {
+                    // Constructor mode: standard DependsOn expansion
+                    expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, null, null);
+                }
+
+                currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
+                    (d.ServiceType, d.FieldName, Models.DependencySource.DependsOn, d.IsExternal)));
+            }
+
+            // Add to appropriate collections
+            foreach (var dep in currentDependencies)
+            {
+                if (mode == DependencyCollectionMode.Constructor)
+                {
+                    // Constructor mode: use context
+                    collectionContext!.AllDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source, level));
+                    collectionContext.AllDependenciesWithExternalFlag.Add((dep.ServiceType, dep.FieldName, dep.Source, dep.IsExternal));
+
+                    if (level == 0)
+                        collectionContext.DerivedDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
+                    else
+                        collectionContext.BaseDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
+                }
+                else
+                {
+                    // Diagnostics mode: use raw lists
+                    allDependencies!.Add((dep.ServiceType, dep.FieldName, dep.Source, level));
+                    allDependenciesWithExternalFlag!.Add((dep.ServiceType, dep.FieldName, dep.Source, dep.IsExternal));
+
+                    // Note: diagnostics mode doesn't separate base/derived during collection
+                    // This separation is done in post-processing
+                }
+            }
+
+            // Constructor mode: check IConfiguration need for this level
+            if (mode == DependencyCollectionMode.Constructor)
+            {
+                CheckIConfigurationNeedForLevel(currentType, semanticModel, collectionContext!);
+            }
+
+            currentType = currentType.BaseType;
+            level++;
+        }
+
+        // Resolve deduplication and ordering based on mode
+        if (mode == DependencyCollectionMode.Constructor)
+        {
+            // Constructor mode: use the optimized resolution method
+            AddIConfigurationIfNeeded(classSymbol, semanticModel, collectionContext!);
+            var (uniqueDependencies, finalBaseDependencies, finalDerivedDependencies) =
+                ResolveDependencyOrderingAndSeparation(collectionContext!);
+
+            return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
+                finalDerivedDependencies, collectionContext.AllDependencies,
+                collectionContext.AllDependenciesWithExternalFlag);
+        }
+        else
+        {
+            // Diagnostics mode: inline deduplication and separation logic
+            return ResolveDiagnosticsDependencies(allDependencies!, allDependenciesWithExternalFlag!);
+        }
+    }
+
+    /// <summary>
+    ///     Resolves dependency ordering and separation for diagnostics mode.
+    ///     Mirrors the logic from ResolveDependencyOrderingAndSeparation but works with raw lists.
+    /// </summary>
+    private static InheritanceHierarchyDependencies ResolveDiagnosticsDependencies(
+        List<(ITypeSymbol ServiceType, string FieldName, Models.DependencySource Source, int Level)> allDependencies,
+        List<(ITypeSymbol ServiceType, string FieldName, Models.DependencySource Source, bool IsExternal)> allDependenciesWithExternalFlag)
+    {
+        // Remove duplicates (keep the first occurrence - closest to derived class)
+        var uniqueDependencies = allDependencies
+            .GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default)
+            .Select(g => g.OrderBy(d => d.Level).ThenBy(d => d.Source == Models.DependencySource.Inject ? 0 : 1).First())
+            .Select(d => (d.ServiceType, d.FieldName, d.Source))
+            .ToList();
+
+        // Rebuild base and derived lists based on unique dependencies
+        // For ConfigurationInjection, use field name as the key since the same type can be injected multiple times
+        var finalDerivedDependencies = allDependencies
+            .Where(ad => ad.Level == 0)
+            .GroupBy(ad => new
+            {
+                IsConfig = ad.Source == Models.DependencySource.ConfigurationInjection,
+                Key = ad.Source == Models.DependencySource.ConfigurationInjection
+                    ? ad.FieldName
+                    : ad.ServiceType.ToDisplayString()
+            })
+            .Select(g => g.OrderBy(ad =>
+                    ad.Source == Models.DependencySource.Inject ? 0 :
+                    ad.Source == Models.DependencySource.ConfigurationInjection ? 1 : 2)
+                .First())
+            .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
+            .ToList();
+
+        var derivedDependencyTypes = new HashSet<ITypeSymbol>(
+            finalDerivedDependencies.Select(d => d.ServiceType),
+            SymbolEqualityComparer.Default);
+
+        var finalBaseDependencies = allDependencies
+            .Where(ad => ad.Level > 0 && !derivedDependencyTypes.Contains(ad.ServiceType))
+            .GroupBy(ad => new
+            {
+                IsConfig = ad.Source == Models.DependencySource.ConfigurationInjection,
+                Key = ad.Source == Models.DependencySource.ConfigurationInjection
+                    ? ad.FieldName
+                    : ad.ServiceType.ToDisplayString()
+            })
+            .Select(g => g.OrderBy(ad => ad.Level).ThenBy(ad =>
+                    ad.Source == Models.DependencySource.Inject ? 0 :
+                    ad.Source == Models.DependencySource.ConfigurationInjection ? 1 : 2)
+                .First())
+            .OrderBy(ad => ad.Level)
+            .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
+            .ToList();
+
+        return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
+            finalDerivedDependencies, allDependencies, allDependenciesWithExternalFlag);
+    }
+
     public static InheritanceHierarchyDependencies GetInheritanceHierarchyDependencies(INamedTypeSymbol classSymbol,
         SemanticModel semanticModel)
     {
-        var context = new DependencyCollectionContext();
-        CollectDependenciesAcrossHierarchy(classSymbol, semanticModel, context);
-        AddIConfigurationIfNeeded(classSymbol, semanticModel, context);
-        var (uniqueDependencies, finalBaseDependencies, finalDerivedDependencies) =
-            ResolveDependencyOrderingAndSeparation(context);
-
-        return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
-            finalDerivedDependencies, context.AllDependencies, context.AllDependenciesWithExternalFlag);
+        return GetInheritanceHierarchyDependenciesCore(classSymbol, semanticModel,
+            DependencyCollectionMode.Constructor);
     }
 
     /// <summary>
@@ -290,114 +544,9 @@ internal static class DependencyAnalyzer
         HashSet<string>? allRegisteredServices = null,
         Dictionary<string, List<INamedTypeSymbol>>? allImplementations = null)
     {
-        var allDependencies =
-            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, int Level)>();
-        var allDependenciesWithExternalFlag =
-            new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
-        var baseDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-        var derivedDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-
-        var currentType = classSymbol;
-        var level = 0;
-
-        // Collect dependencies from current class and all base classes (include ALL dependencies for diagnostics)
-        while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
-        {
-            var currentDependencies =
-                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source, bool IsExternal)>();
-
-            // Get [Inject] field dependencies with external flags
-            var injectDependencies = InjectFieldAnalyzer.GetInjectedFieldsForTypeWithExternalFlag(currentType,
-                semanticModel,
-                allRegisteredServices, allImplementations);
-            currentDependencies.AddRange(injectDependencies.Select(d =>
-                (d.ServiceType, d.FieldName, DependencySource.Inject, d.IsExternal)));
-
-            // Get [InjectConfiguration] field dependencies for diagnostics
-            var configDependencies =
-                GetConfigurationInjectedFieldsForType(currentType, semanticModel);
-            foreach (var configDep in configDependencies)
-                if (configDep.IsOptionsPattern)
-                    // Options pattern fields are injected as regular dependencies
-                    currentDependencies.Add((configDep.FieldType, configDep.FieldName, DependencySource.Inject, false));
-                // CRITICAL FIX: Configuration object fields should NOT be constructor parameters for diagnostics
-                // They are handled via IConfiguration binding in the constructor body only
-                else
-                    // Direct value/section binding fields need ConfigurationInjection source for diagnostics tracking
-                    currentDependencies.Add((configDep.FieldType, configDep.FieldName,
-                        DependencySource.ConfigurationInjection, false));
-
-            // Always get [DependsOn] dependencies for diagnostics (unlike constructor generation)
-            var expandedDepends = DependencySetExpander.ExpandForType(currentType, semanticModel, allRegisteredServices,
-                allImplementations, context, classDeclaration);
-            currentDependencies.AddRange(expandedDepends.Dependencies.Select(d =>
-                (d.ServiceType, d.FieldName, DependencySource.DependsOn, d.IsExternal)));
-
-            // Add to appropriate collections
-            foreach (var dep in currentDependencies)
-            {
-                allDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source, level));
-                allDependenciesWithExternalFlag.Add((dep.ServiceType, dep.FieldName, dep.Source, dep.IsExternal));
-
-                if (level == 0)
-                    derivedDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
-                else
-                    baseDependencies.Add((dep.ServiceType, dep.FieldName, dep.Source));
-            }
-
-            currentType = currentType.BaseType;
-            level++;
-        }
-
-        // Remove duplicates (keep the first occurrence - closest to derived class)
-        var uniqueDependencies = allDependencies
-            .GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default)
-            .Select(g => g.OrderBy(d => d.Level).ThenBy(d => d.Source == DependencySource.Inject ? 0 : 1).First())
-            .Select(d => (d.ServiceType, d.FieldName, d.Source))
-            .ToList();
-
-        // Rebuild base and derived lists based on unique dependencies
-        // CRITICAL FIX: For ConfigurationInjection, use field name as the key since the same type can be injected multiple times with different sections
-        // For other dependency types, continue to use ServiceType as the key
-        var finalDerivedDependencies = allDependencies
-            .Where(ad => ad.Level == 0)
-            .GroupBy(ad => new
-            {
-                IsConfig = ad.Source == DependencySource.ConfigurationInjection,
-                Key = ad.Source == DependencySource.ConfigurationInjection
-                    ? ad.FieldName
-                    : ad.ServiceType.ToDisplayString()
-            })
-            .Select(g => g.OrderBy(ad =>
-                    ad.Source == DependencySource.Inject ? 0 :
-                    ad.Source == DependencySource.ConfigurationInjection ? 1 : 2)
-                .First())
-            .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
-            .ToList();
-
-        var derivedDependencyTypes = new HashSet<ITypeSymbol>(
-            finalDerivedDependencies.Select(d => d.ServiceType),
-            SymbolEqualityComparer.Default);
-
-        var finalBaseDependencies = allDependencies
-            .Where(ad => ad.Level > 0 && !derivedDependencyTypes.Contains(ad.ServiceType))
-            .GroupBy(ad => new
-            {
-                IsConfig = ad.Source == DependencySource.ConfigurationInjection,
-                Key = ad.Source == DependencySource.ConfigurationInjection
-                    ? ad.FieldName
-                    : ad.ServiceType.ToDisplayString()
-            })
-            .Select(g => g.OrderBy(ad => ad.Level).ThenBy(ad =>
-                    ad.Source == DependencySource.Inject ? 0 :
-                    ad.Source == DependencySource.ConfigurationInjection ? 1 : 2)
-                .First())
-            .OrderBy(ad => ad.Level)
-            .Select(ad => (ad.ServiceType, ad.FieldName, ad.Source))
-            .ToList();
-
-        return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
-            finalDerivedDependencies, allDependencies, allDependenciesWithExternalFlag);
+        return GetInheritanceHierarchyDependenciesCore(classSymbol, semanticModel,
+            DependencyCollectionMode.Diagnostics, context, classDeclaration, allRegisteredServices,
+            allImplementations);
     }
 
 
