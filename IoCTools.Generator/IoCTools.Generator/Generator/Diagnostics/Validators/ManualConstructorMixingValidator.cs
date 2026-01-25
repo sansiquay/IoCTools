@@ -62,7 +62,7 @@ internal static class ManualConstructorMixingValidator
     private static string BuildConstructorSignature(IMethodSymbol ctor)
     {
         var parameterList = string.Join(", ", ctor.Parameters
-            .Select(p => $"{TypeHelpers.FormatTypeNameForDiagnostic(p.Type)} {p.Name}"));
+            .Select(p => $"{TypeNameUtilities.FormatTypeNameForDiagnostic(p.Type)} {p.Name}"));
         return $"{ctor.ContainingType.Name}({parameterList})";
     }
 

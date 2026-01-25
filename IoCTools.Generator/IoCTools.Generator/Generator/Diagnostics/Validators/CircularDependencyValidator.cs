@@ -1,4 +1,5 @@
 using IoCTools.Generator.Diagnostics;
+using IoCTools.Generator.Utilities;
 
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
@@ -30,7 +31,7 @@ internal static class CircularDependencyValidator
             foreach (var implementedInterface in serviceSymbol.AllInterfaces)
             {
                 var interfaceTypeName = implementedInterface.ToDisplayString();
-                var interfaceName = TypeHelpers.ExtractServiceNameFromType(interfaceTypeName);
+                var interfaceName = TypeNameUtilities.ExtractServiceNameFromType(interfaceTypeName);
                 if (interfaceName != null) interfaceToImplementationMap[interfaceName] = serviceName;
             }
         }
@@ -46,10 +47,10 @@ internal static class CircularDependencyValidator
             var dependencies = ServiceDependencyUtilities.GetAllDependenciesForService(serviceSymbol);
             foreach (var dependency in dependencies)
             {
-                if (TypeHelpers.IsCollectionTypeAdapted(dependency)) continue;
-                if (TypeHelpers.IsFrameworkTypeAdapted(dependency)) continue;
+                if (CollectionUtilities.IsCollectionTypeAdapted(dependency)) continue;
+                if (FrameworkTypeUtilities.IsFrameworkType(dependency)) continue;
 
-                var dependencyInterfaceName = TypeHelpers.ExtractServiceNameFromType(dependency);
+                var dependencyInterfaceName = TypeNameUtilities.ExtractServiceNameFromType(dependency);
                 if (dependencyInterfaceName != null)
                 {
                     if (interfaceToImplementationMap.TryGetValue(dependencyInterfaceName, out var impl))

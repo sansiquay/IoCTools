@@ -27,7 +27,7 @@ internal static class UnnecessaryExternalDependencyValidator
                 var dependencyDisplay = genericTypeArgument.ToDisplayString();
 
                 // Framework / first‑party DI services never need External.
-                if (TypeHelpers.IsFrameworkTypeAdapted(dependencyDisplay))
+                if (FrameworkTypeUtilities.IsFrameworkType(dependencyDisplay))
                     Report(context, attribute, classSymbol, dependencyDisplay);
                 else if (HasInternalImplementation(genericTypeArgument, allRegisteredServices, allImplementations))
                     Report(context, attribute, classSymbol, dependencyDisplay);

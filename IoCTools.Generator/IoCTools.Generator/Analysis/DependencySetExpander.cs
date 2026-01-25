@@ -119,7 +119,7 @@ internal static class DependencySetExpander
             if (!string.Equals(existingName, fieldName, StringComparison.Ordinal))
                 ReportDiagnostic(context, DiagnosticDescriptors.DependencySetNameCollision,
                     consumerDeclaration?.GetLocation() ?? consumerSymbol.Locations.FirstOrDefault(),
-                    TypeHelpers.FormatTypeNameForDiagnostic(serviceType), existingName, fieldName,
+                    TypeNameUtilities.FormatTypeNameForDiagnostic(serviceType), existingName, fieldName,
                     consumerSymbol.Name);
 
             return;

@@ -2,26 +2,6 @@ namespace IoCTools.Generator.Utilities;
 
 internal static class TypeHelpers
 {
-    internal static bool IsFrameworkTypeAdapted(string typeName) => FrameworkTypeUtilities.IsFrameworkType(typeName);
-
-    internal static bool IsCollectionTypeAdapted(string typeName) =>
-        CollectionUtilities.IsCollectionTypeAdapted(typeName);
-
-    internal static string? ExtractServiceNameFromType(string dependencyType) =>
-        TypeNameUtilities.ExtractServiceNameFromType(dependencyType);
-
-    internal static string FormatTypeNameForDiagnostic(ITypeSymbol typeSymbol) =>
-        TypeNameUtilities.FormatTypeNameForDiagnostic(typeSymbol);
-
-    internal static string? ExtractInnerTypeFromIEnumerable(string enumerableTypeName) =>
-        CollectionUtilities.ExtractInnerTypeFromIEnumerable(enumerableTypeName);
-
-    internal static EnumerableTypeInfo? ExtractIEnumerableFromGenericArguments(string typeName) =>
-        CollectionUtilities.ExtractIEnumerableFromGenericArguments(typeName);
-
-    internal static EnumerableTypeInfo? ExtractIEnumerableFromWrappedType(string typeName) =>
-        CollectionUtilities.ExtractIEnumerableFromWrappedType(typeName);
-
     internal static bool IsConstructedGenericTypeSimple(string typeName) =>
         typeName.Contains('<') && typeName.Contains('>') && !typeName.EndsWith("<>", StringComparison.Ordinal);
 

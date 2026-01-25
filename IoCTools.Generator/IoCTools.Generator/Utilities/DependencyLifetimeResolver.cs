@@ -55,10 +55,10 @@ internal static class DependencyLifetimeResolver
                         {
                             var implTypeName = impl.ToDisplayString();
                             if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                return (implLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                             var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
                             if (symbolLifetime != null)
-                                return (symbolLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                         }
                 }
 
@@ -73,10 +73,10 @@ internal static class DependencyLifetimeResolver
                             {
                                 var implTypeName = impl.ToDisplayString();
                                 if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                    return (implLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                    return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                                 var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
                                 if (symbolLifetime != null)
-                                    return (symbolLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                    return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                             }
                         }
 
@@ -88,10 +88,10 @@ internal static class DependencyLifetimeResolver
                         {
                             var implTypeName = impl.ToDisplayString();
                             if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                return (implLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                             var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
                             if (symbolLifetime != null)
-                                return (symbolLifetime, TypeHelpers.FormatTypeNameForDiagnostic(impl));
+                                return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
                         }
                 }
             }
@@ -204,10 +204,10 @@ internal static class DependencyLifetimeResolver
     internal static string? FindImplementationNameForInterface(string interfaceTypeName,
         HashSet<string> allRegisteredServices)
     {
-        var interfaceBaseName = TypeHelpers.ExtractSimpleTypeNameFromFullName(interfaceTypeName);
+        var interfaceBaseName = TypeNameUtilities.ExtractSimpleTypeNameFromFullName(interfaceTypeName);
         foreach (var registeredService in allRegisteredServices)
         {
-            var serviceBaseName = TypeHelpers.ExtractSimpleTypeNameFromFullName(registeredService);
+            var serviceBaseName = TypeNameUtilities.ExtractSimpleTypeNameFromFullName(registeredService);
             if (interfaceBaseName.StartsWith("I") && interfaceBaseName.Length > 1 &&
                 serviceBaseName.EndsWith("Service") && serviceBaseName.Contains(interfaceBaseName.Substring(1)))
                 return serviceBaseName;

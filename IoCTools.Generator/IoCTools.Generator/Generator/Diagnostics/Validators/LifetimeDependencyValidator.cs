@@ -90,7 +90,7 @@ internal static class LifetimeDependencyValidator
             if (dependency.Source == DependencySource.ConfigurationInjection) continue;
 
             var dependencyTypeName = dependency.ServiceType.ToDisplayString();
-            var enumerableTypeInfo = TypeHelpers.ExtractIEnumerableFromWrappedType(dependencyTypeName);
+            var enumerableTypeInfo = CollectionUtilities.ExtractIEnumerableFromWrappedType(dependencyTypeName);
             if (enumerableTypeInfo != null)
             {
                 ValidateIEnumerableLifetimes(context, classDeclaration, classSymbol, serviceLifetime,
@@ -138,7 +138,7 @@ internal static class LifetimeDependencyValidator
                 var displayName = implementationName ??
                                   DependencyLifetimeResolver.FindImplementationNameForInterface(dependencyTypeName,
                                       allRegisteredServices) ??
-                                  TypeHelpers.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
+                                  TypeNameUtilities.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
                 var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
                     location, serviceName, displayName);
                 context.ReportDiagnostic(transientDiagnostic);

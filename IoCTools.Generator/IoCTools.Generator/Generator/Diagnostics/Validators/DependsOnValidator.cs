@@ -16,7 +16,7 @@ internal static class DependsOnValidator
 
         foreach (var duplicate in duplicates)
         {
-            var displayName = TypeHelpers.FormatTypeNameForDiagnostic(duplicate);
+            var displayName = TypeNameUtilities.FormatTypeNameForDiagnostic(duplicate);
             var diagnostic = Diagnostic.Create(DiagnosticDescriptors.DuplicateDependsOnType,
                 classDeclaration.GetLocation(), displayName, classSymbol.Name);
             context.ReportDiagnostic(diagnostic);
@@ -39,7 +39,7 @@ internal static class DependsOnValidator
 
                 foreach (var duplicate in duplicates)
                 {
-                    var displayName = TypeHelpers.FormatTypeNameForDiagnostic(duplicate);
+                    var displayName = TypeNameUtilities.FormatTypeNameForDiagnostic(duplicate);
                     var diagnostic = Diagnostic.Create(
                         DiagnosticDescriptors.DuplicateTypeInSingleDependsOn,
                         classDeclaration.GetLocation(),

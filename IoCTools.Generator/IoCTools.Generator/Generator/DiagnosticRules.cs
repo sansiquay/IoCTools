@@ -116,7 +116,7 @@ internal static class DiagnosticRules
                     classSymbol.ContainingAssembly))
                 continue;
 
-            if (TypeHelpers.IsFrameworkTypeAdapted(dependencyType) ||
+            if (FrameworkTypeUtilities.IsFrameworkType(dependencyType) ||
                 FrameworkTypes.KnownTypes.Contains(dependencyType) ||
                 allRegisteredServices.Contains(dependencyType))
                 continue;
@@ -130,7 +130,7 @@ internal static class DiagnosticRules
                 continue;
 
             // Special handling for IEnumerable<T> dependencies
-            var enumerableTypeInfo = TypeHelpers.ExtractIEnumerableFromWrappedType(dependencyType);
+            var enumerableTypeInfo = CollectionUtilities.ExtractIEnumerableFromWrappedType(dependencyType);
             if (enumerableTypeInfo != null)
             {
                 var innerType = enumerableTypeInfo.InnerType;

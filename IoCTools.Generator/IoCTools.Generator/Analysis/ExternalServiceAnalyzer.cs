@@ -15,7 +15,7 @@ internal static class ExternalServiceAnalyzer
 
         // Built-in DI helper patterns and framework services are never external
         var dependencyTypeName = dependencyType.ToDisplayString();
-        if (IsAdvancedDIPattern(dependencyType) || TypeHelpers.IsFrameworkTypeAdapted(dependencyTypeName) ||
+        if (IsAdvancedDIPattern(dependencyType) || FrameworkTypeUtilities.IsFrameworkType(dependencyTypeName) ||
             IsKnownBuiltinService(dependencyType))
             return false;
 

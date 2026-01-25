@@ -32,7 +32,7 @@ internal static class DependencyUsageValidator
             var location = ResolveRedundantLocation(classSymbol, classDeclaration, entries, dependencyType);
             var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RedundantDependencyDeclarations,
                 location,
-                TypeHelpers.FormatTypeNameForDiagnostic(dependencyType),
+                TypeNameUtilities.FormatTypeNameForDiagnostic(dependencyType),
                 detail,
                 classSymbol.Name);
 
@@ -81,7 +81,7 @@ internal static class DependencyUsageValidator
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
                     location,
                     dependency.FieldName,
-                    TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                    TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                     "the [Inject] field",
                     classSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
@@ -97,7 +97,7 @@ internal static class DependencyUsageValidator
                 var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
                     location,
                     dependency.FieldName,
-                    TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                    TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                     "a [DependsOn] attribute",
                     classSymbol.Name);
                 context.ReportDiagnostic(diagnostic);
@@ -120,7 +120,7 @@ internal static class DependencyUsageValidator
                     var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
                         location,
                         dependency.FieldName,
-                        TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                        TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                         "[InjectConfiguration]",
                         classSymbol.Name);
                     context.ReportDiagnostic(diagnostic);
@@ -133,7 +133,7 @@ internal static class DependencyUsageValidator
                     var diagnostic = Diagnostic.Create(DiagnosticDescriptors.UnusedDependency,
                         location,
                         dependency.FieldName,
-                        TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType),
+                        TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                         "[DependsOnConfiguration]",
                         classSymbol.Name);
                     context.ReportDiagnostic(diagnostic);
@@ -190,7 +190,7 @@ internal static class DependencyUsageValidator
                 location,
                 dependency.FieldName,
                 classSymbol.Name,
-                TypeHelpers.FormatTypeNameForDiagnostic(dependency.ServiceType));
+                TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType));
             context.ReportDiagnostic(diag);
 
             // MemberNames entry for this dependency is suppressed; warn so the attribute is corrected
