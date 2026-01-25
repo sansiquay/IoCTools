@@ -1356,4 +1356,119 @@ public partial class InterfaceCircularConfigService
     }
 
     #endregion
+
+    #region IOC089 - SupportsReloading on Primitive Type Tests
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC089PrimitiveStringWithSupportsReloading_ProducesWarning()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+[Scoped]
+public partial class PrimitiveWithReloadingService
+{
+    [InjectConfiguration(""App:Name"", SupportsReloading = true)] private readonly string _appName;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC089");
+        diagnostics.Should().ContainSingle();
+
+        var diagnostic = diagnostics[0];
+        diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
+        diagnostic.GetMessage().Should().Contain("SupportsReloading");
+        diagnostic.GetMessage().Should().Contain("primitive");
+        diagnostic.GetMessage().Should().Contain("Options pattern");
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC089PrimitiveIntWithSupportsReloading_ProducesWarning()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+[Scoped]
+public partial class IntWithReloadingService
+{
+    [InjectConfiguration(""App:Timeout"", SupportsReloading = true)] private readonly int _timeout;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        var diagnostics = result.GetDiagnosticsByCode("IOC089");
+        diagnostics.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC089ComplexTypeWithSupportsReloading_NoDiagnostic()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+public class DatabaseSettings
+{
+    public string ConnectionString { get; set; } = string.Empty;
+}
+
+[Scoped]
+public partial class ComplexWithReloadingService
+{
+    [InjectConfiguration(""Database"", SupportsReloading = true)] private readonly DatabaseSettings _settings;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - No IOC089 for complex types
+        var diagnostics = result.GetDiagnosticsByCode("IOC089");
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ConfigurationDiagnostic_IOC089PrimitiveWithoutSupportsReloading_NoDiagnostic()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+
+[Scoped]
+public partial class PrimitiveWithoutReloadingService
+{
+    [InjectConfiguration(""App:Name"")] private readonly string _appName;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - No diagnostic when SupportsReloading is not set
+        var diagnostics = result.GetDiagnosticsByCode("IOC089");
+        diagnostics.Should().BeEmpty();
+    }
+
+    #endregion
 }

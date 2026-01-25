@@ -82,4 +82,13 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the circular reference by: 1) Breaking the cycle by removing the self-referencing property, 2) Using a different configuration structure (nested classes without cycles), or 3) Using IOptions<> pattern with manual configuration.");
+
+    public static readonly DiagnosticDescriptor SupportsReloadingOnPrimitiveType = new(
+        "IOC089",
+        "SupportsReloading is only supported for Options pattern types",
+        "Field '{0}' has SupportsReloading=true but uses primitive type binding. SupportsReloading only works with Options pattern (IOptionsSnapshot<T> for complex types).",
+        "IoCTools",
+        DiagnosticSeverity.Warning,
+        true,
+        "Remove SupportsReloading=true from primitive configuration fields. For reloadable configuration, use IOptionsSnapshot<T> with a complex options type instead.");
 }

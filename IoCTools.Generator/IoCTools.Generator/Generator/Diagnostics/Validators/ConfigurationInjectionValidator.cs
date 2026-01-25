@@ -42,6 +42,9 @@ internal static class ConfigurationInjectionValidator
                                         "IoCTools.Abstractions.Annotations.InjectConfigurationAttribute");
             if (configAttribute == null) continue;
 
+            // IOC089: Check if SupportsReloading is used on primitive types
+            ValidateSupportsReloadingUsage(context, fieldSymbol, classDeclaration, configAttribute);
+
             if (configAttribute.ConstructorArguments.Length > 0)
             {
                 var key = configAttribute.ConstructorArguments[0].Value?.ToString();
@@ -277,5 +280,80 @@ internal static class ConfigurationInjectionValidator
     {
         public bool IsValid { get; set; }
         public string ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    ///     Validates that SupportsReloading is only used with Options pattern types
+    /// </summary>
+    private static void ValidateSupportsReloadingUsage(
+        SourceProductionContext context,
+        IFieldSymbol fieldSymbol,
+        TypeDeclarationSyntax classDeclaration,
+        AttributeData configAttribute)
+    {
+        // Check if SupportsReloading is set to true
+        var supportsReloading = false;
+        foreach (var kvp in configAttribute.NamedArguments)
+        {
+            if (kvp.Key == "SupportsReloading" && kvp.Value.Value is bool boolValue && boolValue)
+            {
+                supportsReloading = true;
+                break;
+            }
+        }
+
+        if (!supportsReloading) return;
+
+        // Check if field type is a primitive (direct value binding)
+        if (IsDirectValueBindingType(fieldSymbol.Type))
+        {
+            var diagnostic = Diagnostic.Create(
+                DiagnosticDescriptors.SupportsReloadingOnPrimitiveType,
+                classDeclaration.GetLocation(),
+                fieldSymbol.Name);
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
+    /// <summary>
+    ///     Determines if a type is a direct value binding type (primitive)
+    ///     Primitives use GetValue<T>() while complex types use GetSection().Get<T>()
+    /// </summary>
+    private static bool IsDirectValueBindingType(ITypeSymbol type)
+    {
+        // Check for nullable types first
+        if (type is INamedTypeSymbol namedType &&
+            namedType.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedType.TypeArguments.Length == 1)
+            return IsDirectValueBindingType(namedType.TypeArguments[0]);
+
+        // Check for enum types
+        if (type.TypeKind == TypeKind.Enum)
+            return true;
+
+        // Check for primitive types using SpecialType
+        switch (type.SpecialType)
+        {
+            case SpecialType.System_String:
+            case SpecialType.System_Int32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_Int16:
+            case SpecialType.System_Byte:
+            case SpecialType.System_Boolean:
+            case SpecialType.System_Decimal:
+            case SpecialType.System_Double:
+            case SpecialType.System_Single:
+                return true;
+        }
+
+        // Check by type name for non-SpecialType primitives
+        var typeName = type.ToDisplayString();
+        var metadataName = type.MetadataName;
+        var namespaceAndMetadata = type.ContainingNamespace?.ToDisplayString() + "." + type.MetadataName;
+
+        // Check all possible representations
+        return typeName is "System.TimeSpan" or "System.DateTime" or "System.DateTimeOffset" or "System.Guid" or "System.Uri" ||
+               metadataName is "TimeSpan" or "DateTime" or "DateTimeOffset" or "Guid" or "Uri" ||
+               namespaceAndMetadata is "System.TimeSpan" or "System.DateTime" or "System.DateTimeOffset" or "System.Guid" or "System.Uri";
     }
 }
