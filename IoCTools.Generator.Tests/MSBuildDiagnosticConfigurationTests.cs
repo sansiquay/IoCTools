@@ -519,6 +519,102 @@ namespace TestNamespace
 
     #endregion
 
+    #region Malformed and Exotic Value Tests
+
+    [Fact]
+    public void MSBuildDiagnostics_NoImplementationSeverity_UnicodeValue_FallbackToError()
+    {
+        // Test behavior with Unicode characters (Cyrillic "Ошибка" meaning "Error")
+        var sourceCode = GetMissingImplementationSource();
+        var properties = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsNoImplementationSeverity"] = "Ошибка"
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
+        ioc001Diagnostics.Should().ContainSingle();
+        // Unicode values should fallback to default Error severity
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_NoImplementationSeverity_MixedCaseVariants_AllParseCorrectly()
+    {
+        // Test additional mixed case variants beyond the standard theory tests
+        var sourceCode = GetMissingImplementationSource();
+        var variants = new[] { "ErRoR", "WaRnInG", "InFo", "HiDdEn" };
+
+        foreach (var variant in variants)
+        {
+            var properties = new Dictionary<string, string>
+            {
+                ["build_property.IoCToolsNoImplementationSeverity"] = variant
+            };
+
+            var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+            var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
+
+            ioc001Diagnostics.Should().ContainSingle($"Failed to parse variant: {variant}");
+
+            var expectedSeverity = variant.ToLowerInvariant() switch
+            {
+                "error" => DiagnosticSeverity.Error,
+                "warning" => DiagnosticSeverity.Warning,
+                "info" => DiagnosticSeverity.Info,
+                "hidden" => DiagnosticSeverity.Hidden,
+                _ => DiagnosticSeverity.Error
+            };
+
+            ioc001Diagnostics[0].Severity.Should().Be(expectedSeverity, $"Variant: {variant}");
+        }
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_NoImplementationSeverity_NullByte_FallbackToError()
+    {
+        // Test behavior with embedded null byte (should be treated as invalid/whitespace)
+        var sourceCode = GetMissingImplementationSource();
+        var properties = new Dictionary<string, string>
+        {
+            // Note: C# strings can contain null bytes, though MSBuild typically strips them
+            ["build_property.IoCToolsNoImplementationSeverity"] = "error\0"
+        };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
+        ioc001Diagnostics.Should().ContainSingle();
+        // Null byte makes value invalid - should fallback to default
+        ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void MSBuildDiagnostics_NoImplementationSeverity_WhitespaceOnly_FallbackToError()
+    {
+        // Test various whitespace-only combinations beyond existing tests
+        var sourceCode = GetMissingImplementationSource();
+        var whitespaceVariants = new[] { "  \t  ", "\n\r\n", " \r\t\n ", "    " };
+
+        foreach (var variant in whitespaceVariants)
+        {
+            var properties = new Dictionary<string, string>
+            {
+                ["build_property.IoCToolsNoImplementationSeverity"] = variant
+            };
+
+            var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+            var ioc001Diagnostics = diagnostics.Where(d => d.Id == "IOC001").ToList();
+
+            ioc001Diagnostics.Should().ContainSingle($"Whitespace variant: {variant}");
+            // Whitespace-only values should fallback to default Error severity
+            ioc001Diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error, $"Whitespace variant: {variant}");
+        }
+    }
+
+    #endregion
+
     #region Documentation and Usage Examples
 
     [Fact]
