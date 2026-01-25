@@ -265,33 +265,35 @@ internal static class DependencyLifetimeResolver
         {
             var openGenericType = namedType.ConstructedFrom.ToDisplayString();
             if (serviceLifetimes.TryGetValue(openGenericType, out var openGenericLifetime)) return openGenericLifetime;
-            var namespaceName = namedType.ContainingNamespace?.ToDisplayString();
-            var genericTypeName = namedType.Name;
+
+            // Use Roslyn symbol comparison instead of string parsing for namespace-aware matching
+            var openGenericSymbol = namedType.ConstructedFrom;
             var typeParameterCount = namedType.TypeArguments.Length;
-            foreach (var kvp in serviceLifetimes)
-            {
-                var serviceType = kvp.Key;
-                var serviceLifetime = kvp.Value;
-                if (serviceType.Contains(genericTypeName + "<") &&
-                    (namespaceName == null || serviceType.StartsWith(namespaceName + ".")))
-                {
-                    var angleStart = serviceType.IndexOf('<');
-                    var angleEnd = serviceType.LastIndexOf('>');
-                    if (angleStart >= 0 && angleEnd > angleStart)
-                    {
-                        var typeParamSection = serviceType.Substring(angleStart + 1, angleEnd - angleStart - 1);
-                        var paramCount = typeParamSection.Split(',').Length;
-                        if (paramCount == typeParameterCount) return serviceLifetime;
-                    }
-                }
-            }
 
             foreach (var kvp in serviceLifetimes)
             {
+                // Parse the key to get its symbol for comparison
+                // We need to match by open generic type with same arity
                 var serviceType = kvp.Key;
-                var serviceLifetime = kvp.Value;
-                if (serviceType.StartsWith(genericTypeName + "<") || serviceType.Contains("." + genericTypeName + "<"))
-                    return serviceLifetime;
+                if (!serviceType.Contains('<')) continue;
+
+                // Extract base name and arity from service type key for comparison
+                var lastDotIndex = serviceType.LastIndexOf('.');
+                var serviceLocalName = lastDotIndex >= 0 ? serviceType.Substring(lastDotIndex + 1) : serviceType;
+                var serviceBaseName = serviceLocalName.Substring(0, serviceLocalName.IndexOf('<'));
+
+                // Check if base names match
+                if (serviceBaseName != openGenericSymbol.Name) continue;
+
+                // Check arity by counting type parameters
+                var angleStart = serviceType.IndexOf('<');
+                var angleEnd = serviceType.LastIndexOf('>');
+                if (angleStart >= 0 && angleEnd > angleStart)
+                {
+                    var typeParamSection = serviceType.Substring(angleStart + 1, angleEnd - angleStart - 1);
+                    var paramCount = string.IsNullOrWhiteSpace(typeParamSection) ? 0 : typeParamSection.Split(',').Length;
+                    if (paramCount == typeParameterCount) return kvp.Value;
+                }
             }
         }
 
