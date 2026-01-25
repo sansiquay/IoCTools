@@ -12,6 +12,30 @@ using Microsoft.CodeAnalysis;
 internal static class BaseConstructorCallBuilder
 {
     /// <summary>
+    ///     Checks if constructor generation should be skipped because the base class
+    ///     requires parameters that cannot be provided through IoC.
+    /// </summary>
+    public static bool ShouldSkipConstructorGeneration(INamedTypeSymbol? baseClass)
+    {
+        if (baseClass == null)
+            return false;
+
+        var analysis = Analyze(baseClass);
+
+        // Skip generation for non-IoC base classes that require constructor parameters
+        // but don't have a parameterless constructor
+        if (!analysis.HasExternalService &&
+            !analysis.WillHaveConstructor &&
+            !HasParameterlessConstructor(baseClass) &&
+            HasConstructors(baseClass))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     ///     Analyzes a base class to determine constructor call requirements.
     /// </summary>
     public static BaseClassAnalysis Analyze(INamedTypeSymbol? baseClass)
@@ -84,20 +108,9 @@ internal static class BaseConstructorCallBuilder
         BaseClassAnalysis analysis,
         INamedTypeSymbol? currentClassSymbol)
     {
-        // Check if base class has no parameterless constructor
-        var baseConstructors = baseClass.GetMembers().OfType<IMethodSymbol>()
-            .Where(m => m.MethodKind == MethodKind.Constructor && !m.IsStatic)
-            .ToList();
-
-        var hasParameterlessConstructor = baseConstructors.Any(c => c.Parameters.Length == 0);
-
-        if (!hasParameterlessConstructor && baseConstructors.Any() && !analysis.WillHaveConstructor)
-        {
-            // Base class requires constructor parameters, use heuristic fallback
-            // This handles cases like: public DerivedService() : base("default")
-            return " : base(\"default\")";
-        }
-
+        // Non-IoC base classes: if they have a parameterless constructor, it will be called implicitly
+        // If they require parameters, the user must provide their own constructor in the derived class
+        // This is a documented limitation
         return string.Empty;
     }
 
@@ -199,6 +212,26 @@ internal static class BaseConstructorCallBuilder
         return baseClass.GetAttributes().Any(attr =>
             attr.AttributeClass?.ToDisplayString() ==
             "IoCTools.Abstractions.Annotations.ExternalServiceAttribute");
+    }
+
+    /// <summary>
+    ///     Checks if the base class has a parameterless constructor.
+    /// </summary>
+    private static bool HasParameterlessConstructor(INamedTypeSymbol baseClass)
+    {
+        return baseClass.GetMembers().OfType<IMethodSymbol>()
+            .Any(m => m.MethodKind == MethodKind.Constructor &&
+                     !m.IsStatic &&
+                     m.Parameters.Length == 0);
+    }
+
+    /// <summary>
+    ///     Checks if the base class has any constructors.
+    /// </summary>
+    private static bool HasConstructors(INamedTypeSymbol baseClass)
+    {
+        return baseClass.GetMembers().OfType<IMethodSymbol>()
+            .Any(m => m.MethodKind == MethodKind.Constructor && !m.IsStatic);
     }
 
     /// <summary>

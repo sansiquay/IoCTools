@@ -1586,5 +1586,59 @@ public partial class DerivedService : BaseService
         // May or may not have compilation errors depending on detection timing
     }
 
+    [Fact]
+    public void Inheritance_NonIoCBaseClassWithRequiredParameters_DoesNotGenerateInvalidBaseCall()
+    {
+        // Arrange - Non-IoC base class (not partial, no DI attributes) with required parameters
+        // Derived class IS using IoCTools
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IService { }
+public interface IDerivedService { }
+
+// Non-IoC base class: requires constructor parameter, has no parameterless ctor
+public abstract class NonIoCBase
+{
+    protected readonly string _config;
+    protected NonIoCBase(string config)
+    {
+        _config = config;
+    }
+}
+
+// IoCTools derived class - user must provide manual constructor since base requires params
+[Scoped]
+public partial class DerivedService : NonIoCBase, IDerivedService
+{
+    [Inject] private readonly IService _service;
+
+    // User must manually provide: public DerivedService(string config, IService service) : base(config) { }
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var constructorSource = result.GetConstructorSource("DerivedService");
+
+        // Assert - Generator should NOT generate a constructor when base class requires
+        // parameters we cannot provide. This prevents the old invalid base("default") pattern.
+        // The user must provide their own constructor in this scenario.
+        constructorSource.Should().BeNull(
+            "Generator should skip constructor generation when non-IoC base class requires parameters");
+
+        // Verify we never generate the old invalid base("default") pattern in any generated source
+        foreach (var generatedSource in result.GeneratedSources)
+        {
+            generatedSource.Content.Should().NotContain("base(\"default\")",
+                "Generator should never generate invalid base(\"default\") placeholder");
+        }
+
+        // The base class requiring parameters is a documented limitation
+        // Users must provide their own constructor in this scenario
+    }
+
     #endregion
 }

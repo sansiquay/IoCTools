@@ -308,6 +308,11 @@ internal static partial class ConstructorGenerator
                 parametersWithNames.Add((typeString, paramName, f));
             }
 
+            // CRITICAL FIX: Check if base class requires parameters we cannot provide
+            // If so, skip constructor generation - user must provide their own
+            if (BaseConstructorCallBuilder.ShouldSkipConstructorGeneration(classSymbol?.BaseType))
+                return "";
+
             // Generate base constructor call
             var baseCallStr = GenerateBaseConstructorCall(classSymbol?.BaseType, parametersWithNames, semanticModel, classSymbol);
 
