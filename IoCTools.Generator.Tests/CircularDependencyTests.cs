@@ -1558,4 +1558,46 @@ public partial class MixedItem : IMixedItem
     }
 
     #endregion
+
+    #region Self-Reference with DependsOn Attribute
+
+    [Fact]
+    public void CircularDependency_SelfReferenceWithDependsOn_DetectsCircularDependency()
+    {
+        // Arrange - Service depends on itself via DependsOn attribute pattern
+        // This tests the scenario: [Scoped, DependsOn<IRecursive>] class RecursiveService : IRecursive
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IRecursive { }
+[Scoped]
+[DependsOn<IRecursive>]
+public partial class RecursiveService : IRecursive
+{
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should detect self-reference circular dependency
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().NotBeEmpty("Self-reference via DependsOn attribute should trigger IOC003");
+
+        // All diagnostics should be errors and contain proper cycle detection
+        ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
+        {
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
+            diagnostic.GetMessage().Should().Contain("Circular dependency detected");
+        });
+
+        // Should detect the self-reference involving RecursiveService
+        var diagnosticMessage = ioc003Diagnostics.First().GetMessage();
+        diagnosticMessage.Should().Contain("RecursiveService");
+        diagnosticMessage.Should().Contain("Circular dependency detected");
+    }
+
+    #endregion
 }
