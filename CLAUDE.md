@@ -54,11 +54,30 @@ The project includes both formal test suites and comprehensive sample integratio
 **Formal Test Suite:**
 ```bash
 cd IoCTools.Generator.Tests
-dotnet test  # Runs 57+ comprehensive test files covering all generator scenarios
+dotnet test  # Runs 1244+ comprehensive test files covering all generator scenarios
+```
+
+**CLI Test Suite:**
+```bash
+cd IoCTools.Tools.Cli.Tests
+dotnet test  # Runs CLI integration tests
 ```
 
 **Sample Application Integration Tests:**
 The comprehensive sample application serves as an extensive integration test suite with 18 service example files demonstrating every feature and edge case.
+
+### Testing Internal Members
+
+For testing internal methods (e.g., helper utilities in the CLI project), use the `InternalsVisibleTo` attribute:
+
+**In the source project (e.g., `IoCTools.Tools.Cli.csproj`):**
+```xml
+<ItemGroup>
+  <InternalsVisibleTo Include="IoCTools.Tools.Cli.Tests" />
+</ItemGroup>
+```
+
+This pattern allows test projects to access `internal` methods without exposing them publicly, enabling comprehensive unit testing of implementation details while maintaining proper encapsulation.
 
 ### Diagnostics and Validation
 IoCTools includes a comprehensive diagnostic system (IOC001-IOC086) that validates dependency injection configuration at build time with cross-assembly awareness. The diagnostic system provides configurable MSBuild severity levels and catches common DI mistakes before runtime.
