@@ -228,26 +228,6 @@ internal static class DiagnosticRules
         }
     }
 
-    private static List<IFieldSymbol> GetConfigurationFieldsFromHierarchy(INamedTypeSymbol classSymbol)
-    {
-        var result = new List<IFieldSymbol>();
-        var currentType = classSymbol;
-        while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
-        {
-            foreach (var member in currentType.GetMembers().OfType<IFieldSymbol>())
-            {
-                var hasInjectConfigurationAttribute = member.GetAttributes()
-                    .Any(attr => attr.AttributeClass?.ToDisplayString() ==
-                                 "IoCTools.Abstractions.Annotations.InjectConfigurationAttribute");
-                if (hasInjectConfigurationAttribute) result.Add(member);
-            }
-
-            currentType = currentType.BaseType;
-        }
-
-        return result;
-    }
-
     private static bool IsSupportedConfigurationType(ITypeSymbol type)
     {
         if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_Object) return true;
@@ -692,23 +672,6 @@ internal static class DiagnosticRules
                     }
                 }
             }
-    }
-
-    private static List<ITypeSymbol> GetDependsOnTypeSymbolsFromInheritanceChain(INamedTypeSymbol classSymbol)
-    {
-        var types = new List<ITypeSymbol>();
-        var currentType = classSymbol;
-        while (currentType != null && currentType.SpecialType != SpecialType.System_Object)
-        {
-            foreach (var attr in currentType.GetAttributes())
-                if (attr.AttributeClass?.Name == "DependsOnAttribute" &&
-                    attr.AttributeClass?.TypeArguments != null)
-                    foreach (var typeArg in attr.AttributeClass.TypeArguments)
-                        types.Add(typeArg);
-            currentType = currentType.BaseType;
-        }
-
-        return types;
     }
 
     // Helpers (scoped to diagnostics rules)
