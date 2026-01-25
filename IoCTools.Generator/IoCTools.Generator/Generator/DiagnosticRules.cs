@@ -101,9 +101,9 @@ internal static class DiagnosticRules
                 !allRegisteredServices.Contains(dependencyType))
             {
                 var ns = dependency.ServiceType.ContainingNamespace?.ToDisplayString() ?? string.Empty;
-                if (ns.Contains("Abstractions", StringComparison.Ordinal) ||
-                    ns.Contains("Contracts", StringComparison.Ordinal) ||
-                    ns.Contains("Interfaces", StringComparison.Ordinal))
+                if (ns.IndexOf("Abstractions", StringComparison.Ordinal) >= 0 ||
+                    ns.IndexOf("Contracts", StringComparison.Ordinal) >= 0 ||
+                    ns.IndexOf("Interfaces", StringComparison.Ordinal) >= 0)
                 {
                     continue;
                 }
