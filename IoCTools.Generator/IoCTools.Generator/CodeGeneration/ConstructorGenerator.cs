@@ -329,7 +329,7 @@ internal static partial class ConstructorGenerator
             }
 
             // Generate base constructor call
-            var baseCallStr = GenerateBaseConstructorCall(classSymbol, parametersWithNames, semanticModel);
+            var baseCallStr = GenerateBaseConstructorCall(classSymbol?.BaseType, parametersWithNames, semanticModel, classSymbol);
 
             // Regenerate parameter string
             var allParameters = parametersWithNames.Select(p => $"{p.TypeString} {p.ParamName}");
@@ -522,12 +522,13 @@ internal static partial class ConstructorGenerator
         return result;
     }
 
-    private static string GenerateBaseConstructorCall(INamedTypeSymbol classSymbol,
+    private static string GenerateBaseConstructorCall(
+        INamedTypeSymbol? baseClass,
         List<(string TypeString, string ParamName, (ITypeSymbol ServiceType, string FieldName, DependencySource Source) Dependency)> parametersWithNames,
-        SemanticModel semanticModel)
+        SemanticModel semanticModel,
+        INamedTypeSymbol? currentClassSymbol)
     {
         var baseCallStr = "";
-        var baseClass = classSymbol?.BaseType;
 
         if (baseClass == null)
             return baseCallStr;
@@ -636,7 +637,7 @@ internal static partial class ConstructorGenerator
                 if (!hasParameterlessConstructor && baseConstructors.Any() && !baseClassWillHaveConstructor)
                 {
                     // Base class requires constructor parameters, look at existing constructors to see how they call base
-                    var currentConstructors = classSymbol?.GetMembers().OfType<IMethodSymbol>()
+                    var currentConstructors = currentClassSymbol?.GetMembers().OfType<IMethodSymbol>()
                         .Where(m => m.MethodKind == MethodKind.Constructor && !m.IsStatic)
                         .ToList() ?? new List<IMethodSymbol>();
 
