@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Critical test that exposes Configuration Injection implementation gaps.

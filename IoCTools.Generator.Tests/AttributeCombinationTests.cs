@@ -2,7 +2,6 @@ namespace IoCTools.Generator.Tests;
 
 using System.Text.RegularExpressions;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     ABSOLUTELY BRUTAL ATTRIBUTE COMBINATION TESTS

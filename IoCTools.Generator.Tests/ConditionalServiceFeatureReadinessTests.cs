@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Tests to validate the fully implemented Conditional Service Registration feature.

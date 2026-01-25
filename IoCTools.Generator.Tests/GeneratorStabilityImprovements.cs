@@ -3,7 +3,6 @@ namespace IoCTools.Generator.Tests;
 using System.Diagnostics;
 using System.Text;
 
-using Microsoft.CodeAnalysis;
 
 using Xunit.Abstractions;
 

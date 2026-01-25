@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Advanced circular dependency tests covering edge cases and complex scenarios.

@@ -3,7 +3,6 @@ namespace IoCTools.Generator.Tests;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Tests for IOC080: Service class must be partial

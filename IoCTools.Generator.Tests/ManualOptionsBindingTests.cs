@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.CodeAnalysis;
 
 namespace IoCTools.Generator.Tests;
 

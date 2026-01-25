@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Test to verify that [InjectConfiguration] fields generate proper configuration binding

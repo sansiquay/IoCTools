@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Comprehensive tests for RegisterAs<T1, T2, T3> selective interface registration functionality

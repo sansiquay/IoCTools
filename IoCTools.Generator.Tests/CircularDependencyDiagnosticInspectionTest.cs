@@ -2,7 +2,6 @@ namespace IoCTools.Generator.Tests;
 
 using System.Diagnostics;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Test to inspect the actual IOC003 diagnostic messages and verify their content.

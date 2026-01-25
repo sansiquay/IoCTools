@@ -2,7 +2,6 @@ namespace IoCTools.Generator.Tests;
 
 using System.Text.RegularExpressions;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Tests for generated code structure and compilation verification of Conditional Service Registration.

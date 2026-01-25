@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     CONSOLIDATED FIELD INJECTION ARCHITECTURAL LIMITS TESTS

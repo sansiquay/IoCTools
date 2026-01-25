@@ -3,7 +3,6 @@ namespace IoCTools.Generator.Tests;
 using System.Diagnostics;
 using System.Text;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Comprehensive tests for MSBuild configuration of lifetime validation diagnostics.

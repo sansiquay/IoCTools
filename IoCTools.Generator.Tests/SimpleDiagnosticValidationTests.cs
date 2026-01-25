@@ -2,7 +2,6 @@ namespace IoCTools.Generator.Tests;
 
 using Diagnostics;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Simple validation tests for diagnostic improvements made

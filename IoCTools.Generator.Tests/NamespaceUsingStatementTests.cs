@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 
 using Abstractions.Annotations;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyInjection;
 

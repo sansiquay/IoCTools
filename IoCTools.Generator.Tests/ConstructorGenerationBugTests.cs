@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     COMPREHENSIVE BUG COVERAGE: Constructor Generation Bugs

@@ -4,7 +4,6 @@ using System.Reflection;
 
 using Abstractions.Annotations;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 public class MultiProjectExternalDependencyTests

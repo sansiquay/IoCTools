@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     BULLETPROOF CIRCULAR DEPENDENCY TEST SUITE

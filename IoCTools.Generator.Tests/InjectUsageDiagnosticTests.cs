@@ -1,6 +1,5 @@
 namespace IoCTools.Generator.Tests;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Tests for IOC035 which guides developers toward DependsOn instead of Inject when default naming is used.

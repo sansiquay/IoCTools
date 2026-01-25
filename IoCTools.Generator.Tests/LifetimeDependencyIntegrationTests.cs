@@ -3,7 +3,6 @@ namespace IoCTools.Generator.Tests;
 using System.Diagnostics;
 using System.Text;
 
-using Microsoft.CodeAnalysis;
 
 /// <summary>
 ///     Comprehensive integration tests for Lifetime Dependency Validation with all other IoCTools features.
