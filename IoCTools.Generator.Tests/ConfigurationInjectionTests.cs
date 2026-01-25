@@ -45,6 +45,112 @@ public partial class DefaultValueService
         constructorContent.Should().Contain("configuration.GetValue<bool>(\"Features:EnableDebug\", false)");
     }
 
+    [Fact]
+    public void ConfigurationInjection_DefaultValueWithQuotes_GeneratesCorrectly()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+public partial class QuotedValueService
+{
+    [InjectConfiguration(""Message"", DefaultValue = ""Hello \""World\"""")] private readonly string _message;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("QuotedValueService");
+        constructorContent.Should().Contain("configuration.GetValue<string>(\"Message\", \"Hello \\\"World\\\"\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueWithBackslashes_GeneratesCorrectly()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+public partial class PathValueService
+{
+    [InjectConfiguration(""TempPath"", DefaultValue = ""C:\\\\Temp\\File.txt"")] private readonly string _tempPath;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("PathValueService");
+        // Generated source has: "C:\\\\Temp\\File.txt" (4 backslashes in source = 2 actual backslashes)
+        constructorContent.Should().Contain(@"""C:\\\\Temp\\File.txt""");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueWithNewline_GeneratesCorrectly()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+public partial class NewlineValueService
+{
+    [InjectConfiguration(""Message"", DefaultValue = ""Line1\nLine2"")] private readonly string _message;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("NewlineValueService");
+        constructorContent.Should().Contain("configuration.GetValue<string>(\"Message\", \"Line1\\nLine2\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueWithTab_GeneratesCorrectly()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+public partial class TabValueService
+{
+    [InjectConfiguration(""Message"", DefaultValue = ""Col1\tCol2"")] private readonly string _message;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("TabValueService");
+        constructorContent.Should().Contain("configuration.GetValue<string>(\"Message\", \"Col1\\tCol2\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueWithCarriageReturn_GeneratesCorrectly()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+
+namespace Test;
+public partial class CarriageReturnValueService
+{
+    [InjectConfiguration(""Message"", DefaultValue = ""Line1\rLine2"")] private readonly string _message;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("CarriageReturnValueService");
+        constructorContent.Should().Contain("configuration.GetValue<string>(\"Message\", \"Line1\\rLine2\")");
+    }
+
     #endregion
 
     #region Nested Configuration Key Tests
