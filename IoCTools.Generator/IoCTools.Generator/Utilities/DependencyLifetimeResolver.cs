@@ -13,88 +13,185 @@ internal static class DependencyLifetimeResolver
         var dependencyTypeName = dependencyType.ToDisplayString();
         if (serviceLifetimes.TryGetValue(dependencyTypeName, out var lifetime)) return (lifetime, null);
 
-        if (allImplementations != null)
-            foreach (var kvp in allImplementations)
-                foreach (var implementation in kvp.Value)
-                {
-                    var implTypeName = implementation.ToDisplayString();
-                    if (implTypeName == dependencyTypeName)
-                    {
-                        var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
-                        if (implLifetime != null) return (implLifetime, implementation.Name);
-                    }
-                }
+        // Direct lookup: find implementation by exact type name match
+        var directResult = ExtractDirectLookup(dependencyTypeName, allImplementations, implicitLifetime);
+        if (directResult.lifetime != null) return directResult;
 
+        // Generic type lookup: handle constructed and open generic types
         if (dependencyType is INamedTypeSymbol namedType && namedType.IsGenericType && !namedType.IsUnboundGenericType)
         {
-            // Use Roslyn API to get the open generic type definition
-            var openGenericType = namedType.ConstructedFrom.ToDisplayString();
-            if (serviceLifetimes.TryGetValue(openGenericType, out var openLifetime))
-                return (openLifetime, null);
+            var constructedResult = ExtractConstructedGenericLookup(namedType, serviceLifetimes, allRegisteredServices);
+            if (constructedResult.lifetime != null) return constructedResult;
 
-            var genericTypeName = namedType.Name;
-            var typeParameterCount = namedType.TypeArguments.Length;
+            var genericResult = ExtractGenericImplementationsLookup(
+                namedType, serviceLifetimes, allImplementations, implicitLifetime);
+            if (genericResult.lifetime != null) return genericResult;
+        }
 
-            // Find matching open generic registrations by name and arity
-            foreach (var registeredService in allRegisteredServices)
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime by direct type name lookup across all implementations.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractDirectLookup(
+        string dependencyTypeName,
+        Dictionary<string, List<INamedTypeSymbol>>? allImplementations,
+        string implicitLifetime)
+    {
+        if (allImplementations == null) return (null, null);
+
+        foreach (var kvp in allImplementations)
+            foreach (var implementation in kvp.Value)
             {
-                if (IsMatchingOpenGenericByNameAndArity(genericTypeName, typeParameterCount, registeredService))
-                    if (serviceLifetimes.TryGetValue(registeredService, out var matchingLifetime))
-                        return (matchingLifetime, null);
-            }
-
-            if (allImplementations != null)
-            {
-                // Check if dependency type matches any registered interface by comparing constructed from
-                foreach (var kvp in allImplementations)
+                var implTypeName = implementation.ToDisplayString();
+                if (implTypeName == dependencyTypeName)
                 {
-                    var interfaceKey = kvp.Key;
-                    var implementations = kvp.Value;
-                    if (IsMatchingGenericInterfaceBySymbol(namedType, interfaceKey, allImplementations))
-                        foreach (var impl in implementations)
-                        {
-                            var implTypeName = impl.ToDisplayString();
-                            if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                            var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
-                            if (symbolLifetime != null)
-                                return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                        }
-                }
-
-                // Check all interfaces of implementations for a match
-                foreach (var kvp in allImplementations)
-                {
-                    var implementations = kvp.Value;
-                    foreach (var impl in implementations)
-                        foreach (var implementedInterface in impl.AllInterfaces)
-                        {
-                            if (IsMatchingGenericInterfaceBySymbol(namedType, implementedInterface.ToDisplayString(), null))
-                            {
-                                var implTypeName = impl.ToDisplayString();
-                                if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                    return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                                var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
-                                if (symbolLifetime != null)
-                                    return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                            }
-                        }
-
-                    // Check if implementations match the open generic
-                    var interfaceName = kvp.Key;
-                    var interfaceImplementations = kvp.Value;
-                    if (IsMatchingOpenGenericByNameAndArity(genericTypeName, typeParameterCount, interfaceName))
-                        foreach (var impl in interfaceImplementations)
-                        {
-                            var implTypeName = impl.ToDisplayString();
-                            if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
-                                return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                            var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
-                            if (symbolLifetime != null)
-                                return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
-                        }
+                    var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
+                    if (implLifetime != null) return (implLifetime, implementation.Name);
                 }
             }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime for constructed generic types using open generic lookup.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractConstructedGenericLookup(
+        INamedTypeSymbol namedType,
+        Dictionary<string, string> serviceLifetimes,
+        HashSet<string> allRegisteredServices)
+    {
+        // Use Roslyn API to get the open generic type definition
+        var openGenericType = namedType.ConstructedFrom.ToDisplayString();
+        if (serviceLifetimes.TryGetValue(openGenericType, out var openLifetime))
+            return (openLifetime, null);
+
+        var genericTypeName = namedType.Name;
+        var typeParameterCount = namedType.TypeArguments.Length;
+
+        // Find matching open generic registrations by name and arity
+        foreach (var registeredService in allRegisteredServices)
+        {
+            if (IsMatchingOpenGenericByNameAndArity(genericTypeName, typeParameterCount, registeredService))
+                if (serviceLifetimes.TryGetValue(registeredService, out var matchingLifetime))
+                    return (matchingLifetime, null);
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime from generic implementations by matching interfaces and open generics.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractGenericImplementationsLookup(
+        INamedTypeSymbol namedType,
+        Dictionary<string, string> serviceLifetimes,
+        Dictionary<string, List<INamedTypeSymbol>>? allImplementations,
+        string implicitLifetime)
+    {
+        if (allImplementations == null) return (null, null);
+
+        // Check if dependency type matches any registered interface by comparing constructed from
+        var interfaceResult = ExtractMatchingInterfaceLookup(namedType, serviceLifetimes, allImplementations, implicitLifetime);
+        if (interfaceResult.lifetime != null) return interfaceResult;
+
+        // Check all interfaces of implementations for a match
+        var allInterfacesResult = ExtractAllInterfacesLookup(namedType, serviceLifetimes, allImplementations, implicitLifetime);
+        if (allInterfacesResult.lifetime != null) return allInterfacesResult;
+
+        // Check if implementations match the open generic
+        var openGenericResult = ExtractOpenGenericLookup(namedType, serviceLifetimes, allImplementations, implicitLifetime);
+        if (openGenericResult.lifetime != null) return openGenericResult;
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime by matching dependency type to registered interfaces.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractMatchingInterfaceLookup(
+        INamedTypeSymbol namedType,
+        Dictionary<string, string> serviceLifetimes,
+        Dictionary<string, List<INamedTypeSymbol>> allImplementations,
+        string implicitLifetime)
+    {
+        foreach (var kvp in allImplementations)
+        {
+            var interfaceKey = kvp.Key;
+            var implementations = kvp.Value;
+            if (IsMatchingGenericInterfaceBySymbol(namedType, interfaceKey, allImplementations))
+                foreach (var impl in implementations)
+                {
+                    var implTypeName = impl.ToDisplayString();
+                    if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
+                        return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                    var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
+                    if (symbolLifetime != null)
+                        return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                }
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime by checking all implemented interfaces of each implementation.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractAllInterfacesLookup(
+        INamedTypeSymbol namedType,
+        Dictionary<string, string> serviceLifetimes,
+        Dictionary<string, List<INamedTypeSymbol>> allImplementations,
+        string implicitLifetime)
+    {
+        foreach (var kvp in allImplementations)
+        {
+            var implementations = kvp.Value;
+            foreach (var impl in implementations)
+                foreach (var implementedInterface in impl.AllInterfaces)
+                {
+                    if (IsMatchingGenericInterfaceBySymbol(namedType, implementedInterface.ToDisplayString(), null))
+                    {
+                        var implTypeName = impl.ToDisplayString();
+                        if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
+                            return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                        var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
+                        if (symbolLifetime != null)
+                            return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                    }
+                }
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extracts lifetime by matching implementations to open generic definitions.
+    /// </summary>
+    private static (string? lifetime, string? implementationName) ExtractOpenGenericLookup(
+        INamedTypeSymbol namedType,
+        Dictionary<string, string> serviceLifetimes,
+        Dictionary<string, List<INamedTypeSymbol>> allImplementations,
+        string implicitLifetime)
+    {
+        var genericTypeName = namedType.Name;
+        var typeParameterCount = namedType.TypeArguments.Length;
+
+        foreach (var kvp in allImplementations)
+        {
+            var interfaceName = kvp.Key;
+            var interfaceImplementations = kvp.Value;
+            if (IsMatchingOpenGenericByNameAndArity(genericTypeName, typeParameterCount, interfaceName))
+                foreach (var impl in interfaceImplementations)
+                {
+                    var implTypeName = impl.ToDisplayString();
+                    if (serviceLifetimes.TryGetValue(implTypeName, out var implLifetime))
+                        return (implLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                    var symbolLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(impl, implicitLifetime);
+                    if (symbolLifetime != null)
+                        return (symbolLifetime, TypeNameUtilities.FormatTypeNameForDiagnostic(impl));
+                }
         }
 
         return (null, null);
