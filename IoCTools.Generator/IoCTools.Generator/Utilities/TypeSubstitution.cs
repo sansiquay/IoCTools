@@ -1,7 +1,13 @@
 namespace IoCTools.Generator.Utilities;
 
+using Microsoft.CodeAnalysis;
+
 internal static class TypeSubstitution
 {
+    /// <summary>
+    ///     Substitutes type parameters in a type with concrete types from a constructed generic type.
+    ///     This overload does not support array type substitution - use the Compilation overload for full support.
+    /// </summary>
     public static ITypeSymbol SubstituteTypeParameters(ITypeSymbol type,
         INamedTypeSymbol constructedType)
     {
@@ -18,9 +24,37 @@ internal static class TypeSubstitution
         for (var i = 0; i < originalDefinition.TypeParameters.Length && i < constructedType.TypeArguments.Length; i++)
             typeParameterMap[originalDefinition.TypeParameters[i]] = constructedType.TypeArguments[i];
 
-        return SubstituteTypeParametersRecursive(type, typeParameterMap);
+        return SubstituteTypeParametersRecursive(type, typeParameterMap, compilation: null);
     }
 
+    /// <summary>
+    ///     Substitutes type parameters in a type with concrete types from a constructed generic type.
+    ///     This overload supports array type substitution using the provided Compilation.
+    /// </summary>
+    public static ITypeSymbol SubstituteTypeParameters(ITypeSymbol type,
+        INamedTypeSymbol constructedType,
+        Compilation compilation)
+    {
+        // If this is not a constructed generic type, return the type as-is
+        // IMPORTANT: Preserve the original type including its nullable annotation
+        if (constructedType.TypeArguments.IsEmpty ||
+            constructedType.OriginalDefinition.Equals(constructedType, SymbolEqualityComparer.Default))
+            return type; // Return the original type unchanged, preserving nullable annotations
+
+        // Build a mapping from type parameters to type arguments
+        var typeParameterMap = new Dictionary<ITypeParameterSymbol, ITypeSymbol>(SymbolEqualityComparer.Default);
+        var originalDefinition = constructedType.OriginalDefinition;
+
+        for (var i = 0; i < originalDefinition.TypeParameters.Length && i < constructedType.TypeArguments.Length; i++)
+            typeParameterMap[originalDefinition.TypeParameters[i]] = constructedType.TypeArguments[i];
+
+        return SubstituteTypeParametersRecursive(type, typeParameterMap, compilation);
+    }
+
+    /// <summary>
+    ///     Applies inheritance chain type substitution without array type support.
+    ///     Use the Compilation overload for full array type substitution support.
+    /// </summary>
     public static ITypeSymbol ApplyInheritanceChainSubstitution(ITypeSymbol fieldType,
         INamedTypeSymbol sourceType,
         INamedTypeSymbol targetType)
@@ -33,11 +67,31 @@ internal static class TypeSubstitution
         var substitutionMap = BuildInheritanceChainSubstitutionMap(sourceType, targetType);
 
         // Apply the substitution
-        return ApplyTypeSubstitution(fieldType, substitutionMap);
+        return ApplyTypeSubstitution(fieldType, substitutionMap, compilation: null);
+    }
+
+    /// <summary>
+    ///     Applies inheritance chain type substitution with full array type support.
+    /// </summary>
+    public static ITypeSymbol ApplyInheritanceChainSubstitution(ITypeSymbol fieldType,
+        INamedTypeSymbol sourceType,
+        INamedTypeSymbol targetType,
+        Compilation compilation)
+    {
+        if (sourceType.Equals(targetType, SymbolEqualityComparer.Default))
+            // No substitution needed if source and target are the same
+            return fieldType;
+
+        // Build the substitution mapping by walking the inheritance chain
+        var substitutionMap = BuildInheritanceChainSubstitutionMap(sourceType, targetType);
+
+        // Apply the substitution
+        return ApplyTypeSubstitution(fieldType, substitutionMap, compilation);
     }
 
     private static ITypeSymbol SubstituteTypeParametersRecursive(ITypeSymbol type,
-        Dictionary<ITypeParameterSymbol, ITypeSymbol> typeParameterMap)
+        Dictionary<ITypeParameterSymbol, ITypeSymbol> typeParameterMap,
+        Compilation? compilation)
     {
         // If this is a type parameter, substitute it
         if (type is ITypeParameterSymbol typeParam && typeParameterMap.TryGetValue(typeParam, out var substitution))
@@ -47,7 +101,7 @@ internal static class TypeSubstitution
         if (type is INamedTypeSymbol namedType && namedType.TypeArguments.Length > 0)
         {
             var substitutedArguments = namedType.TypeArguments
-                .Select(arg => SubstituteTypeParametersRecursive(arg, typeParameterMap))
+                .Select(arg => SubstituteTypeParametersRecursive(arg, typeParameterMap, compilation))
                 .ToArray();
 
             // Construct the substituted generic type and preserve nullable annotation
@@ -64,9 +118,16 @@ internal static class TypeSubstitution
         // For array types, substitute the element type
         if (type is IArrayTypeSymbol arrayType)
         {
-            var substitutedElementType = SubstituteTypeParametersRecursive(arrayType.ElementType, typeParameterMap);
-            // Note: We can't easily construct array types in Roslyn, so we'll use a workaround
-            // For now, return the original array type - this is a limitation we'll address if needed
+            var substitutedElementType = SubstituteTypeParametersRecursive(arrayType.ElementType, typeParameterMap, compilation);
+
+            // If compilation is provided, create a proper array type with substituted element
+            if (compilation != null && !SymbolEqualityComparer.Default.Equals(substitutedElementType, arrayType.ElementType))
+            {
+                return compilation.CreateArrayTypeSymbol(substitutedElementType, arrayType.Rank);
+            }
+
+            // Note: Without compilation, we can't construct array types in Roslyn
+            // Return the original array type - this is a known limitation
             return type;
         }
 
@@ -142,7 +203,8 @@ internal static class TypeSubstitution
     }
 
     private static ITypeSymbol ApplyTypeSubstitution(ITypeSymbol type,
-        Dictionary<ITypeParameterSymbol, ITypeSymbol> substitutionMap)
+        Dictionary<ITypeParameterSymbol, ITypeSymbol> substitutionMap,
+        Compilation? compilation)
     {
         // If this is a type parameter, substitute it
         if (type is ITypeParameterSymbol typeParam && substitutionMap.TryGetValue(typeParam, out var substitution))
@@ -152,7 +214,7 @@ internal static class TypeSubstitution
         if (type is INamedTypeSymbol namedType && namedType.TypeArguments.Length > 0)
         {
             var substitutedArguments = namedType.TypeArguments
-                .Select(arg => ApplyTypeSubstitution(arg, substitutionMap))
+                .Select(arg => ApplyTypeSubstitution(arg, substitutionMap, compilation))
                 .ToArray();
 
             // Construct the substituted generic type and preserve nullable annotation
@@ -168,8 +230,15 @@ internal static class TypeSubstitution
         // For array types, substitute the element type
         if (type is IArrayTypeSymbol arrayType)
         {
-            var substitutedElementType = ApplyTypeSubstitution(arrayType.ElementType, substitutionMap);
-            // Return the original array type for now - array construction is complex in Roslyn
+            var substitutedElementType = ApplyTypeSubstitution(arrayType.ElementType, substitutionMap, compilation);
+
+            // If compilation is provided, create a proper array type with substituted element
+            if (compilation != null && !SymbolEqualityComparer.Default.Equals(substitutedElementType, arrayType.ElementType))
+            {
+                return compilation.CreateArrayTypeSymbol(substitutedElementType, arrayType.Rank);
+            }
+
+            // Return the original array type for now - limitation without compilation
             return type;
         }
 
