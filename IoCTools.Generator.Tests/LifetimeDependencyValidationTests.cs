@@ -1286,6 +1286,209 @@ public partial class NotificationManager
     }
 
     [Fact]
+    public void IEnumerable_MultipleScopedImplementations_ReportsDiagnosticForEach()
+    {
+        // Arrange - Singleton consumer with IEnumerable<IService> where
+        // there are multiple Scoped implementations (each should get its own diagnostic)
+        var sourceCode = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace TestNamespace;
+
+public interface IService
+{
+}
+
+[Scoped]
+public partial class ScopedServiceA : IService
+{
+}
+
+[Scoped]
+public partial class ScopedServiceB : IService
+{
+}
+
+[Scoped]
+public partial class ScopedServiceC : IService
+{
+}
+
+[Singleton]
+public partial class SingletonConsumer
+{
+    [Inject] private readonly IEnumerable<IService> _services;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
+
+        // Assert - Each Scoped implementation should produce its own diagnostic
+        var ioc012Diagnostics = result.GetDiagnosticsByCode("IOC012");
+
+        // Should have 3 diagnostics, one for each Scoped implementation
+        ioc012Diagnostics.Count.Should().Be(3,
+            $"Expected 3 IOC012 diagnostics (one per Scoped implementation) but got {ioc012Diagnostics.Count}");
+
+        // Each diagnostic should be an error
+        ioc012Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
+
+        // Each diagnostic should mention a different implementation
+        var implementationNames = new[] { "ScopedServiceA", "ScopedServiceB", "ScopedServiceC" };
+        foreach (var implName in implementationNames)
+        {
+            var hasDiagnostic = ioc012Diagnostics.Any(d => d.GetMessage().Contains(implName));
+            hasDiagnostic.Should().BeTrue($"Expected diagnostic for {implName}");
+        }
+    }
+
+    [Fact]
+    public void IEnumerable_MultipleTransientImplementations_ReportsDiagnosticForEach()
+    {
+        // Arrange - Singleton consumer with IEnumerable<IService> where
+        // there are multiple Transient implementations (each should get its own diagnostic)
+        var sourceCode = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace TestNamespace;
+
+public interface IService
+{
+}
+
+[Transient]
+public partial class TransientServiceA : IService
+{
+}
+
+[Transient]
+public partial class TransientServiceB : IService
+{
+}
+
+[Transient]
+public partial class TransientServiceC : IService
+{
+}
+
+[Singleton]
+public partial class SingletonConsumer
+{
+    [Inject] private readonly IEnumerable<IService> _services;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
+
+        // Assert - Each Transient implementation should produce its own diagnostic
+        var ioc013Diagnostics = result.GetDiagnosticsByCode("IOC013");
+
+        // Should have 3 diagnostics, one for each Transient implementation
+        ioc013Diagnostics.Count.Should().Be(3,
+            $"Expected 3 IOC013 diagnostics (one per Transient implementation) but got {ioc013Diagnostics.Count}");
+
+        // Each diagnostic should be a warning
+        ioc013Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+
+        // Each diagnostic should mention a different implementation
+        var implementationNames = new[] { "TransientServiceA", "TransientServiceB", "TransientServiceC" };
+        foreach (var implName in implementationNames)
+        {
+            var hasDiagnostic = ioc013Diagnostics.Any(d => d.GetMessage().Contains(implName));
+            hasDiagnostic.Should().BeTrue($"Expected diagnostic for {implName}");
+        }
+    }
+
+    [Fact]
+    public void IEnumerable_MixedScopedAndTransient_MultipleOfEach_ReportsAllViolations()
+    {
+        // Arrange - Singleton consumer with IEnumerable<IService> where
+        // there are 2 Scoped and 3 Transient implementations (5 total violations)
+        var sourceCode = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace TestNamespace;
+
+public interface IService
+{
+}
+
+[Scoped]
+public partial class ScopedA : IService
+{
+}
+
+[Scoped]
+public partial class ScopedB : IService
+{
+}
+
+[Transient]
+public partial class TransientA : IService
+{
+}
+
+[Transient]
+public partial class TransientB : IService
+{
+}
+
+[Transient]
+public partial class TransientC : IService
+{
+}
+
+[Singleton]
+public partial class SingletonConsumer
+{
+    [Inject] private readonly IEnumerable<IService> _services;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
+
+        // Assert
+        var ioc012Diagnostics = result.GetDiagnosticsByCode("IOC012");
+        var ioc013Diagnostics = result.GetDiagnosticsByCode("IOC013");
+
+        // 2 Scoped implementations = 2 IOC012 errors
+        ioc012Diagnostics.Count.Should().Be(2,
+            $"Expected 2 IOC012 diagnostics but got {ioc012Diagnostics.Count}");
+
+        // 3 Transient implementations = 3 IOC013 warnings
+        ioc013Diagnostics.Count.Should().Be(3,
+            $"Expected 3 IOC013 diagnostics but got {ioc013Diagnostics.Count}");
+
+        // Verify error severity for Scoped
+        ioc012Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Error));
+
+        // Verify warning severity for Transient
+        ioc013Diagnostics.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning));
+
+        // Verify each implementation is mentioned
+        var scopedImpls = new[] { "ScopedA", "ScopedB" };
+        var transientImpls = new[] { "TransientA", "TransientB", "TransientC" };
+
+        foreach (var impl in scopedImpls)
+        {
+            var hasDiagnostic = ioc012Diagnostics.Any(d => d.GetMessage().Contains(impl));
+            hasDiagnostic.Should().BeTrue($"Expected IOC012 diagnostic for {impl}");
+        }
+
+        foreach (var impl in transientImpls)
+        {
+            var hasDiagnostic = ioc013Diagnostics.Any(d => d.GetMessage().Contains(impl));
+            hasDiagnostic.Should().BeTrue($"Expected IOC013 diagnostic for {impl}");
+        }
+    }
+
+    [Fact]
     public void IEnumerable_GenericRepositoryScenario_ValidatesCorrectly()
     {
         var sourceCode = @"
