@@ -15,6 +15,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="IoCTools.Tools.Cli.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"/>
     </ItemGroup>
 

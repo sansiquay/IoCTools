@@ -81,13 +81,8 @@ internal static class ConfigAuditPrinter
     /// Infers the configuration section key from a type name, matching the logic used
     /// by the generator's ConfigurationInjectionInfo.InferSectionNameFromType().
     /// </summary>
-    private static string InferSectionKeyFromTypeName(string typeName)
+    internal static string InferSectionKeyFromTypeName(string typeName)
     {
-        // Handle generic types like IOptions<T> by extracting the inner type
-        var genericIndex = typeName.IndexOf('`');
-        if (genericIndex > 0)
-            typeName = typeName.Substring(0, genericIndex);
-
         // Handle IOptions<T>, IOptionsSnapshot<T> patterns
         if (typeName.StartsWith("IOptions", StringComparison.Ordinal) ||
             typeName.StartsWith("Microsoft.Extensions.Options.IOptions", StringComparison.Ordinal))
@@ -100,6 +95,11 @@ internal static class ConfigAuditPrinter
                     typeName = typeName.Substring(start + 1, end - start - 1);
             }
         }
+
+        // Handle generic types with backtick notation (e.g., IOptions`1<T>)
+        var genericIndex = typeName.IndexOf('`');
+        if (genericIndex > 0)
+            typeName = typeName.Substring(0, genericIndex);
 
         // Extract the simple type name (without namespace)
         var lastDot = typeName.LastIndexOf('.');
