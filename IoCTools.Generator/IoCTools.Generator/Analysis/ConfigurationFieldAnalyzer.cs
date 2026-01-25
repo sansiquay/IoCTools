@@ -66,9 +66,10 @@ internal static class ConfigurationFieldAnalyzer
                     }
                 }
             }
-            catch
+            catch (ArgumentException)
             {
-                // Continue with what we have
+                // Expected: Can occur when syntax tree is malformed or field symbol resolution fails
+                // during type substitution. Continue processing other fields.
             }
 
         configFields.AddRange(GetDependsOnConfigurationDeclarations(typeSymbol));
