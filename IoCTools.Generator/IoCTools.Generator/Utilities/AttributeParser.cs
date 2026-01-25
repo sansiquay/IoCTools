@@ -4,6 +4,18 @@ using System.Text.RegularExpressions;
 
 internal static class AttributeParser
 {
+    private static string ParseNamingConventionEnum(object? enumValue)
+    {
+        if (enumValue == null) return "CamelCase";
+        return enumValue switch
+        {
+            0 => "CamelCase",
+            1 => "PascalCase",
+            2 => "SnakeCase",
+            _ => "CamelCase"
+        };
+    }
+
     public static (string namingConvention, bool stripI, string prefix) GetNamingConventionOptionsFromAttribute(
         AttributeData attribute)
     {
@@ -16,15 +28,7 @@ internal static class AttributeParser
         if (constructorArgs.Length > 0)
         {
             // First parameter is namingConvention
-            var enumValue = constructorArgs[0].Value;
-            if (enumValue != null)
-                namingConvention = enumValue switch
-                {
-                    0 => "CamelCase",
-                    1 => "PascalCase",
-                    2 => "SnakeCase",
-                    _ => "CamelCase" // Default fallback
-                };
+            namingConvention = ParseNamingConventionEnum(constructorArgs[0].Value);
         }
 
         if (constructorArgs.Length > 1)
@@ -46,15 +50,7 @@ internal static class AttributeParser
             switch (namedArg.Key)
             {
                 case "NamingConvention":
-                    var enumValue = namedArg.Value.Value;
-                    if (enumValue != null)
-                        namingConvention = enumValue switch
-                        {
-                            0 => "CamelCase",
-                            1 => "PascalCase",
-                            2 => "SnakeCase",
-                            _ => "CamelCase" // Default fallback
-                        };
+                    namingConvention = ParseNamingConventionEnum(namedArg.Value.Value);
                     break;
                 case "StripI":
                     stripI = namedArg.Value.Value as bool? ?? true;
@@ -84,15 +80,7 @@ internal static class AttributeParser
         if (constructorArgs.Length > 0)
         {
             // First parameter is namingConvention
-            var enumValue = constructorArgs[0].Value;
-            if (enumValue != null)
-                namingConvention = enumValue switch
-                {
-                    0 => "CamelCase",
-                    1 => "PascalCase",
-                    2 => "SnakeCase",
-                    _ => "CamelCase" // Default fallback
-                };
+            namingConvention = ParseNamingConventionEnum(constructorArgs[0].Value);
         }
 
         if (constructorArgs.Length > 1)
@@ -135,15 +123,7 @@ internal static class AttributeParser
             switch (namedArg.Key)
             {
                 case "NamingConvention":
-                    var enumValue = namedArg.Value.Value;
-                    if (enumValue != null)
-                        namingConvention = enumValue switch
-                        {
-                            0 => "CamelCase",
-                            1 => "PascalCase",
-                            2 => "SnakeCase",
-                            _ => "CamelCase" // Default fallback
-                        };
+                    namingConvention = ParseNamingConventionEnum(namedArg.Value.Value);
                     break;
                 case "StripI":
                     stripI = namedArg.Value.Value as bool? ?? true;
@@ -181,15 +161,7 @@ internal static class AttributeParser
 
         if (constructorArgs.Length > 0 && constructorArgs[0].Kind != TypedConstantKind.Array)
         {
-            var enumValue = constructorArgs[0].Value;
-            if (enumValue != null)
-                namingConvention = enumValue switch
-                {
-                    0 => "CamelCase",
-                    1 => "PascalCase",
-                    2 => "SnakeCase",
-                    _ => namingConvention
-                };
+            namingConvention = ParseNamingConventionEnum(constructorArgs[0].Value);
         }
 
         if (constructorArgs.Length > 1 && constructorArgs[1].Kind != TypedConstantKind.Array)
@@ -208,14 +180,7 @@ internal static class AttributeParser
             switch (namedArg.Key)
             {
                 case "NamingConvention":
-                    if (namedArg.Value.Value is int enumValue)
-                        namingConvention = enumValue switch
-                        {
-                            0 => "CamelCase",
-                            1 => "PascalCase",
-                            2 => "SnakeCase",
-                            _ => namingConvention
-                        };
+                    namingConvention = ParseNamingConventionEnum(namedArg.Value.Value);
                     break;
                 case "StripI":
                     if (namedArg.Value.Value is bool strip)
