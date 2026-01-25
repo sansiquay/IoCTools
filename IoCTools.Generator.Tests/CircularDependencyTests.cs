@@ -1600,4 +1600,365 @@ public partial class RecursiveService : IRecursive
     }
 
     #endregion
+
+    #region MULTI-HOP CIRCULAR DEPENDENCY TESTS (4+ nodes)
+
+    [Fact]
+    public void CircularDependency_FiveNodeCycle_DetectsCorrectly()
+    {
+        // Arrange - A → B → C → D → E → A (5-node cycle)
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IA { }
+public interface IB { }
+public interface IC { }
+public interface ID { }
+public interface IE { }
+
+[DependsOn<IB>]
+[Scoped]
+public partial class A : IA { }
+
+[DependsOn<IC>]
+[Scoped]
+public partial class B : IB { }
+
+[DependsOn<ID>]
+[Scoped]
+public partial class C : IC { }
+
+[DependsOn<IE>]
+[Scoped]
+public partial class D : ID { }
+
+[Scoped]
+public partial class E : IE
+{
+    [Inject] private readonly IA _a;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should detect circular dependency
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().NotBeEmpty("5-node cycle should be detected");
+
+        // All diagnostics should be errors
+        ioc003Diagnostics.Should().AllSatisfy(diagnostic =>
+        {
+            diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
+            diagnostic.GetMessage().Should().Contain("Circular dependency detected");
+        });
+
+        // Should contain cycle path with all five services
+        var hasExpectedCycle = ioc003Diagnostics.Any(d =>
+        {
+            var message = d.GetMessage();
+            return message.Contains("A") && message.Contains("B") && message.Contains("C") &&
+                   message.Contains("D") && message.Contains("E");
+        });
+        hasExpectedCycle.Should()
+            .BeTrue(
+                $"Expected cycle containing A, B, C, D, and E. Got: {string.Join("; ", ioc003Diagnostics.Select(d => d.GetMessage()))}");
+    }
+
+    [Fact]
+    public void CircularDependency_SixNodeCycle_DetectsCorrectly()
+    {
+        // Arrange - A → B → C → D → E → F → A (6-node cycle)
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+public interface IServiceC { }
+public interface IServiceD { }
+public interface IServiceE { }
+public interface IServiceF { }
+
+[Scoped]
+public partial class ServiceA : IServiceA
+{
+    [Inject] private readonly IServiceB _b;
+}
+
+[Scoped]
+public partial class ServiceB : IServiceB
+{
+    [Inject] private readonly IServiceC _c;
+}
+
+[Scoped]
+public partial class ServiceC : IServiceC
+{
+    [Inject] private readonly IServiceD _d;
+}
+
+[Scoped]
+public partial class ServiceD : IServiceD
+{
+    [Inject] private readonly IServiceE _e;
+}
+
+[Scoped]
+public partial class ServiceE : IServiceE
+{
+    [Inject] private readonly IServiceF _f;
+}
+
+[Scoped]
+public partial class ServiceF : IServiceF
+{
+    [Inject] private readonly IServiceA _a;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should detect circular dependency
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().NotBeEmpty("6-node cycle should be detected");
+
+        // Should contain cycle path with all six services
+        var hasExpectedCycle = ioc003Diagnostics.Any(d =>
+        {
+            var message = d.GetMessage();
+            return message.Contains("ServiceA") && message.Contains("ServiceB") &&
+                   message.Contains("ServiceC") && message.Contains("ServiceD") &&
+                   message.Contains("ServiceE") && message.Contains("ServiceF");
+        });
+        hasExpectedCycle.Should()
+            .BeTrue(
+                $"Expected cycle containing all six services. Got: {string.Join("; ", ioc003Diagnostics.Select(d => d.GetMessage()))}");
+    }
+
+    [Fact]
+    public void CircularDependency_InheritanceChainDoesNotCreateCycle_NoErrors()
+    {
+        // Arrange - Inheritance relationship alone does not create a circular dependency
+        // BaseService depends on IDerivedService, and DerivedService inherits from BaseService
+        // This is NOT a cycle because inheritance is not a runtime dependency
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IBaseService { }
+public interface IDerivedService { }
+
+[Scoped]
+public partial class BaseService : IBaseService
+{
+    [Inject] private readonly IDerivedService _derived;
+}
+
+[Scoped]
+public partial class DerivedService : BaseService, IDerivedService
+{
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should NOT detect circular dependency (inheritance is not a runtime dependency)
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().BeEmpty("Inheritance alone should not create a circular dependency");
+
+        // Should generate valid code
+        result.HasErrors.Should().BeFalse();
+    }
+
+    [Fact]
+    public void CircularDependency_DerivedServiceDependsOnBaseInterface_DetectsSelfReference()
+    {
+        // Arrange - DerivedService depends on IBaseService which BaseService implements.
+        // Since DerivedService inherits from BaseService, this creates a self-reference cycle.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IBaseService { }
+public interface IDerivedService { }
+
+[Scoped]
+public partial class BaseService : IBaseService
+{
+    [Inject] private readonly IDerivedService _derived;
+}
+
+[DependsOn<IBaseService>]
+[Scoped]
+public partial class DerivedService : BaseService, IDerivedService
+{
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should detect circular dependency (self-reference)
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().NotBeEmpty("Self-reference cycle should be detected");
+
+        // The cycle is detected as DerivedService → DerivedService (self-reference)
+        // because DependsOn<IBaseService> resolves to itself via inheritance
+        var diagnosticMessage = ioc003Diagnostics.First().GetMessage();
+        diagnosticMessage.Should().Contain("DerivedService");
+    }
+
+    [Fact]
+    public void CircularDependency_CycleWithMixedInjectAndDependsOn_DetectsCorrectly()
+    {
+        // Arrange - Mix of [Inject] and [DependsOn] in a 4-node cycle
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+public interface IServiceC { }
+public interface IServiceD { }
+
+// Uses DependsOn
+[DependsOn<IServiceB>]
+[Scoped]
+public partial class MixedA : IServiceA { }
+
+// Uses Inject
+[Scoped]
+public partial class MixedB : IServiceB
+{
+    [Inject] private readonly IServiceC _c;
+}
+
+// Uses DependsOn
+[DependsOn<IServiceD>]
+[Scoped]
+public partial class MixedC : IServiceC { }
+
+// Uses Inject to close the cycle
+[Scoped]
+public partial class MixedD : IServiceD
+{
+    [Inject] private readonly IServiceA _a;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should detect circular dependency with mixed sources
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().NotBeEmpty("Mixed source cycle should be detected");
+
+        // Should contain all four services in the cycle message
+        var hasExpectedCycle = ioc003Diagnostics.Any(d =>
+        {
+            var message = d.GetMessage();
+            return message.Contains("MixedA") && message.Contains("MixedB") &&
+                   message.Contains("MixedC") && message.Contains("MixedD");
+        });
+        hasExpectedCycle.Should()
+            .BeTrue(
+                $"Expected cycle containing all four mixed services. Got: {string.Join("; ", ioc003Diagnostics.Select(d => d.GetMessage()))}");
+    }
+
+    [Fact]
+    public void CircularDependency_CycleThroughCollectionAndRegularServices_DetectsCorrectly()
+    {
+        // Arrange - Cycle that goes through collection injection AND regular services
+        // Note: IEnumerable<T> should NOT create a cycle, but a direct reference can still create one
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+public interface IServiceC { }
+public interface IServiceD { }
+
+[Scoped]
+public partial class CycleA : IServiceA
+{
+    [Inject] private readonly IServiceB _b;
+}
+
+[Scoped]
+public partial class CycleB : IServiceB
+{
+    [Inject] private readonly IEnumerable<IServiceC> _cCollection;
+}
+
+[Scoped]
+public partial class CycleC : IServiceC
+{
+    [Inject] private readonly IServiceD _d;
+}
+
+[Scoped]
+public partial class CycleD : IServiceD
+{
+    [Inject] private readonly IServiceA _a;
+}";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Should NOT detect circular dependency (IEnumerable breaks the cycle)
+        var ioc003Diagnostics = result.GetDiagnosticsByCode("IOC003");
+        ioc003Diagnostics.Should().BeEmpty("IEnumerable should break the circular dependency chain");
+
+        // However, if we have a direct reference cycle involving collection, it should be detected
+        var sourceWithDirectCycle = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace Test;
+
+public interface IItemA { }
+public interface IItemB { }
+public interface ICollectionHolder { }
+
+[Scoped]
+public partial class ItemA : IItemA
+{
+    [Inject] private readonly ICollectionHolder _holder;
+}
+
+[Scoped]
+public partial class CollectionHolder : ICollectionHolder
+{
+    [Inject] private readonly IEnumerable<IItemA> _items;
+    [Inject] private readonly IItemB _itemB;
+}
+
+[Scoped]
+public partial class ItemB : IItemB
+{
+    [Inject] private readonly IItemA _itemA;
+}";
+
+        var resultWithDirectCycle = SourceGeneratorTestHelper.CompileWithGenerator(sourceWithDirectCycle);
+        var cycleDiagnostics = resultWithDirectCycle.GetDiagnosticsByCode("IOC003");
+
+        // Should detect the direct cycle (ItemA → CollectionHolder → ItemB → ItemA)
+        cycleDiagnostics.Should().NotBeEmpty("Direct reference cycle should be detected even with IEnumerable present");
+    }
+
+    #endregion
 }
