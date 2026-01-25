@@ -265,39 +265,7 @@ internal static partial class ConstructorGenerator
 
             // CRITICAL FIX: Handle collision between [DependsOn] and [Inject] for same ServiceType in field generation
             // If both exist for same ServiceType, don't generate DependsOn field when Inject field exists
-            var finalFieldsToGenerate =
-                new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-            var fieldsByServiceType = fieldsToGenerate.GroupBy(f => f.ServiceType, SymbolEqualityComparer.Default);
-
-            foreach (var group in fieldsByServiceType)
-            {
-                var fieldsForType = group.ToList();
-                var injectFields = fieldsForType.Where(f => f.Source == DependencySource.Inject).ToList();
-                var dependsOnFields = fieldsForType.Where(f => f.Source == DependencySource.DependsOn).ToList();
-
-                if (injectFields.Any() && dependsOnFields.Any())
-                {
-                    // COLLISION SCENARIO: Both [Inject] and [DependsOn] exist for same ServiceType
-                    // Don't generate DependsOn fields when Inject fields exist - Inject fields already exist in source
-                    // CRITICAL FIX: Only skip DependsOn fields, but keep Inject fields if they need to be generated
-                    // (This case is rare since Inject fields usually exist in source code)
-                    finalFieldsToGenerate.AddRange(injectFields);
-
-                    // Add any other fields that aren't part of the collision
-                    var otherFields = fieldsForType.Where(f =>
-                        f.Source != DependencySource.Inject && f.Source != DependencySource.DependsOn);
-                    finalFieldsToGenerate.AddRange(otherFields);
-                }
-                else
-                {
-                    // Normal case: no collision, add all fields for this type
-                    // This includes pure DependsOn cases (like OrderProcessingService)
-                    finalFieldsToGenerate.AddRange(fieldsForType);
-                }
-            }
-
-            // Use collision-resolved fields for field generation
-            fieldsToGenerate = finalFieldsToGenerate;
+            fieldsToGenerate = ResolveInjectDependsOnCollisions(fieldsToGenerate);
 
             // CRITICAL FIX: Determine if fields should be protected for inheritance scenarios
             var accessModifier = ShouldUseProtectedFields(classDeclaration, classSymbol) ? "protected" : "private";
@@ -333,35 +301,7 @@ internal static partial class ConstructorGenerator
 
             // CRITICAL FIX: Handle collision between [DependsOn] and [Inject] for same ServiceType
             // If both exist for same ServiceType, prefer [Inject] field over [DependsOn] field
-            var finalDependencies = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
-            var dependenciesByServiceType = allDependencies.GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default);
-
-            foreach (var group in dependenciesByServiceType)
-            {
-                var dependenciesForType = group.ToList();
-                var injectDeps = dependenciesForType.Where(d => d.Source == DependencySource.Inject).ToList();
-                var dependsOnDeps = dependenciesForType.Where(d => d.Source == DependencySource.DependsOn).ToList();
-
-                if (injectDeps.Count == 1 && dependsOnDeps.Count == 1)
-                {
-                    // COLLISION SCENARIO: One [Inject] field vs one [DependsOn] for same ServiceType
-                    // Prefer the [Inject] dependency - it represents an existing field that should take precedence
-                    finalDependencies.Add(injectDeps.First());
-
-                    // Add any other dependencies that aren't part of the collision
-                    var otherDeps = dependenciesForType.Where(d =>
-                        d.Source != DependencySource.Inject && d.Source != DependencySource.DependsOn);
-                    finalDependencies.AddRange(otherDeps);
-                }
-                else
-                {
-                    // Normal case: no simple collision, add all dependencies for this type
-                    finalDependencies.AddRange(dependenciesForType);
-                }
-            }
-
-            // Use collision-resolved dependencies for parameter generation
-            allDependencies = finalDependencies;
+            allDependencies = ResolveInjectDependsOnCollisions(allDependencies);
 
             // Generate unique parameter names to avoid CS0100 duplicate parameter errors
             var parameterNames = new HashSet<string>();
@@ -663,5 +603,44 @@ internal static partial class ConstructorGenerator
         // Abstract classes are explicitly designed to be inherited and need protected access
         // for derived classes to access the generated DependsOn fields
         return classSymbol.IsAbstract;
+    }
+
+    /// <summary>
+    ///     Resolves collisions between [Inject] and [DependsOn] for the same ServiceType.
+    ///     When both exist for the same type, prefers [Inject] over [DependsOn] since [Inject]
+    ///     fields typically already exist in source code.
+    /// </summary>
+    private static List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>
+        ResolveInjectDependsOnCollisions(
+            List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> dependencies)
+    {
+        var result = new List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)>();
+        var dependenciesByServiceType = dependencies.GroupBy(d => d.ServiceType, SymbolEqualityComparer.Default);
+
+        foreach (var group in dependenciesByServiceType)
+        {
+            var dependenciesForType = group.ToList();
+            var injectItems = dependenciesForType.Where(d => d.Source == DependencySource.Inject).ToList();
+            var dependsOnItems = dependenciesForType.Where(d => d.Source == DependencySource.DependsOn).ToList();
+
+            if (injectItems.Any() && dependsOnItems.Any())
+            {
+                // COLLISION SCENARIO: Both [Inject] and [DependsOn] exist for same ServiceType
+                // Prefer [Inject] - it represents an existing field in source code that should take precedence
+                result.AddRange(injectItems);
+
+                // Add any other dependencies that aren't part of the collision
+                var otherItems = dependenciesForType.Where(d =>
+                    d.Source != DependencySource.Inject && d.Source != DependencySource.DependsOn);
+                result.AddRange(otherItems);
+            }
+            else
+            {
+                // Normal case: no collision, add all dependencies for this type
+                result.AddRange(dependenciesForType);
+            }
+        }
+
+        return result;
     }
 }
