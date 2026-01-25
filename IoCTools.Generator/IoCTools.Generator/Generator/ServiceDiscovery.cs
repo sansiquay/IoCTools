@@ -59,17 +59,8 @@ internal static class ServiceDiscovery
 
     public static bool HasInjectFieldsAcrossPartialClasses(INamedTypeSymbol classSymbol)
     {
-        foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)
-            if (declaringSyntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
-                foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                    foreach (var attributeList in fieldDeclaration.AttributeLists)
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var attributeText = attribute.Name.ToString();
-                            if (attributeText == "Inject" || attributeText == "InjectAttribute" ||
-                                attributeText.EndsWith("Inject") || attributeText.EndsWith("InjectAttribute"))
-                                return true;
-                        }
+        if (HasFieldWithAttributeAcrossPartialClasses(classSymbol, "Inject", "InjectAttribute"))
+            return true;
 
         return classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field => field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectAttribute"));
@@ -77,18 +68,8 @@ internal static class ServiceDiscovery
 
     public static bool HasInjectConfigurationFieldsAcrossPartialClasses(INamedTypeSymbol classSymbol)
     {
-        foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)
-            if (declaringSyntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
-                foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
-                    foreach (var attributeList in fieldDeclaration.AttributeLists)
-                        foreach (var attribute in attributeList.Attributes)
-                        {
-                            var attributeText = attribute.Name.ToString();
-                            if (attributeText == "InjectConfiguration" || attributeText == "InjectConfigurationAttribute" ||
-                                attributeText.EndsWith("InjectConfiguration") ||
-                                attributeText.EndsWith("InjectConfigurationAttribute"))
-                                return true;
-                        }
+        if (HasFieldWithAttributeAcrossPartialClasses(classSymbol, "InjectConfiguration", "InjectConfigurationAttribute"))
+            return true;
 
         var hasFieldAttributes = classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field =>
@@ -97,5 +78,28 @@ internal static class ServiceDiscovery
 
         return classSymbol.GetAttributes()
             .Any(AttributeParser.IsDependsOnConfigurationAttribute);
+    }
+
+    private static bool HasFieldWithAttributeAcrossPartialClasses(INamedTypeSymbol classSymbol, params string[] attributeNames)
+    {
+        foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)
+            if (declaringSyntaxRef.GetSyntax() is TypeDeclarationSyntax typeDeclaration)
+                foreach (var fieldDeclaration in typeDeclaration.DescendantNodes().OfType<FieldDeclarationSyntax>())
+                    foreach (var attributeList in fieldDeclaration.AttributeLists)
+                        foreach (var attribute in attributeList.Attributes)
+                        {
+                            var attributeText = attribute.Name.ToString();
+                            foreach (var attributeName in attributeNames)
+                            {
+                                if (attributeText == attributeName || attributeText.EndsWith(attributeName))
+                                    return true;
+                                // Check for attribute without "Attribute" suffix (e.g., "Inject" matches "InjectAttribute")
+                                if (!attributeName.EndsWith("Attribute") &&
+                                    (attributeText == attributeName + "Attribute" || attributeText.EndsWith(attributeName + "Attribute")))
+                                    return true;
+                            }
+                        }
+
+        return false;
     }
 }
