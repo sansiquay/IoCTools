@@ -8,14 +8,24 @@ namespace IoCTools.Generator.Utilities;
 internal static class ConfigurationNamingUtilities
 {
     /// <summary>
-    ///     Suffixes that are commonly stripped from configuration type names.
+    ///     Default suffixes that are commonly stripped from configuration type names.
     /// </summary>
-    private static readonly string[] ConfigurationSuffixes = { "Settings", "Configuration", "Options" };
+    private static readonly string[] DefaultConfigurationSuffixes = { "Settings", "Configuration", "Options" };
 
     /// <summary>
-    ///     Additional suffixes for section name inference (includes Config, Object).
+    ///     Default suffixes for section name inference (includes Config, Object).
     /// </summary>
-    private static readonly string[] SectionNameSuffixes = { "Settings", "Configuration", "Config", "Options", "Object" };
+    private static readonly string[] DefaultSectionNameSuffixes = { "Settings", "Configuration", "Config", "Options", "Object" };
+
+    /// <summary>
+    ///     Gets the default configuration suffixes.
+    /// </summary>
+    public static string[] GetDefaultConfigurationSuffixes() => DefaultConfigurationSuffixes;
+
+    /// <summary>
+    ///     Gets the default section name suffixes.
+    /// </summary>
+    public static string[] GetDefaultSectionNameSuffixes() => DefaultSectionNameSuffixes;
 
     /// <summary>
     ///     Removes common configuration suffixes from a type name.
@@ -27,6 +37,18 @@ internal static class ConfigurationNamingUtilities
     /// <returns>The type name with configuration suffixes removed.</returns>
     public static string StripConfigurationSuffixes(string typeName)
     {
+        return StripConfigurationSuffixes(typeName, DefaultConfigurationSuffixes);
+    }
+
+    /// <summary>
+    ///     Removes common configuration suffixes from a type name using custom suffixes.
+    ///     Removes duplicated suffixes greedily, but leaves one trailing suffix if present.
+    /// </summary>
+    /// <param name="typeName">The type name to strip suffixes from.</param>
+    /// <param name="suffixes">The suffixes to strip.</param>
+    /// <returns>The type name with configuration suffixes removed.</returns>
+    public static string StripConfigurationSuffixes(string typeName, IEnumerable<string> suffixes)
+    {
         if (string.IsNullOrWhiteSpace(typeName)) return typeName;
 
         var trimmed = typeName;
@@ -34,7 +56,7 @@ internal static class ConfigurationNamingUtilities
 
         while (true)
         {
-            var matched = ConfigurationSuffixes.FirstOrDefault(s => trimmed.EndsWith(s, StringComparison.Ordinal));
+            var matched = suffixes.FirstOrDefault(s => trimmed.EndsWith(s, StringComparison.Ordinal));
             if (matched == null) break;
 
             // Stop after removing one suffix; collapse duplicates but keep a single suffix if present.
@@ -59,7 +81,19 @@ internal static class ConfigurationNamingUtilities
     /// <returns>The type name with configuration suffixes removed.</returns>
     public static string InferSectionNameFromType(string typeName)
     {
-        foreach (var suffix in SectionNameSuffixes)
+        return InferSectionNameFromType(typeName, DefaultSectionNameSuffixes);
+    }
+
+    /// <summary>
+    ///     Infers a section name from a type name by stripping custom configuration suffixes.
+    ///     This is used for configuration section name inference and strips all matching suffixes.
+    /// </summary>
+    /// <param name="typeName">The type name to strip suffixes from.</param>
+    /// <param name="suffixes">The suffixes to strip.</param>
+    /// <returns>The type name with configuration suffixes removed.</returns>
+    public static string InferSectionNameFromType(string typeName, IEnumerable<string> suffixes)
+    {
+        foreach (var suffix in suffixes)
             if (typeName.EndsWith(suffix, StringComparison.Ordinal))
                 return typeName.Substring(0, typeName.Length - suffix.Length);
 

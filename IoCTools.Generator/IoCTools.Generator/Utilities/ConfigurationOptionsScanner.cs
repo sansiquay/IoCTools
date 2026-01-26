@@ -6,6 +6,14 @@ internal static class ConfigurationOptionsScanner
         SemanticModel semanticModel,
         SyntaxNode root)
     {
+        return GetConfigurationOptionsToRegister(semanticModel, root, sectionNameSuffixes: null);
+    }
+
+    public static List<ConfigurationOptionsRegistration> GetConfigurationOptionsToRegister(
+        SemanticModel semanticModel,
+        SyntaxNode root,
+        IEnumerable<string>? sectionNameSuffixes)
+    {
         var configOptions = new List<ConfigurationOptionsRegistration>();
         var processedTypes = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -51,7 +59,9 @@ internal static class ConfigurationOptionsScanner
                         optionsInnerType.IsReferenceType && optionsInnerType.TypeKind == TypeKind.Class &&
                         processedTypes.Add(optionsInnerType))
                     {
-                        var sectionName = InferSectionNameFromType(optionsInnerType);
+                        var sectionName = ConfigurationNamingUtilities.InferSectionNameFromType(
+                            optionsInnerType.Name,
+                            sectionNameSuffixes ?? ConfigurationNamingUtilities.GetDefaultSectionNameSuffixes());
                         configOptions.Add(new ConfigurationOptionsRegistration(optionsInnerType, sectionName));
                     }
                 }

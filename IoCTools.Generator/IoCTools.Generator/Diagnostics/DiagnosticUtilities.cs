@@ -55,6 +55,14 @@ internal static class DiagnosticUtilities
         if (tryGetValue("build_property.IoCToolsExcludedNamespacePrefixes", out var excludedPrefixes))
             config.ExcludedNamespacePrefixes = ParseExcludedNamespacePrefixes(excludedPrefixes);
 
+        // Parse IoCToolsConfigurationSuffixes for configuration type name processing
+        if (tryGetValue("build_property.IoCToolsConfigurationSuffixes", out var configSuffixes))
+            config.ConfigurationSuffixes = ParseConfigurationSuffixes(configSuffixes);
+
+        // Parse IoCToolsSectionNameSuffixes for section name inference
+        if (tryGetValue("build_property.IoCToolsSectionNameSuffixes", out var sectionSuffixes))
+            config.SectionNameSuffixes = ParseSectionNameSuffixes(sectionSuffixes);
+
         return config;
     }
 
@@ -143,6 +151,54 @@ internal static class DiagnosticUtilities
             var trimmedPrefix = prefix.Trim();
             if (!string.IsNullOrWhiteSpace(trimmedPrefix))
                 result.Add(trimmedPrefix);
+        }
+
+        return result;
+    }
+
+    internal static HashSet<string> ParseConfigurationSuffixes(string suffixesString)
+    {
+        if (string.IsNullOrWhiteSpace(suffixesString))
+            return Models.DiagnosticConfiguration.GetDefaultConfigurationSuffixes();
+
+        var suffixes = suffixesString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (suffixes.Length == 0)
+            return Models.DiagnosticConfiguration.GetDefaultConfigurationSuffixes();
+
+        // Start with defaults and merge with custom suffixes
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var suffix in Models.DiagnosticConfiguration.GetDefaultConfigurationSuffixes())
+            result.Add(suffix);
+
+        foreach (var suffix in suffixes)
+        {
+            var trimmedSuffix = suffix.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedSuffix))
+                result.Add(trimmedSuffix);
+        }
+
+        return result;
+    }
+
+    internal static HashSet<string> ParseSectionNameSuffixes(string suffixesString)
+    {
+        if (string.IsNullOrWhiteSpace(suffixesString))
+            return Models.DiagnosticConfiguration.GetDefaultSectionNameSuffixes();
+
+        var suffixes = suffixesString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (suffixes.Length == 0)
+            return Models.DiagnosticConfiguration.GetDefaultSectionNameSuffixes();
+
+        // Start with defaults and merge with custom suffixes
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var suffix in Models.DiagnosticConfiguration.GetDefaultSectionNameSuffixes())
+            result.Add(suffix);
+
+        foreach (var suffix in suffixes)
+        {
+            var trimmedSuffix = suffix.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedSuffix))
+                result.Add(trimmedSuffix);
         }
 
         return result;

@@ -23,6 +23,14 @@ public class DiagnosticConfiguration
     // These allow projects to control which assemblies are scanned for service types
     public HashSet<string> ExcludedNamespacePrefixes { get; set; } = GetDefaultExcludedNamespacePrefixes();
 
+    // Suffixes to strip from configuration type names
+    // These allow projects to customize which suffixes are stripped from Options/Settings/Configuration classes
+    public HashSet<string> ConfigurationSuffixes { get; set; } = GetDefaultConfigurationSuffixes();
+
+    // Suffixes for section name inference from configuration types
+    // These allow projects to customize how configuration section names are inferred from type names
+    public HashSet<string> SectionNameSuffixes { get; set; } = GetDefaultSectionNameSuffixes();
+
     /// <summary>
     ///     Gets the default set of framework base types that should not be suggested for IoCTools attributes.
     /// </summary>
@@ -95,5 +103,27 @@ public class DiagnosticConfiguration
         "System",
         "Microsoft",
         "IoCTools.Generator"
+    };
+
+    /// <summary>
+    ///     Gets the default set of suffixes to strip from configuration type names.
+    /// </summary>
+    internal static HashSet<string> GetDefaultConfigurationSuffixes() => new(StringComparer.Ordinal)
+    {
+        "Settings",
+        "Configuration",
+        "Options"
+    };
+
+    /// <summary>
+    ///     Gets the default set of suffixes for section name inference from configuration types.
+    /// </summary>
+    internal static HashSet<string> GetDefaultSectionNameSuffixes() => new(StringComparer.Ordinal)
+    {
+        "Settings",
+        "Configuration",
+        "Config",
+        "Options",
+        "Object"
     };
 }

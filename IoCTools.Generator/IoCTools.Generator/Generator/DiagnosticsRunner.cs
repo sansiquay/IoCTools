@@ -33,7 +33,7 @@ internal static class DiagnosticsRunner
             var servicesFiltered = services
                 .Where(s => !TypeSkipEvaluator.ShouldSkipRegistration(s.ClassSymbol, compilation, styleOptions))
                 .ToImmutableArray();
-            var autoConfigOptions = CollectConfigurationOptionTypes(compilation, servicesFiltered);
+            var autoConfigOptions = CollectConfigurationOptionTypes(compilation, servicesFiltered, diagnosticConfig);
 
             DependencySetValidator.Validate(context, compilation);
 
@@ -241,7 +241,7 @@ internal static class DiagnosticsRunner
             var servicesFiltered = services
                 .Where(s => !TypeSkipEvaluator.ShouldSkipRegistration(s.ClassSymbol, compilation, styleOptions))
                 .ToImmutableArray();
-            var autoConfigOptions = CollectConfigurationOptionTypes(compilation, servicesFiltered);
+            var autoConfigOptions = CollectConfigurationOptionTypes(compilation, servicesFiltered, diagnosticConfig);
 
             if (!servicesFiltered.Any())
             {
@@ -475,9 +475,11 @@ internal static class DiagnosticsRunner
 
     private static HashSet<string> CollectConfigurationOptionTypes(
         Compilation compilation,
-        ImmutableArray<ServiceClassInfo> servicesFiltered)
+        ImmutableArray<ServiceClassInfo> servicesFiltered,
+        Models.DiagnosticConfiguration diagnosticConfig)
     {
         var set = new HashSet<string>(StringComparer.Ordinal);
+        var sectionNameSuffixes = diagnosticConfig.SectionNameSuffixes;
 
         // Pass 1: per-service (as before)
         foreach (var service in servicesFiltered)
@@ -485,7 +487,7 @@ internal static class DiagnosticsRunner
             if (service.SemanticModel == null) continue;
             var root = service.ClassDeclaration?.SyntaxTree.GetRoot();
             if (root == null) continue;
-            var options = ConfigurationOptionsScanner.GetConfigurationOptionsToRegister(service.SemanticModel, root);
+            var options = ConfigurationOptionsScanner.GetConfigurationOptionsToRegister(service.SemanticModel, root, sectionNameSuffixes);
             foreach (var opt in options)
                 set.Add(Normalize(opt.OptionsType.ToDisplayString()));
         }
@@ -495,7 +497,7 @@ internal static class DiagnosticsRunner
         {
             var semanticModel = compilation.GetSemanticModel(tree);
             var root = tree.GetRoot();
-            var options = ConfigurationOptionsScanner.GetConfigurationOptionsToRegister(semanticModel, root);
+            var options = ConfigurationOptionsScanner.GetConfigurationOptionsToRegister(semanticModel, root, sectionNameSuffixes);
             foreach (var opt in options)
                 set.Add(Normalize(opt.OptionsType.ToDisplayString()));
         }
