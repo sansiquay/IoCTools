@@ -1,6 +1,7 @@
 namespace IoCTools.Generator.Generator.Pipeline;
 
 using System.Collections.Immutable;
+using IoCTools.Generator.Diagnostics;
 
 internal static class DiagnosticsPipeline
 {
@@ -13,18 +14,37 @@ internal static class DiagnosticsPipeline
             .Select(static (input,
                 _) => GeneratorStyleOptions.From(input.Left, input.Right));
 
+        var excludedPrefixesProvider = context.AnalyzerConfigOptionsProvider
+            .Select(static (options, _) =>
+            {
+                var config = DiagnosticUtilities.GetDiagnosticConfiguration(options);
+                return config.ExcludedNamespacePrefixes;
+            });
+
         var referencedAssemblyTypes = context.CompilationProvider
-            .Select(static (compilation,
+            .Combine(excludedPrefixesProvider)
+            .Select(static (input,
                 _) =>
             {
+                var (compilation, excludedPrefixes) = input;
                 var referencedTypes = new List<INamedTypeSymbol>();
                 foreach (var reference in compilation.References)
                 {
                     if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol asm) continue;
                     var name = asm.Name;
-                    if (name.StartsWith("System", StringComparison.Ordinal) ||
-                        name.StartsWith("Microsoft", StringComparison.Ordinal) ||
-                        name.StartsWith("IoCTools.Generator", StringComparison.Ordinal))
+
+                    // Check against excluded namespace prefixes
+                    var isExcluded = false;
+                    foreach (var prefix in excludedPrefixes)
+                    {
+                        if (name.StartsWith(prefix, StringComparison.Ordinal))
+                        {
+                            isExcluded = true;
+                            break;
+                        }
+                    }
+
+                    if (isExcluded)
                         continue;
 
                     var referencesAbstractions = asm.Modules.Any(m =>

@@ -51,6 +51,10 @@ internal static class DiagnosticUtilities
         if (tryGetValue("build_property.IoCToolsFrameworkBaseTypes", out var frameworkTypes))
             config.FrameworkBaseTypes = ParseFrameworkBaseTypes(frameworkTypes);
 
+        // Parse IoCToolsExcludedNamespacePrefixes for cross-assembly scanning exclusions
+        if (tryGetValue("build_property.IoCToolsExcludedNamespacePrefixes", out var excludedPrefixes))
+            config.ExcludedNamespacePrefixes = ParseExcludedNamespacePrefixes(excludedPrefixes);
+
         return config;
     }
 
@@ -115,6 +119,30 @@ internal static class DiagnosticUtilities
             var trimmedType = type.Trim();
             if (!string.IsNullOrWhiteSpace(trimmedType))
                 result.Add(trimmedType);
+        }
+
+        return result;
+    }
+
+    internal static HashSet<string> ParseExcludedNamespacePrefixes(string excludedPrefixesString)
+    {
+        if (string.IsNullOrWhiteSpace(excludedPrefixesString))
+            return Models.DiagnosticConfiguration.GetDefaultExcludedNamespacePrefixes();
+
+        var prefixes = excludedPrefixesString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (prefixes.Length == 0)
+            return Models.DiagnosticConfiguration.GetDefaultExcludedNamespacePrefixes();
+
+        // Start with defaults and merge with custom prefixes
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var prefix in Models.DiagnosticConfiguration.GetDefaultExcludedNamespacePrefixes())
+            result.Add(prefix);
+
+        foreach (var prefix in prefixes)
+        {
+            var trimmedPrefix = prefix.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedPrefix))
+                result.Add(trimmedPrefix);
         }
 
         return result;

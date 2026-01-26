@@ -19,6 +19,10 @@ public class DiagnosticConfiguration
     // These are types that have their own registration mechanisms (ASP.NET Core, EF Core, etc.)
     public HashSet<string> FrameworkBaseTypes { get; set; } = GetDefaultFrameworkBaseTypes();
 
+    // Namespace prefixes to exclude from cross-assembly type scanning
+    // These allow projects to control which assemblies are scanned for service types
+    public HashSet<string> ExcludedNamespacePrefixes { get; set; } = GetDefaultExcludedNamespacePrefixes();
+
     /// <summary>
     ///     Gets the default set of framework base types that should not be suggested for IoCTools attributes.
     /// </summary>
@@ -81,5 +85,15 @@ public class DiagnosticConfiguration
         "BackgroundService",
         "Microsoft.Extensions.Hosting.IHostedService",
         "IHostedService"
+    };
+
+    /// <summary>
+    ///     Gets the default set of namespace prefixes to exclude from cross-assembly type scanning.
+    /// </summary>
+    internal static HashSet<string> GetDefaultExcludedNamespacePrefixes() => new(StringComparer.Ordinal)
+    {
+        "System",
+        "Microsoft",
+        "IoCTools.Generator"
     };
 }
