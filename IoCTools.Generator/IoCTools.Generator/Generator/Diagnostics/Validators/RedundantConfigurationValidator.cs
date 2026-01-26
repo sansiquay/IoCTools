@@ -475,7 +475,7 @@ internal static class RedundantConfigurationValidator
         INamedTypeSymbol classSymbol)
     {
         var skipAllAttribute = classSymbol.GetAttributes()
-            .FirstOrDefault(IsNonGenericSkipRegistrationAttribute);
+            .FirstOrDefault(AttributeTypeChecker.IsNonGenericSkipRegistrationAttribute);
         if (skipAllAttribute == null) return;
 
         var conflicts = new List<string>();
@@ -513,7 +513,7 @@ internal static class RedundantConfigurationValidator
         if (!string.Equals(registrationMode, "DirectOnly", StringComparison.Ordinal)) return;
 
         var genericSkipAttributes = classSymbol.GetAttributes()
-            .Where(IsGenericSkipRegistrationAttribute)
+            .Where(AttributeTypeChecker.IsGenericSkipRegistrationAttribute)
             .ToList();
         if (!genericSkipAttributes.Any()) return;
 
@@ -576,15 +576,6 @@ internal static class RedundantConfigurationValidator
     private static bool IsTransientAttribute(AttributeData attribute)
         => attribute.AttributeClass?.ToDisplayString() ==
            "IoCTools.Abstractions.Annotations.TransientAttribute";
-
-    private static bool IsNonGenericSkipRegistrationAttribute(AttributeData attribute)
-        => attribute.AttributeClass?.ToDisplayString() ==
-           "IoCTools.Abstractions.Annotations.SkipRegistrationAttribute";
-
-    private static bool IsGenericSkipRegistrationAttribute(AttributeData attribute)
-        => attribute.AttributeClass?.ToDisplayString()
-                .StartsWith("IoCTools.Abstractions.Annotations.SkipRegistrationAttribute", StringComparison.Ordinal) ==
-            true && attribute.AttributeClass?.IsGenericType == true;
 
     private static bool IsExternalServiceAttribute(AttributeData attribute)
         => AttributeTypeChecker.IsAttribute(attribute, AttributeTypeChecker.ExternalServiceAttribute);

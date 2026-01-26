@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator;
 using CodeGeneration;
 
 using Intent;
+using Utilities;
 
 internal static class RegistrationSelector
 {
@@ -30,8 +31,7 @@ internal static class RegistrationSelector
 
         // Skip all registrations if non-generic SkipRegistration attribute is present
         var hasNonGenericSkipRegistration = classSymbol.GetAttributes()
-            .Any(attr => attr.AttributeClass?.ToDisplayString() ==
-                         "IoCTools.Abstractions.Annotations.SkipRegistrationAttribute");
+            .Any(AttributeTypeChecker.IsNonGenericSkipRegistrationAttribute);
         if (hasNonGenericSkipRegistration)
             return results;
 
@@ -61,9 +61,7 @@ internal static class RegistrationSelector
 
         // Check for SkipRegistration attribute - skip all registrations if present
         var hasNonGenericSkipRegistration = classSymbol.GetAttributes()
-            .Any(attr =>
-                attr.AttributeClass?.ToDisplayString() ==
-                "IoCTools.Abstractions.Annotations.SkipRegistrationAttribute");
+            .Any(AttributeTypeChecker.IsNonGenericSkipRegistrationAttribute);
         if (hasNonGenericSkipRegistration)
             return results;
 
@@ -152,8 +150,7 @@ internal static class RegistrationSelector
 
             // Global opt-out: honor non-generic [SkipRegistration] on any service kind (including BackgroundService)
             var hasNonGenericSkipRegistration = classSymbol.GetAttributes()
-                .Any(attr => attr.AttributeClass?.ToDisplayString() ==
-                             "IoCTools.Abstractions.Annotations.SkipRegistrationAttribute");
+                .Any(AttributeTypeChecker.IsNonGenericSkipRegistrationAttribute);
             if (hasNonGenericSkipRegistration)
                 return serviceRegistrations;
 

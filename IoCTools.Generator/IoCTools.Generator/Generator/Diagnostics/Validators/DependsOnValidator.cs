@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
+using Utilities;
+
 internal static class DependsOnValidator
 {
     internal static void ValidateDuplicateDependsOn(SourceProductionContext context,
@@ -59,8 +61,7 @@ internal static class DependsOnValidator
         if (registerAsAllAttribute == null) return;
 
         var skipRegistrationAttributes = classSymbol.GetAttributes()
-            .Where(attr => attr.AttributeClass?.ToDisplayString()
-                .StartsWith("IoCTools.Abstractions.Annotations.SkipRegistrationAttribute") == true)
+            .Where(AttributeTypeChecker.IsSkipRegistrationAttribute)
             .ToList();
         if (!skipRegistrationAttributes.Any()) return;
 

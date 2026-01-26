@@ -11,6 +11,7 @@ internal static class AttributeTypeChecker
     public const string InjectAttribute = "IoCTools.Abstractions.Annotations.InjectAttribute";
     public const string RegisterAsAllAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute";
     public const string RegisterAsAttribute = "IoCTools.Abstractions.Annotations.RegisterAsAttribute";
+    public const string SkipRegistrationAttribute = "IoCTools.Abstractions.Annotations.SkipRegistrationAttribute";
     public const string ConditionalServiceAttribute = "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute";
     public const string ExternalServiceAttribute = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
     public const string DependsOnConfigurationAttributeBase = "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttributeBase";
@@ -77,5 +78,46 @@ internal static class AttributeTypeChecker
         var isGeneric = attribute.AttributeClass.IsGenericType;
 
         return nameMatches && isGeneric;
+    }
+
+    /// <summary>
+    /// Checks if an attribute is a SkipRegistrationAttribute (non-generic or generic).
+    /// </summary>
+    public static bool IsSkipRegistrationAttribute(AttributeData? attribute)
+    {
+        if (attribute?.AttributeClass == null) return false;
+
+        var displayString = attribute.AttributeClass.ToDisplayString();
+
+        // Check for non-generic SkipRegistrationAttribute
+        if (displayString == SkipRegistrationAttribute)
+            return true;
+
+        // Check for generic SkipRegistrationAttribute<T>
+        if (displayString.StartsWith(SkipRegistrationAttribute, StringComparison.Ordinal) &&
+            attribute.AttributeClass.IsGenericType)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if an attribute is the non-generic SkipRegistrationAttribute.
+    /// </summary>
+    public static bool IsNonGenericSkipRegistrationAttribute(AttributeData? attribute)
+    {
+        return attribute?.AttributeClass?.ToDisplayString() == SkipRegistrationAttribute;
+    }
+
+    /// <summary>
+    /// Checks if an attribute is a generic SkipRegistrationAttribute.
+    /// </summary>
+    public static bool IsGenericSkipRegistrationAttribute(AttributeData? attribute)
+    {
+        if (attribute?.AttributeClass == null) return false;
+
+        return attribute.AttributeClass.ToDisplayString()
+                   .StartsWith(SkipRegistrationAttribute, StringComparison.Ordinal) &&
+               attribute.AttributeClass.IsGenericType;
     }
 }

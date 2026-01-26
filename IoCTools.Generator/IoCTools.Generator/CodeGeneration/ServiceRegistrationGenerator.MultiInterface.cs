@@ -1,5 +1,7 @@
 namespace IoCTools.Generator.CodeGeneration;
 
+using Utilities;
+
 internal static partial class ServiceRegistrationGenerator
 {
     internal static IEnumerable<ServiceRegistration> GetMultiInterfaceRegistrations(INamedTypeSymbol classSymbol,
@@ -122,7 +124,7 @@ internal static partial class ServiceRegistrationGenerator
     {
         var skipped = new HashSet<string>();
         var skipAttributes = classSymbol.GetAttributes()
-            .Where(attr => attr.AttributeClass?.Name.StartsWith("SkipRegistrationAttribute") == true);
+            .Where(AttributeTypeChecker.IsGenericSkipRegistrationAttribute);
         foreach (var skipAttribute in skipAttributes)
             if (skipAttribute.AttributeClass?.TypeArguments != null)
                 foreach (var typeArg in skipAttribute.AttributeClass.TypeArguments)

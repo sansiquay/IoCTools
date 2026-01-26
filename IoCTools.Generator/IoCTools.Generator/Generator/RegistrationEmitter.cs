@@ -7,6 +7,7 @@ using CodeGeneration;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Utilities;
 
 internal static class RegistrationEmitter
 {
@@ -146,9 +147,7 @@ internal static class RegistrationEmitter
         if (registerAsAllAttribute == null) return;
 
         var skipRegistrationAttributes = classSymbol.GetAttributes()
-            .Where(attr =>
-                attr.AttributeClass?.ToDisplayString()
-                    .StartsWith("IoCTools.Abstractions.Annotations.SkipRegistrationAttribute") == true)
+            .Where(AttributeTypeChecker.IsSkipRegistrationAttribute)
             .ToList();
         if (!skipRegistrationAttributes.Any()) return;
 

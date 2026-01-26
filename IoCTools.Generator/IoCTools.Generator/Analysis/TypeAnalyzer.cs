@@ -1,6 +1,7 @@
 namespace IoCTools.Generator.Analysis;
 
 using Microsoft.CodeAnalysis.CSharp;
+using Utilities;
 
 internal static class TypeAnalyzer
 {
@@ -178,7 +179,7 @@ internal static class TypeAnalyzer
             attr.AttributeClass?.Name == "RegisterAsAllAttribute" ||
             attr.AttributeClass?.Name == "ExternalServiceAttribute" ||
             attr.AttributeClass?.Name == "ConditionalServiceAttribute" ||
-            attr.AttributeClass?.Name?.StartsWith("SkipRegistrationAttribute") == true ||
+            AttributeTypeChecker.IsSkipRegistrationAttribute(attr) ||
             (attr.AttributeClass?.IsGenericType == true &&
              attr.AttributeClass.Name == "DependsOn"));
 
