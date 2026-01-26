@@ -94,7 +94,7 @@ internal static class LifetimeDependencyValidator
             {
                 ValidateIEnumerableLifetimes(context, classDeclaration, classSymbol, serviceLifetime,
                     enumerableTypeInfo.InnerType, enumerableTypeInfo.FullEnumerableType, serviceLifetimes,
-                    allRegisteredServices, allImplementations, implicitLifetime);
+                    allRegisteredServices, allImplementations, implicitLifetime, diagnosticConfig.LifetimeValidationSeverity);
                 continue;
             }
 
@@ -104,7 +104,7 @@ internal static class LifetimeDependencyValidator
                 var elementTypeName = arrayType.ElementType.ToDisplayString();
                 ValidateIEnumerableLifetimes(context, classDeclaration, classSymbol, serviceLifetime,
                     elementTypeName, dependencyTypeName, serviceLifetimes,
-                    allRegisteredServices, allImplementations, implicitLifetime);
+                    allRegisteredServices, allImplementations, implicitLifetime, diagnosticConfig.LifetimeValidationSeverity);
                 continue;
             }
 
@@ -165,7 +165,8 @@ internal static class LifetimeDependencyValidator
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         LifetimeViolationType violationType,
-        string dependencyTypeName)
+        string dependencyTypeName,
+        DiagnosticSeverity lifetimeValidationSeverity)
     {
         var location = classDeclaration.GetLocation();
         var serviceName = classSymbol.Name;
@@ -173,17 +174,22 @@ internal static class LifetimeDependencyValidator
         switch (violationType)
         {
             case LifetimeViolationType.SingletonDependsOnScoped:
-                var scopedDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnScoped,
+                var scopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
+                var scopedDiagnostic = Diagnostic.Create(scopedDescriptor,
                     location, serviceName, dependencyTypeName);
                 context.ReportDiagnostic(scopedDiagnostic);
                 break;
             case LifetimeViolationType.SingletonDependsOnTransient:
+                // IOC013 keeps its default Warning severity (not configurable)
                 var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
                     location, serviceName, dependencyTypeName);
                 context.ReportDiagnostic(transientDiagnostic);
                 break;
             case LifetimeViolationType.TransientDependsOnScoped:
-                var transientScopedDiagnostic = Diagnostic.Create(DiagnosticDescriptors.TransientDependsOnScoped,
+                var transientScopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                    DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
+                var transientScopedDiagnostic = Diagnostic.Create(transientScopedDescriptor,
                     location, serviceName, dependencyTypeName);
                 context.ReportDiagnostic(transientScopedDiagnostic);
                 break;
@@ -199,7 +205,8 @@ internal static class LifetimeDependencyValidator
         Dictionary<string, string> serviceLifetimes,
         HashSet<string> allRegisteredServices,
         Dictionary<string, List<INamedTypeSymbol>> allImplementations,
-        string implicitLifetime)
+        string implicitLifetime,
+        DiagnosticSeverity lifetimeValidationSeverity)
     {
         var foundImplementations = false;
         var processed = new HashSet<string>();
@@ -208,7 +215,7 @@ internal static class LifetimeDependencyValidator
         {
             foundImplementations = true;
             ValidateImplementationSet(direct, processed, serviceLifetime, implicitLifetime, context,
-                classDeclaration, classSymbol, dependencyTypeName);
+                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
         }
 
         if (innerType.Contains('<') && innerType.Contains('>'))
@@ -218,7 +225,7 @@ internal static class LifetimeDependencyValidator
             {
                 foundImplementations = true;
                 ValidateImplementationSet(generics, processed, serviceLifetime, implicitLifetime, context,
-                    classDeclaration, classSymbol, dependencyTypeName);
+                    classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
             }
         }
 
@@ -232,7 +239,7 @@ internal static class LifetimeDependencyValidator
                     if (!interfaces.Contains(innerType)) continue;
 
                     ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
-                        classDeclaration, classSymbol, dependencyTypeName);
+                        classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
                 }
         }
     }
@@ -245,14 +252,15 @@ internal static class LifetimeDependencyValidator
         SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
-        string dependencyTypeName)
+        string dependencyTypeName,
+        DiagnosticSeverity lifetimeValidationSeverity)
     {
         foreach (var implementation in implementations)
         {
             if (!processed.Add(implementation.ToDisplayString())) continue;
 
             ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
-                classDeclaration, classSymbol, dependencyTypeName);
+                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
         }
     }
 
@@ -263,7 +271,8 @@ internal static class LifetimeDependencyValidator
         SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
-        string dependencyTypeName)
+        string dependencyTypeName,
+        DiagnosticSeverity lifetimeValidationSeverity)
     {
         var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
         if (implLifetime == null) return;
@@ -273,7 +282,7 @@ internal static class LifetimeDependencyValidator
         {
             var displayDependencyName = $"{dependencyTypeName} -> {implementation.Name}";
             ReportLifetimeViolationDiagnostics(context, classDeclaration, classSymbol, violationType,
-                displayDependencyName);
+                displayDependencyName, lifetimeValidationSeverity);
         }
     }
 }
