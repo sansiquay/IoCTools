@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+using IoCTools.Generator.Models;
 using Utilities;
 
 internal static class MissedOpportunityValidator
@@ -11,72 +12,14 @@ internal static class MissedOpportunityValidator
     ///     Known framework base types that have their own registration mechanisms.
     ///     Classes inheriting from these should not be suggested for IoCTools attributes.
     /// </summary>
-    private static readonly HashSet<string> FrameworkBaseTypes = new(StringComparer.Ordinal)
-    {
-        // ASP.NET Core Authentication
-        "Microsoft.AspNetCore.Authentication.AuthenticationHandler",
-        "AuthenticationHandler",
-
-        // ASP.NET Core MVC/Controllers
-        "Microsoft.AspNetCore.Mvc.ControllerBase",
-        "Microsoft.AspNetCore.Mvc.Controller",
-        "ControllerBase",
-        "Controller",
-
-        // ASP.NET Core Razor Pages
-        "Microsoft.AspNetCore.Mvc.RazorPages.PageModel",
-        "PageModel",
-
-        // ASP.NET Core SignalR
-        "Microsoft.AspNetCore.SignalR.Hub",
-        "Hub",
-
-        // ASP.NET Core Minimal API Endpoint Filters
-        "Microsoft.AspNetCore.Http.IEndpointFilter",
-        "IEndpointFilter",
-
-        // Entity Framework Core
-        "Microsoft.EntityFrameworkCore.DbContext",
-        "DbContext",
-
-        // Mediator/MediatR handlers (registered by Mediator infrastructure)
-        "Mediator.IRequestHandler",
-        "Mediator.INotificationHandler",
-        "Mediator.IStreamRequestHandler",
-        "Mediator.IPipelineBehavior",
-        "MediatR.IRequestHandler",
-        "MediatR.INotificationHandler",
-        "MediatR.IStreamRequestHandler",
-        "MediatR.IPipelineBehavior",
-
-        // gRPC
-        "Grpc.Core.ClientBase",
-        "ClientBase",
-
-        // ASP.NET Core Tag Helpers
-        "Microsoft.AspNetCore.Razor.TagHelpers.TagHelper",
-        "TagHelper",
-
-        // ASP.NET Core View Components
-        "Microsoft.AspNetCore.Mvc.ViewComponent",
-        "ViewComponent",
-
-        // ASP.NET Core Health Checks
-        "Microsoft.Extensions.Diagnostics.HealthChecks.IHealthCheck",
-        "IHealthCheck",
-
-        // Hosted services are handled by IoCTools but should not emit IOC068
-        "Microsoft.Extensions.Hosting.BackgroundService",
-        "BackgroundService",
-        "Microsoft.Extensions.Hosting.IHostedService",
-        "IHostedService"
-    };
+    private static HashSet<string> FrameworkBaseTypes => DiagnosticConfiguration.GetDefaultFrameworkBaseTypes();
 
     internal static void Validate(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         SemanticModel semanticModel,
-        string implicitLifetime)
+        string implicitLifetime,
+        DiagnosticConfiguration? diagnosticConfig = null)
     {
         if (classSymbol.IsAbstract) return;
 
@@ -96,7 +39,8 @@ internal static class MissedOpportunityValidator
             return;
 
         // Skip classes that inherit from known framework base types
-        if (InheritsFromFrameworkType(classSymbol))
+        var frameworkBaseTypes = diagnosticConfig?.FrameworkBaseTypes ?? FrameworkBaseTypes;
+        if (InheritsFromFrameworkType(classSymbol, frameworkBaseTypes))
             return;
 
         // Must be partial to benefit from generator; otherwise still suggest (info) since user can make it partial.
@@ -138,13 +82,13 @@ internal static class MissedOpportunityValidator
     /// <summary>
     ///     Checks if the class inherits from any known framework base type.
     /// </summary>
-    private static bool InheritsFromFrameworkType(INamedTypeSymbol classSymbol)
+    private static bool InheritsFromFrameworkType(INamedTypeSymbol classSymbol, HashSet<string> frameworkBaseTypes)
     {
         // Check base type chain
         var current = classSymbol.BaseType;
         while (current != null && current.SpecialType != SpecialType.System_Object)
         {
-            if (IsFrameworkType(current))
+            if (IsFrameworkType(current, frameworkBaseTypes))
                 return true;
             current = current.BaseType;
         }
@@ -152,7 +96,7 @@ internal static class MissedOpportunityValidator
         // Check implemented interfaces
         foreach (var iface in classSymbol.AllInterfaces)
         {
-            if (IsFrameworkType(iface))
+            if (IsFrameworkType(iface, frameworkBaseTypes))
                 return true;
         }
 
@@ -162,17 +106,17 @@ internal static class MissedOpportunityValidator
     /// <summary>
     ///     Checks if a type matches any known framework type by name.
     /// </summary>
-    private static bool IsFrameworkType(INamedTypeSymbol type)
+    private static bool IsFrameworkType(INamedTypeSymbol type, HashSet<string> frameworkBaseTypes)
     {
         var fullName = type.ToDisplayString();
         var simpleName = type.Name;
 
         // Check exact full name match
-        if (FrameworkBaseTypes.Contains(fullName))
+        if (frameworkBaseTypes.Contains(fullName))
             return true;
 
         // Check simple name match
-        if (FrameworkBaseTypes.Contains(simpleName))
+        if (frameworkBaseTypes.Contains(simpleName))
             return true;
 
         // For generic types, also check the constructed-from type
@@ -182,13 +126,13 @@ internal static class MissedOpportunityValidator
             var constructedFullName = constructedFrom.ToDisplayString();
             var constructedSimpleName = constructedFrom.Name;
 
-            if (FrameworkBaseTypes.Contains(constructedFullName) ||
-                FrameworkBaseTypes.Contains(constructedSimpleName))
+            if (frameworkBaseTypes.Contains(constructedFullName) ||
+                frameworkBaseTypes.Contains(constructedSimpleName))
                 return true;
 
             // Check with arity suffix (e.g., "AuthenticationHandler`1")
             var nameWithArity = constructedSimpleName + "`" + type.TypeArguments.Length;
-            if (FrameworkBaseTypes.Any(f => f.EndsWith(nameWithArity, StringComparison.Ordinal) ||
+            if (frameworkBaseTypes.Any(f => f.EndsWith(nameWithArity, StringComparison.Ordinal) ||
                                             f.EndsWith("." + nameWithArity, StringComparison.Ordinal)))
                 return true;
         }

@@ -47,6 +47,10 @@ internal static class DiagnosticUtilities
         if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns))
             config.CompiledIgnoredPatterns = CompileIgnoredTypePatterns(ignoredPatterns);
 
+        // Parse IoCToolsFrameworkBaseTypes for custom framework base type exclusions
+        if (tryGetValue("build_property.IoCToolsFrameworkBaseTypes", out var frameworkTypes))
+            config.FrameworkBaseTypes = ParseFrameworkBaseTypes(frameworkTypes);
+
         return config;
     }
 
@@ -90,6 +94,30 @@ internal static class DiagnosticUtilities
             new Regex("^.*\\.Interfaces\\..*$", RegexOptions.Compiled),
             new Regex("^.*\\.ILoggerService<.*>$", RegexOptions.Compiled)
         };
+    }
+
+    internal static HashSet<string> ParseFrameworkBaseTypes(string frameworkTypesString)
+    {
+        if (string.IsNullOrWhiteSpace(frameworkTypesString))
+            return Models.DiagnosticConfiguration.GetDefaultFrameworkBaseTypes();
+
+        var types = frameworkTypesString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+        if (types.Length == 0)
+            return Models.DiagnosticConfiguration.GetDefaultFrameworkBaseTypes();
+
+        // Start with defaults and merge with custom types
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var type in Models.DiagnosticConfiguration.GetDefaultFrameworkBaseTypes())
+            result.Add(type);
+
+        foreach (var type in types)
+        {
+            var trimmedType = type.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmedType))
+                result.Add(trimmedType);
+        }
+
+        return result;
     }
 
     private static DiagnosticSeverity ParseDiagnosticSeverity(string severity)
