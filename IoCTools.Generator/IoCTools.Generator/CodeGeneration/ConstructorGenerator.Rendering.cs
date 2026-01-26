@@ -31,7 +31,8 @@ internal static partial class ConstructorGenerator
                               {{accessibilityModifier}} partial {{typeKeyword}} {{fullClassName}}{{constraintClauses}}
                               {
                                   {{fieldsStr}}
-                                  
+
+                                  [System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.3.0")]
                                   public {{constructorName}}({{parameterStr}}){{baseCallStr}}
                                   {
                                       {{assignmentStr}}
@@ -49,7 +50,8 @@ internal static partial class ConstructorGenerator
                               {{accessibilityModifier}} partial {{typeKeyword}} {{fullClassName}}{{constraintClauses}}
                               {
                                   {{fieldsStr}}
-                                  
+
+                                  [System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.3.0")]
                                   public {{constructorName}}({{parameterStr}}){{baseCallStr}}
                                   {
                                       {{assignmentStr}}
