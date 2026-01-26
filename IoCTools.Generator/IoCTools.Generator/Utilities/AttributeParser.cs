@@ -309,6 +309,20 @@ internal static class AttributeParser
     ///         GenerateFieldName("string", "CamelCase", true, "_") → "_string"
     ///     </code>
     /// </remarks>
+    public static string GenerateFieldName(string originalTypeName,
+        string namingConvention,
+        bool stripI,
+        string prefix)
+    {
+        // Extract semantic base name for the field
+        var fieldBaseName = ExtractSemanticFieldName(originalTypeName);
+
+        // Apply naming convention and prefix handling
+        var fieldName = ApplyPrefixToFieldName(fieldBaseName, namingConvention, prefix);
+
+        // Handle C# reserved keywords by adding a suffix
+        return EscapeReservedKeyword(fieldName);
+    }
 
     private static string ExtractSemanticFieldName(string originalTypeName)
     {
