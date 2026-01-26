@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator.Pipeline;
 using System.Collections.Immutable;
 
 using Microsoft.CodeAnalysis.CSharp;
+using Utilities;
 
 internal static class ServiceClassPipeline
 {
@@ -25,7 +26,7 @@ internal static class ServiceClassPipeline
                     var hasInject = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(symbol);
                     var hasInjectConfig = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(symbol);
                     var hasDependsOn = symbol.GetAttributes()
-                        .Any(a => a.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+                        .Any(AttributeTypeChecker.IsDependsOnAttribute);
                     var hasRegAll = symbol.GetAttributes().Any(a => a.AttributeClass?.Name == "RegisterAsAllAttribute");
                     var hasRegAs = symbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
                     var hasConditional = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() ==

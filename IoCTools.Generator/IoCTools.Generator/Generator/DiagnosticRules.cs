@@ -61,7 +61,7 @@ internal static class DiagnosticRules
         var hasInjectFields = classSymbol.GetMembers().OfType<IFieldSymbol>()
             .Any(field => field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectAttribute"));
         var hasDependsOnAttributes = classSymbol.GetAttributes()
-            .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+            .Any(AttributeTypeChecker.IsDependsOnAttribute);
 
         if ((hasInjectFields || hasDependsOnAttributes) && !isPartial)
         {
@@ -455,11 +455,10 @@ internal static class DiagnosticRules
             case DependencySource.DependsOn:
                 foreach (var attr in classAttributes)
                 {
-                    if (attr.AttributeClass == null) continue;
-                    if (!attr.AttributeClass.Name.StartsWith("DependsOnAttribute", StringComparison.Ordinal))
+                    if (!AttributeTypeChecker.IsDependsOnAttribute(attr))
                         continue;
 
-                    if (attr.AttributeClass.TypeArguments.Any(t =>
+                    if (attr.AttributeClass!.TypeArguments.Any(t =>
                             SymbolEqualityComparer.Default.Equals(
                                 t.WithNullableAnnotation(NullableAnnotation.None),
                                 dependencyType.WithNullableAnnotation(NullableAnnotation.None))))

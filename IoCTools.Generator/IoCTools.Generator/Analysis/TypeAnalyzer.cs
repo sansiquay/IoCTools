@@ -180,8 +180,7 @@ internal static class TypeAnalyzer
             attr.AttributeClass?.Name == "ExternalServiceAttribute" ||
             attr.AttributeClass?.Name == "ConditionalServiceAttribute" ||
             AttributeTypeChecker.IsSkipRegistrationAttribute(attr) ||
-            (attr.AttributeClass?.IsGenericType == true &&
-             attr.AttributeClass.Name == "DependsOn"));
+            AttributeTypeChecker.IsDependsOnAttribute(attr));
 
         if (hasAttributes) return true;
 

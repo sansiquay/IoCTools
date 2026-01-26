@@ -24,7 +24,7 @@ internal static class ConstructorEmitter
             var hasInjectConfigurationFields =
                 ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(serviceInfo.ClassSymbol);
             var hasDependsOnAttribute = serviceInfo.ClassSymbol.GetAttributes()
-                .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+                .Any(AttributeTypeChecker.IsDependsOnAttribute);
             var hasConditionalServiceAttribute = serviceInfo.ClassSymbol.GetAttributes()
                 .Any(attr =>
                     attr.AttributeClass?.ToDisplayString() ==

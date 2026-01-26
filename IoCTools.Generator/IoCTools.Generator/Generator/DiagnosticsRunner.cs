@@ -310,7 +310,7 @@ internal static class DiagnosticsRunner
                         "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
                     var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(currentType);
                     var hasDependsOnAttribute = currentType.GetAttributes()
-                        .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+                        .Any(AttributeTypeChecker.IsDependsOnAttribute);
                     var hasRegisterAsAllAttribute = currentType.GetAttributes()
                         .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
                     var hasRegisterAsAttribute = currentType.GetAttributes()

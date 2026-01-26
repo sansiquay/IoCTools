@@ -120,4 +120,20 @@ internal static class AttributeTypeChecker
                    .StartsWith(SkipRegistrationAttribute, StringComparison.Ordinal) &&
                attribute.AttributeClass.IsGenericType;
     }
+
+    /// <summary>
+    /// Checks if an attribute is a DependsOnAttribute (non-generic or generic).
+    /// DependsOnAttribute can be non-generic (DependsOnAttribute) or generic (DependsOnAttribute<T1, T2, ...>).
+    /// </summary>
+    public static bool IsDependsOnAttribute(AttributeData? attribute)
+    {
+        if (attribute?.AttributeClass == null) return false;
+
+        // Check for the generic DependsOnAttribute<T1, T2, ...>
+        if (attribute.AttributeClass.Name == "DependsOnAttribute")
+            return true;
+
+        // Check for the non-generic DependsOn attribute (name starts with "DependsOn")
+        return attribute.AttributeClass.Name?.StartsWith("DependsOn", StringComparison.Ordinal) == true;
+    }
 }

@@ -3,6 +3,7 @@ namespace IoCTools.Generator.CodeGeneration;
 using IoCTools.Generator.Analysis;
 using IoCTools.Generator.Models;
 using Microsoft.CodeAnalysis;
+using Utilities;
 
 /// <summary>
 ///     Responsible for determining if and how to call base class constructors
@@ -188,7 +189,7 @@ internal static class BaseConstructorCallBuilder
             .Any(field =>
                 field.GetAttributes().Any(attr => attr.AttributeClass?.Name == "InjectConfigurationAttribute"));
         var hasDependsOnAttribute = baseClass.GetAttributes()
-            .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+            .Any(AttributeTypeChecker.IsDependsOnAttribute);
         var hasConditionalServiceAttribute = baseClass.GetAttributes().Any(attr =>
             attr.AttributeClass?.ToDisplayString() ==
             "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");

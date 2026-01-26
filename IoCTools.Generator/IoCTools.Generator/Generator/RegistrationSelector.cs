@@ -163,8 +163,7 @@ internal static class RegistrationSelector
 
             var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(classSymbol);
             var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
-            var hasDependsOnAttribute = classSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
+            var hasDependsOnAttribute = classSymbol.GetAttributes().Any(AttributeTypeChecker.IsDependsOnAttribute);
             var hasInjectConfigurationFields =
                 ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(classSymbol);
             var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
