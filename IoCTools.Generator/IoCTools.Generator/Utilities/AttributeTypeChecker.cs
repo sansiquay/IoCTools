@@ -1,7 +1,8 @@
 namespace IoCTools.Generator.Utilities;
 
-using Microsoft.CodeAnalysis;
 using System.Linq;
+
+using Microsoft.CodeAnalysis;
 
 internal static class AttributeTypeChecker
 {
@@ -18,10 +19,10 @@ internal static class AttributeTypeChecker
     public const string DependsOnConfigurationAttributeGeneric = "IoCTools.Abstractions.Annotations.DependsOnConfigurationAttribute<";
     public const string DependencySetAttribute = "IoCTools.Abstractions.Annotations.DependencySetAttribute";
     public const string InjectConfigurationAttribute = "IoCTools.Abstractions.Annotations.InjectConfigurationAttribute";
-    
+
     // Interfaces
     public const string DependencySetInterface = "IoCTools.Abstractions.IDependencySet";
-    
+
     // Microsoft Attributes/Interfaces
     public const string MicrosoftOptions = "Microsoft.Extensions.Options";
     public const string MicrosoftHostedService = "Microsoft.Extensions.Hosting.IHostedService";
@@ -45,7 +46,7 @@ internal static class AttributeTypeChecker
         var displayString = attribute.AttributeClass.ToDisplayString();
         return fullTypeNames.Contains(displayString);
     }
-    
+
     /// <summary>
     /// Checks if a symbol matches a specific type name (for interfaces, base classes, etc.)
     /// </summary>
@@ -53,7 +54,7 @@ internal static class AttributeTypeChecker
     {
         return symbol?.ToDisplayString() == fullTypeName;
     }
-    
+
     /// <summary>
     /// Checks if a symbol matches a specific type name using SymbolEqualityComparer if target is provided.
     /// </summary>

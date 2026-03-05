@@ -2,7 +2,9 @@ namespace IoCTools.Generator.CodeGeneration;
 
 using IoCTools.Generator.Analysis;
 using IoCTools.Generator.Models;
+
 using Microsoft.CodeAnalysis;
+
 using Utilities;
 
 /// <summary>

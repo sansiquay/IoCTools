@@ -394,8 +394,8 @@ IoCTools/
 - **Platform**: .NET 9.0 project using the latest C# language features
 - **Compatibility**: Generator targets `netstandard2.0` for broad framework support
 - **Packaging**: Both packages configured for automatic NuGet packaging (`GeneratePackageOnBuild`)
-- **Maturity**: v1.0.0 release with production-ready architecture and comprehensive validation
-- **Testing**: Comprehensive test coverage across formal test suite (57+ test files) and sample application integration testing
+- **Maturity**: v1.3.0 release with production-ready architecture and comprehensive validation
+- **Testing**: Comprehensive test coverage across formal test suite (1650+ tests) and sample application integration testing
 - **Architecture**: Intelligent service registration with individual lifetime attributes and cross-assembly diagnostic validation
 
 ### Performance Considerations
@@ -592,35 +592,6 @@ while (currentType != null && currentType.SpecialType != SpecialType.System_Obje
 
 ---
 
-## Issue Tracking and Verification
+## Future Work
 
-This project uses **beads** for issue tracking. When closing a bead, verify completion with objective evidence:
-
-**Verification Checklist:**
-- [ ] **Code changes committed**: `git diff --stat` shows expected modifications
-- [ ] **Tests pass**: Run `dotnet test` or relevant test command - all tests pass
-- [ ] **Acceptance criteria met**: Each criterion from the bead has corresponding evidence
-- [ ] **No silent scope creep**: Out-of-scope work is tracked as separate beads
-
-**Before Closing a Bead:**
-```bash
-# 1. Check what changed
-git diff --stat
-
-# 2. Verify tests pass
-dotnet test
-
-# 3. Commit changes
-git add -A
-git commit -m "message"
-
-# 4. Close bead
-bd close <id> --reason="Summary of completion"
-bd sync
-```
-
-**Why Verification Matters:**
-- Prevents closing beads without actual implementation
-- Ensures tests are run and passing
-- Maintains traceability between beads and commits
-- Catches scope creep before it becomes lost work
+See `ideas.md` for a curated list of future improvements, diagnostics, and feature ideas.

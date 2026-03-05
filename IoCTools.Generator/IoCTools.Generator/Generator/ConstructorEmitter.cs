@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator;
 using System.Text;
 
 using CodeGeneration;
+
 using IoCTools.Generator.Utilities;
 
 using Microsoft.CodeAnalysis.Text;

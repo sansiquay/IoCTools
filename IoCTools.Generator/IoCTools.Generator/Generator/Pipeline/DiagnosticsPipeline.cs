@@ -1,6 +1,7 @@
 namespace IoCTools.Generator.Generator.Pipeline;
 
 using System.Collections.Immutable;
+
 using IoCTools.Generator.Diagnostics;
 
 internal static class DiagnosticsPipeline

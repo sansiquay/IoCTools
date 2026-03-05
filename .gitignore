@@ -30,9 +30,6 @@ debug_generated_content.txt
 
 artifacts/
 
-# bv (beads viewer) local config and caches
-.bv/
-
 # JetBrains Rider user-specific settings and crash dumps
 *.DotSettings.user
 *.hprof

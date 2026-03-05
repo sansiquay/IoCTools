@@ -1,6 +1,7 @@
 namespace IoCTools.Generator.Analysis;
 
 using Microsoft.CodeAnalysis.CSharp;
+
 using Utilities;
 
 internal static class TypeAnalyzer

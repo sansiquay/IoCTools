@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 
 using Diagnostics.Validators;
+
 using IoCTools.Generator.Utilities;
 
 using Microsoft.CodeAnalysis;

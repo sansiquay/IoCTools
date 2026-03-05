@@ -29,7 +29,7 @@
 - Run `dotnet test IoCTools.sln` before pushing; prefer `-c Release` when validating package builds.
 
 ## Commit & Pull Request Guidelines
-- Commit messages: short, imperative present tense (e.g., “Fix analyzer warning”); bundle related changes together.
+- Commit messages: short, imperative present tense (e.g., "Fix analyzer warning"); bundle related changes together.
 - PRs should include: summary of behavior change, linked issue (if any), testing notes (`dotnet test` output is enough), and before/after snippets for generator/CLI changes.
 - Keep diffs lean: remove dead code, avoid feature flags unless required, and update docs/examples when attributes or diagnostics change.
 
@@ -37,29 +37,3 @@
 - No secrets in sources or test assets; local config lives in user secrets or environment variables.
 - Generator and CLI create artifacts under `obj/` or `artifacts/`; avoid committing those directories.
 - When sharing repros, prefer `dotnet ioc-tools compare --project <csproj> --output ./artifacts/snap` to capture generated files without editing tracked sources.
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds

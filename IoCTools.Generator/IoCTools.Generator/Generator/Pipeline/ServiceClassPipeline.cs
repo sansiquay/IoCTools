@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator.Pipeline;
 using System.Collections.Immutable;
 
 using Microsoft.CodeAnalysis.CSharp;
+
 using Utilities;
 
 internal static class ServiceClassPipeline

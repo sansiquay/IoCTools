@@ -1,9 +1,10 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
+using IoCTools.Generator.Models;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-using IoCTools.Generator.Models;
 using Utilities;
 
 internal static class MissedOpportunityValidator

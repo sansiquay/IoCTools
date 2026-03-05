@@ -7,6 +7,7 @@ using CodeGeneration;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+
 using Utilities;
 
 internal static class RegistrationEmitter

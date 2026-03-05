@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator;
 using CodeGeneration;
 
 using Intent;
+
 using Utilities;
 
 internal static class RegistrationSelector

@@ -714,7 +714,7 @@ internal static class DependencyAnalyzer
     /// <summary>
     ///     Gets dependencies with their inheritance levels from RawAllDependencies.
     /// </summary>
-    private static List<( (ITypeSymbol ServiceType, string FieldName, DependencySource Source) dependency, int level)>
+    private static List<((ITypeSymbol ServiceType, string FieldName, DependencySource Source) dependency, int level)>
         GetDependenciesWithLevels(
             List<(ITypeSymbol ServiceType, string FieldName, DependencySource Source)> dependencies,
             InheritanceHierarchyDependencies diagnosticDependencies)

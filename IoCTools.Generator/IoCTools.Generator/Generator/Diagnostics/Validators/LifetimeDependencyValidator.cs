@@ -25,7 +25,7 @@ internal static class LifetimeDependencyValidator
             var baseServiceLifetime =
                 DependencyLifetimeResolver.GetDependencyLifetimeForSourceProduction(currentType, serviceLifetimes,
                     allImplementations, implicitLifetime);
-            
+
             if (baseServiceLifetime != null)
             {
                 var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, baseServiceLifetime);
@@ -50,7 +50,7 @@ internal static class LifetimeDependencyValidator
                         var depLifetime =
                             DependencyLifetimeResolver.GetDependencyLifetimeForSourceProduction(typeArg,
                                 serviceLifetimes, allImplementations, implicitLifetime);
-                        
+
                         if (depLifetime != null)
                         {
                             var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, depLifetime);
