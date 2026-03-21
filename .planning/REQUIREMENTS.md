@@ -67,14 +67,14 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Documentation
 
-- [ ] **DOC-01**: Evaluate single-doc vs multi-page documentation structure
-- [ ] **DOC-02**: If warranted, migrate to multi-page docs in `/docs/` directory
+- [x] **DOC-01**: Evaluate single-doc vs multi-page documentation structure
+- [x] **DOC-02**: If warranted, migrate to multi-page docs in `/docs/` directory
 - [ ] **DOC-03**: Getting started guide (5-minute path to first working service)
 - [ ] **DOC-04**: Attributes reference page with examples for all attributes
 - [ ] **DOC-05**: Diagnostics reference page (searchable table of all diagnostics with fix guidance)
 - [ ] **DOC-06**: CLI reference page with command examples
 - [ ] **DOC-07**: IoCTools.Testing usage guide
-- [ ] **DOC-08**: Update README to cover v1.3.0+ features completely
+- [x] **DOC-08**: Update README to cover v1.3.0+ features completely
 - [ ] **DOC-09**: Cross-reference netstandard2.0 constraints in documentation
 
 ## v2 Requirements
@@ -154,14 +154,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TDIAG-03 | Phase 3 | Complete |
 | TDIAG-04 | Phase 3 | Complete |
 | TDIAG-05 | Phase 3 | Complete |
-| DOC-01 | Phase 4 | Pending |
-| DOC-02 | Phase 4 | Pending |
+| DOC-01 | Phase 4 | Complete |
+| DOC-02 | Phase 4 | Complete |
 | DOC-03 | Phase 4 | Pending |
 | DOC-04 | Phase 4 | Pending |
 | DOC-05 | Phase 4 | Pending |
 | DOC-06 | Phase 4 | Pending |
 | DOC-07 | Phase 4 | Pending |
-| DOC-08 | Phase 4 | Pending |
+| DOC-08 | Phase 4 | Complete |
 | DOC-09 | Phase 4 | Pending |
 
 **Coverage:**

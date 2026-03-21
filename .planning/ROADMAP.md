@@ -85,7 +85,7 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Restructure README.md to lean 250-300 line landing page and create CHANGELOG.md
+- [x] 04-01-PLAN.md — Restructure README.md to lean 250-300 line landing page and create CHANGELOG.md
 - [ ] 04-02-PLAN.md — Create getting-started.md, attributes.md, and configuration.md
 - [ ] 04-03-PLAN.md — Create testing.md, cli-reference.md, platform-constraints.md, and migration.md
 - [ ] 04-04-PLAN.md — Enhance diagnostics.md with categories and update CONTRIBUTING.md
