@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Every diagnostic descriptor (87+) has a non-empty HelpLinkUri and a specific IDE category (Lifetime, Dependency, Configuration, Registration, or Structural)
   4. IOC012/013 messages include the IServiceProvider/CreateScope() suggestion, and IOC015 shows the full inheritance path (e.g., A -> B -> C)
   5. The project builds with zero CS8603 warnings in sample code
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Add HelpLinkUri, IDE categories, and enhanced messages to all 87 diagnostic descriptors; create docs/diagnostics.md reference
+- [ ] 01-02-PLAN.md — Centralize RegisterAsAllAttribute checks, tighten exception handling, adopt ReportDiagnosticDelegate, fix CS8603, add InstanceSharing comments
 
 ### Phase 2: typeof() Diagnostics and CLI
 **Goal**: Users get diagnostic guidance for typeof()-based DI registrations and CLI users get machine-readable output, debugging tools, and improved filtering
