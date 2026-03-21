@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Add HelpLinkUri, IDE categories, and enhanced messages to all 87 diagnostic descriptors; create docs/diagnostics.md reference
-- [ ] 01-02-PLAN.md — Centralize RegisterAsAllAttribute checks, tighten exception handling, adopt ReportDiagnosticDelegate, fix CS8603, add InstanceSharing comments
+- [x] 01-02-PLAN.md — Centralize RegisterAsAllAttribute checks, tighten exception handling, adopt ReportDiagnosticDelegate, fix CS8603, add InstanceSharing comments
 
 ### Phase 2: typeof() Diagnostics and CLI
 **Goal**: Users get diagnostic guidance for typeof()-based DI registrations and CLI users get machine-readable output, debugging tools, and improved filtering

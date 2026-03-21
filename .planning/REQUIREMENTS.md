@@ -59,11 +59,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Code Quality
 
-- [ ] **QUAL-01**: Centralize RegisterAsAllAttribute checks using AttributeTypeChecker (20 inconsistent locations)
-- [ ] **QUAL-02**: Adopt ReportDiagnosticDelegate pattern in 3-4 more validators
-- [ ] **QUAL-03**: Resolve CS8603 null reference warnings in sample code (3 instances in MultiInterfaceExamples.cs)
-- [ ] **QUAL-04**: Add code comments explaining InstanceSharing.Separate default behavior
-- [ ] **QUAL-05**: Tighten bare catch(Exception) blocks in ConstructorGenerator, InterfaceDiscovery, and ServiceRegistrationGenerator
+- [x] **QUAL-01**: Centralize RegisterAsAllAttribute checks using AttributeTypeChecker (20 inconsistent locations)
+- [x] **QUAL-02**: Adopt ReportDiagnosticDelegate pattern in 3-4 more validators
+- [x] **QUAL-03**: Resolve CS8603 null reference warnings in sample code (3 instances in MultiInterfaceExamples.cs)
+- [x] **QUAL-04**: Add code comments explaining InstanceSharing.Separate default behavior
+- [x] **QUAL-05**: Tighten bare catch(Exception) blocks in ConstructorGenerator, InterfaceDiscovery, and ServiceRegistrationGenerator
 
 ### Documentation
 
@@ -114,11 +114,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUAL-01 | Phase 1 | Pending |
-| QUAL-02 | Phase 1 | Pending |
-| QUAL-03 | Phase 1 | Pending |
-| QUAL-04 | Phase 1 | Pending |
-| QUAL-05 | Phase 1 | Pending |
+| QUAL-01 | Phase 1 | Complete |
+| QUAL-02 | Phase 1 | Complete |
+| QUAL-03 | Phase 1 | Complete |
+| QUAL-04 | Phase 1 | Complete |
+| QUAL-05 | Phase 1 | Complete |
 | DUX-01 | Phase 1 | Complete |
 | DUX-02 | Phase 1 | Complete |
 | DUX-03 | Phase 1 | Complete |

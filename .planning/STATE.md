@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-21T17:12:44.129Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-21T17:15:45.072Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 01 P01 | 8min | 2 tasks | 7 files |
+| Phase 01 P02 | 10min | 3 tasks | 23 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Documentation deferred to Phase 4 (after all features stabilize)
 - [Phase 01]: HelpLinkUri pattern: docs/diagnostics.md#iocXXX with anchored entries
 - [Phase 01]: IDE categories use IoCTools.{Subcategory} with 5 subcategories matching descriptor files
+- [Phase 01]: DiagnosticRules kept as adapter layer between SourceProductionContext and ReportDiagnosticDelegate validators
+- [Phase 01]: Exception sites re-throw with OOM/SOF filter rather than silently returning, delegating to caller-level diagnostic emitters
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T17:12:44.127Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-21T17:15:45.070Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
