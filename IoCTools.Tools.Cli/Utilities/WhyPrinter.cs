@@ -1,29 +1,55 @@
 namespace IoCTools.Tools.Cli;
 
+using System.Text.Json;
+
+internal sealed record MatchResult(string Kind, string FieldName, string TypeName, string Source, bool IsExternal);
+
 internal static class WhyPrinter
 {
     public static void Write(ServiceFieldReport report,
-        string dependency)
+        string dependency,
+        OutputContext output)
     {
-        Console.WriteLine($"Service: {report.TypeName}");
-        var matches = report.DependencyFields.Where(d => d.TypeName.Contains(dependency, StringComparison.OrdinalIgnoreCase))
-            .Select(d => ("Dependency", d.FieldName, d.TypeName, d.Source, d.IsExternal)).ToList();
-        matches.AddRange(report.ConfigurationFields
+        var matches = new List<MatchResult>();
+        foreach (var d in report.DependencyFields.Where(d => d.TypeName.Contains(dependency, StringComparison.OrdinalIgnoreCase)))
+            matches.Add(new MatchResult("Dependency", d.FieldName, d.TypeName, d.Source ?? string.Empty, d.IsExternal));
+        foreach (var c in report.ConfigurationFields
             .Where(c => c.TypeName.Contains(dependency, StringComparison.OrdinalIgnoreCase) ||
-                        (c.ConfigurationKey?.Contains(dependency, StringComparison.OrdinalIgnoreCase) ?? false))
-            .Select(c => ("Configuration", c.FieldName, c.TypeName, c.ConfigurationKey ?? "<section>", false)));
+                        (c.ConfigurationKey?.Contains(dependency, StringComparison.OrdinalIgnoreCase) ?? false)))
+            matches.Add(new MatchResult("Configuration", c.FieldName, c.TypeName, c.ConfigurationKey ?? "<section>", false));
+
+        if (output.IsJson)
+        {
+            var payload = new
+            {
+                typeName = report.TypeName,
+                dependency,
+                matches = matches.Select(m => new
+                {
+                    kind = m.Kind,
+                    fieldName = m.FieldName,
+                    typeName = m.TypeName,
+                    source = m.Source,
+                    isExternal = m.IsExternal
+                })
+            };
+            output.WriteJson(payload);
+            return;
+        }
+
+        output.WriteLine($"Service: {report.TypeName}");
 
         if (matches.Count == 0)
         {
-            Console.WriteLine($"No generated dependency matched '{dependency}'.");
+            output.WriteLine($"No generated dependency matched '{dependency}'.");
 
             // Suggest close matches with correct casing
             var suggestions = GetSuggestions(dependency, report);
             if (suggestions.Count > 0)
             {
-                Console.WriteLine("Did you mean:");
+                output.WriteLine("Did you mean:");
                 foreach (var suggestion in suggestions.Take(3))
-                    Console.WriteLine($"  - {suggestion}");
+                    output.WriteLine($"  - {suggestion}");
             }
 
             return;
@@ -31,12 +57,12 @@ internal static class WhyPrinter
 
         foreach (var match in matches)
         {
-            Console.WriteLine($"- Kind: {match.Item1}");
-            Console.WriteLine($"  Field: {match.Item2}");
-            Console.WriteLine($"  Type:  {match.Item3}");
-            Console.WriteLine($"  Source: {match.Item4}");
-            if (match.Item1 == "Dependency")
-                Console.WriteLine($"  External: {match.Item5}");
+            output.WriteLine($"- Kind: {match.Kind}");
+            output.WriteLine($"  Field: {match.FieldName}");
+            output.WriteLine($"  Type:  {match.TypeName}");
+            output.WriteLine($"  Source: {match.Source}");
+            if (match.Kind == "Dependency")
+                output.WriteLine($"  External: {match.IsExternal}");
         }
     }
 

@@ -5,7 +5,8 @@ using System.Text.Json;
 internal static class ConfigAuditPrinter
 {
     public static void Write(IReadOnlyList<ServiceFieldReport> reports,
-        string? settingsPath)
+        string? settingsPath,
+        OutputContext output)
     {
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var report in reports)
@@ -17,9 +18,39 @@ internal static class ConfigAuditPrinter
             keys.Add(key);
         }
 
+        if (output.IsJson)
+        {
+            HashSet<string> jsonSettingsKeys = new(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
+                try
+                {
+                    using var stream = File.OpenRead(settingsPath);
+                    using var doc = JsonDocument.Parse(stream);
+                    Flatten(doc.RootElement, jsonSettingsKeys, string.Empty);
+                }
+                catch
+                {
+                    // Silently ignore settings read errors in JSON mode
+                }
+
+            var jsonMissing = jsonSettingsKeys.Count == 0
+                ? keys
+                : keys.Where(k => !jsonSettingsKeys.Contains(k)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var payload = new
+            {
+                requiredBindings = keys.Count,
+                settingsKeysDiscovered = jsonSettingsKeys.Count,
+                missingKeys = jsonMissing,
+                allKeys = keys
+            };
+            output.WriteJson(payload);
+            return;
+        }
+
         if (keys.Count == 0)
         {
-            Console.WriteLine("No configuration bindings found in project.");
+            output.WriteLine("No configuration bindings found in project.");
             return;
         }
 
@@ -33,27 +64,27 @@ internal static class ConfigAuditPrinter
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to read settings file '{settingsPath}': {ex.Message}");
+                output.WriteError($"Failed to read settings file '{settingsPath}': {ex.Message}");
             }
 
         var missing = settingsKeys.Count == 0
             ? keys
             : keys.Where(k => !settingsKeys.Contains(k)).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        Console.WriteLine("Configuration audit:");
-        Console.WriteLine($"  Required bindings: {keys.Count}");
+        output.WriteLine("Configuration audit:");
+        output.WriteLine($"  Required bindings: {keys.Count}");
         if (settingsKeys.Count > 0)
-            Console.WriteLine($"  Settings keys discovered: {settingsKeys.Count}");
+            output.WriteLine($"  Settings keys discovered: {settingsKeys.Count}");
 
         if (missing.Count == 0)
         {
-            Console.WriteLine("  All keys present in provided settings.");
+            output.WriteLine("  All keys present in provided settings.");
         }
         else
         {
-            Console.WriteLine("  Missing keys:");
+            output.WriteLine("  Missing keys:");
             foreach (var key in missing.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
-                Console.WriteLine($"    - {key}");
+                output.WriteLine($"    - {key}");
         }
     }
 

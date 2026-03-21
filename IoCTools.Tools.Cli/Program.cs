@@ -234,7 +234,7 @@ public static class Program
         else
         {
             var summary = RegistrationSummaryBuilder.Build(path!);
-            RegistrationPrinter.Write(summary);
+            RegistrationPrinter.Write(summary, output);
         }
         output.ReportTiming("Command completed");
         return 0;
@@ -283,7 +283,7 @@ public static class Program
         if (target == null)
             return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
 
-        ExplainPrinter.Write(target);
+        ExplainPrinter.Write(target, output);
         output.ReportTiming("Command completed");
         return 0;
     }
@@ -309,7 +309,7 @@ public static class Program
         }
 
         var summary = RegistrationSummaryBuilder.Build(path!);
-        GraphPrinter.Write(summary, options.Format, options.TypeName);
+        GraphPrinter.Write(summary, options.Format, options.TypeName, output);
         output.ReportTiming("Command completed");
         return 0;
     }
@@ -332,7 +332,7 @@ public static class Program
         if (target == null)
             return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
 
-        WhyPrinter.Write(target, options.Dependency);
+        WhyPrinter.Write(target, options.Dependency, output);
         output.ReportTiming("Command completed");
         return 0;
     }
@@ -351,7 +351,7 @@ public static class Program
         output.Verbose($"Project loaded: {context.Project.FilePath}");
 
         var diagnostics = await DiagnosticRunner.RunAsync(context, token);
-        DoctorPrinter.Write(diagnostics, options.FixableOnly);
+        DoctorPrinter.Write(diagnostics, options.FixableOnly, output);
         output.ReportTiming("Command completed");
         return diagnostics.Any(d => d.Severity == "Error") ? 1 : 0;
     }
@@ -389,7 +389,7 @@ public static class Program
         var sw = Stopwatch.StartNew();
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
         sw.Stop();
-        ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName);
+        ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName, output);
         output.ReportTiming("Command completed");
         return 0;
     }
@@ -408,7 +408,7 @@ public static class Program
         output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var reports = await inspector.GetFieldReportsAsync(null, Array.Empty<string>(), token);
-        ConfigAuditPrinter.Write(reports, options.SettingsPath);
+        ConfigAuditPrinter.Write(reports, options.SettingsPath, output);
         output.ReportTiming("Command completed");
         return 0;
     }

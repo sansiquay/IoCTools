@@ -6,7 +6,8 @@ internal static class GraphPrinter
 {
     public static void Write(RegistrationSummary summary,
         string format,
-        string? typeFilter)
+        string? typeFilter,
+        OutputContext output)
     {
         var records = string.IsNullOrWhiteSpace(typeFilter)
             ? summary.Records
@@ -15,47 +16,52 @@ internal static class GraphPrinter
                 string.Equals(r.ImplementationType, typeFilter, StringComparison.Ordinal)).ToList();
 
         format = format.ToLowerInvariant();
-        switch (format)
+
+        // JSON output via --json flag OR --format json
+        if (output.IsJson || format == "json")
         {
-            case "json":
-                var payload = records.Select(r => new
-                {
-                    r.Kind,
-                    r.ServiceType,
-                    r.ImplementationType,
-                    r.Lifetime,
-                    r.IsConditional,
-                    r.ConditionExpression
-                });
-                Console.WriteLine(JsonSerializer.Serialize(payload,
-                    new JsonSerializerOptions { WriteIndented = true }));
-                break;
-            case "mermaid":
-                Console.WriteLine("graph TD");
-                foreach (var r in records)
-                {
-                    if (r.Kind == RegistrationKind.Configuration) continue;
-                    var service = Sanitize(r.ServiceType);
-                    var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
-                    if (service == impl) continue; // Skip self-edges
-                    Console.WriteLine($"  {service} --> {impl}");
-                }
+            var payload = records.Select(r => new
+            {
+                r.Kind,
+                r.ServiceType,
+                r.ImplementationType,
+                r.Lifetime,
+                r.IsConditional,
+                r.ConditionExpression
+            });
+            // If --json flag, use WriteJson; otherwise direct output for backwards compat with --format json
+            if (output.IsJson)
+                output.WriteJson(payload);
+            else
+                Console.WriteLine(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+            return;
+        }
 
-                break;
-            default:
-                // fallback PlantUML-ish
-                Console.WriteLine("@startuml");
-                foreach (var r in records)
-                {
-                    if (r.Kind == RegistrationKind.Configuration) continue;
-                    var service = Sanitize(r.ServiceType);
-                    var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
-                    if (service == impl) continue; // Skip self-edges
-                    Console.WriteLine($"{service} --> {impl}");
-                }
-
-                Console.WriteLine("@enduml");
-                break;
+        if (format == "mermaid")
+        {
+            output.WriteLine("graph TD");
+            foreach (var r in records)
+            {
+                if (r.Kind == RegistrationKind.Configuration) continue;
+                var service = Sanitize(r.ServiceType);
+                var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
+                if (service == impl) continue; // Skip self-edges
+                output.WriteLine($"  {service} --> {impl}");
+            }
+        }
+        else
+        {
+            // fallback PlantUML-ish
+            output.WriteLine("@startuml");
+            foreach (var r in records)
+            {
+                if (r.Kind == RegistrationKind.Configuration) continue;
+                var service = Sanitize(r.ServiceType);
+                var impl = Sanitize(r.ImplementationType ?? r.ServiceType ?? "impl");
+                if (service == impl) continue; // Skip self-edges
+                output.WriteLine($"{service} --> {impl}");
+            }
+            output.WriteLine("@enduml");
         }
     }
 
