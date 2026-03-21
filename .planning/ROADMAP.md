@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Code Quality and Diagnostic UX** - Harden exception handling, centralize patterns, and polish diagnostic metadata across the existing codebase
 - [x] **Phase 2: typeof() Diagnostics and CLI** - Add typeof() registration diagnostics (IOC090-094) and extend CLI with --json, --verbose, color output, and filtering improvements (completed 2026-03-21)
-- [ ] **Phase 3: Test Fixture Generation** - Ship IoCTools.Testing as a new NuGet package that generates Moq-based test fixture base classes from the DI graph
+- [x] **Phase 3: Test Fixture Generation** - Ship IoCTools.Testing as a new NuGet package that generates Moq-based test fixture base classes from the DI graph (completed 2026-03-21)
 - [ ] **Phase 4: Documentation** - Evaluate and build documentation structure covering all v1.5.0 features including the new testing package
 
 ## Phase Details
@@ -65,13 +65,13 @@ Plans:
   4. Typed mock setup helpers (e.g., SetupUserRepository(Action<Mock<IUserRepository>>)) appear in IDE auto-complete on the generated fixture
   5. The test fixture generator has its own comprehensive test suite validating all supported service patterns
   6. Analyzer detects manual mock declarations and SUT construction for services with generated fixtures and suggests using the fixture instead
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — Create IoCTools.Testing.Abstractions and IoCTools.Testing projects with CoverAttribute
 - [x] 03-02-PLAN.md — Build test fixture generator with Mock<T> field, CreateSut(), and helper generation
 - [x] 03-03-PLAN.md — Add test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) to IoCTools.Generator
-- [ ] 03-04-PLAN.md — Create comprehensive test suite for IoCTools.Testing with sample usage examples
+- [x] 03-04-PLAN.md — Create comprehensive test suite for IoCTools.Testing with sample usage examples
 
 ### Phase 4: Documentation
 **Goal**: New and existing users can discover, learn, and reference all IoCTools features through well-structured documentation
@@ -98,5 +98,5 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 |-------|----------------|--------|-----------|
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
 | 2. typeof() Diagnostics and CLI | 5/5 | Complete   | 2026-03-21 |
-| 3. Test Fixture Generation | 3/4 | In Progress|  |
+| 3. Test Fixture Generation | 4/4 | Complete   | 2026-03-21 |
 | 4. Documentation | 0/2 | Not started | - |

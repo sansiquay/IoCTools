@@ -19,7 +19,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **TEST-08**: Generator produces configuration mock helpers for services using `[InjectConfiguration]` (pre-wired `IOptions<T>` setup)
 - [x] **TEST-09**: Generated fixture compiles without manual intervention for all supported service patterns
 - [x] **TEST-10**: Mock fields are auto-initialized (`new Mock<T>()`) in the fixture constructor
-- [ ] **TEST-11**: Comprehensive test suite for the test fixture generator covering all IoCTools service patterns
+- [x] **TEST-11**: Comprehensive test suite for the test fixture generator covering all IoCTools service patterns
 
 ### Test Fixture Analyzers
 
@@ -148,7 +148,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-08 | Phase 3 | Complete |
 | TEST-09 | Phase 3 | Complete |
 | TEST-10 | Phase 3 | Complete |
-| TEST-11 | Phase 3 | Pending |
+| TEST-11 | Phase 3 | Complete |
 | TDIAG-01 | Phase 3 | Complete |
 | TDIAG-02 | Phase 3 | Complete |
 | TDIAG-03 | Phase 3 | Complete |
