@@ -80,6 +80,15 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - GitHub Actions with `alirezanet/publish-nuget` auto-publishing on version change
 - CI recently fixed to properly restore/build CLI test projects
 
+**Current State:**
+- **Version:** v1.5.0 (shipped 2026-03-21)
+- **LOC:** ~100,303 lines of C# code
+- **Packages:** 4 NuGet packages (Abstractions, Generator, Tools.Cli, Testing)
+- **Diagnostics:** 99 total (IOC001-IOC094, TDIAG-01-TDIAG-05)
+- **Documentation:** 11 files, 3,420 lines across README.md, CHANGELOG.md, /docs/ directory
+- **Tests:** 1650+ passing across all test suites
+- **All v1.5.0 requirements validated**
+
 ## Constraints
 
 - **netstandard2.0**: Generator and Abstractions must maintain netstandard2.0 target for broad compatibility — no records, init-only properties, required members
@@ -91,9 +100,15 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Moq-only for test fixtures | Keeps generated code concrete, avoids abstraction gymnastics, Moq is dominant in .NET ecosystem | — Pending |
-| Separate IoCTools.Testing package | Test dependencies (Moq, xUnit) must not leak into production packages | — Pending |
-| Evaluate docs structure before committing to multi-page | Don't over-engineer docs if single-doc still works; but prepare to migrate if content exceeds reasonable size | — Pending |
+| Moq-only for test fixtures | Keeps generated code concrete, avoids abstraction gymnastics, Moq is dominant in .NET ecosystem | ✓ Implemented — IoCTools.Testing with Moq 4.20.72 |
+| Separate IoCTools.Testing package | Test dependencies (Moq, xUnit) must not leak into production packages | ✓ Implemented — Separate analyzer package, no transitive dependencies |
+| Evaluate docs structure before committing to multi-page | Don't over-engineer docs if single-doc still works; but prepare to migrate if content exceeds reasonable size | ✓ Implemented — Multi-page /docs/ structure (3,420 lines) |
+
+## Current State
+
+**Shipped v1.5.0:** Test fixture generation with IoCTools.Testing package, typeof() diagnostics (IOC090-094), CLI improvements, and documentation overhaul.
+
+**Next Milestone:** TBD — Use `/gsd:new-milestone` to plan next work.
 
 ## Evolution
 
@@ -113,4 +128,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 04 completion*
+*Last updated: 2026-03-21 after v1.5.0 milestone completion*
