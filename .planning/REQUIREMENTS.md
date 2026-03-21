@@ -52,9 +52,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **CLI-01**: --verbose flag for debugging (MSBuild diagnostics, generator timing, file paths)
 - [x] **CLI-02**: --json output mode for all commands (machine-readable output)
 - [x] **CLI-03**: Color-coded diagnostic output by severity (red/yellow/cyan)
-- [ ] **CLI-04**: Fuzzy type suggestions extended to all commands (extract WhyPrinter pattern)
-- [ ] **CLI-05**: Wildcard/regex support in FilterByType
-- [ ] **CLI-06**: Service count added to profile command output
+- [x] **CLI-04**: Fuzzy type suggestions extended to all commands (extract WhyPrinter pattern)
+- [x] **CLI-05**: Wildcard/regex support in FilterByType
+- [x] **CLI-06**: Service count added to profile command output
 - [x] **CLI-07**: .editorconfig recipe generation for suppressing IoCTools diagnostics
 
 ### Code Quality
@@ -134,9 +134,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-01 | Phase 2 | Complete |
 | CLI-02 | Phase 2 | Complete |
 | CLI-03 | Phase 2 | Complete |
-| CLI-04 | Phase 2 | Pending |
-| CLI-05 | Phase 2 | Pending |
-| CLI-06 | Phase 2 | Pending |
+| CLI-04 | Phase 2 | Complete |
+| CLI-05 | Phase 2 | Complete |
+| CLI-06 | Phase 2 | Complete |
 | CLI-07 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |

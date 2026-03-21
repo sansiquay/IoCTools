@@ -13,7 +13,7 @@ IoCTools v1.5.0 builds on a mature v1.3.0 foundation (1650+ tests, 86 diagnostic
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Code Quality and Diagnostic UX** - Harden exception handling, centralize patterns, and polish diagnostic metadata across the existing codebase
-- [ ] **Phase 2: typeof() Diagnostics and CLI** - Add typeof() registration diagnostics (IOC090-094) and extend CLI with --json, --verbose, color output, and filtering improvements
+- [x] **Phase 2: typeof() Diagnostics and CLI** - Add typeof() registration diagnostics (IOC090-094) and extend CLI with --json, --verbose, color output, and filtering improvements (completed 2026-03-21)
 - [ ] **Phase 3: Test Fixture Generation** - Ship IoCTools.Testing as a new NuGet package that generates Moq-based test fixture base classes from the DI graph
 - [ ] **Phase 4: Documentation** - Evaluate and build documentation structure covering all v1.5.0 features including the new testing package
 
@@ -45,13 +45,13 @@ Plans:
   3. Running any CLI command with --json produces valid JSON to stdout that can be piped to jq
   4. Running any CLI command with --verbose shows MSBuild diagnostic output, generator timing, and resolved file paths
   5. CLI diagnostic output is color-coded by severity (red for Error, yellow for Warning, cyan for Info) in terminal
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Add IOC090-094 diagnostic descriptors and extend ManualRegistrationValidator with typeof() detection
 - [x] 02-02-PLAN.md — Create integration tests for typeof() diagnostics and add sample project examples
 - [x] 02-03-PLAN.md — Add CLI infrastructure: AnsiColor utility, OutputContext abstraction, --json/--verbose flags, color-coded printers
-- [ ] 02-04-PLAN.md — Add wildcard filtering (TypeFilterUtility), fuzzy suggestions (FuzzySuggestionUtility), and profile service count
+- [x] 02-04-PLAN.md — Add wildcard filtering (TypeFilterUtility), fuzzy suggestions (FuzzySuggestionUtility), and profile service count
 - [x] 02-05-PLAN.md — Add ioc-tools suppress command with DiagnosticCatalog, .editorconfig generation, --live mode
 
 ### Phase 3: Test Fixture Generation
@@ -96,6 +96,6 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
-| 2. typeof() Diagnostics and CLI | 4/5 | In Progress|  |
+| 2. typeof() Diagnostics and CLI | 5/5 | Complete   | 2026-03-21 |
 | 3. Test Fixture Generation | 0/3 | Not started | - |
 | 4. Documentation | 0/2 | Not started | - |
