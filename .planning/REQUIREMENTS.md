@@ -36,8 +36,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **DIAG-03**: IOC091 — typeof() registration duplicates IoCTools registration
 - [ ] **DIAG-04**: IOC092 — typeof() registration lifetime mismatch
 - [ ] **DIAG-05**: IOC094 — Open generic typeof() could use IoCTools attributes
-- [ ] **DIAG-06**: Integration tests for all typeof() diagnostics (IOC090-094)
-- [ ] **DIAG-07**: typeof() diagnostic examples added to sample project
+- [x] **DIAG-06**: Integration tests for all typeof() diagnostics (IOC090-094)
+- [x] **DIAG-07**: typeof() diagnostic examples added to sample project
 
 ### Diagnostic UX
 
@@ -129,8 +129,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIAG-03 | Phase 2 | Pending |
 | DIAG-04 | Phase 2 | Pending |
 | DIAG-05 | Phase 2 | Pending |
-| DIAG-06 | Phase 2 | Pending |
-| DIAG-07 | Phase 2 | Pending |
+| DIAG-06 | Phase 2 | Complete |
+| DIAG-07 | Phase 2 | Complete |
 | CLI-01 | Phase 2 | Complete |
 | CLI-02 | Phase 2 | Complete |
 | CLI-03 | Phase 2 | Complete |
