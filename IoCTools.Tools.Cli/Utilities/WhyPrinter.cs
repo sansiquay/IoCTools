@@ -43,14 +43,14 @@ internal static class WhyPrinter
         {
             output.WriteLine($"No generated dependency matched '{dependency}'.");
 
-            // Suggest close matches with correct casing
-            var suggestions = GetSuggestions(dependency, report);
-            if (suggestions.Count > 0)
-            {
-                output.WriteLine("Did you mean:");
-                foreach (var suggestion in suggestions.Take(3))
-                    output.WriteLine($"  - {suggestion}");
-            }
+            // Suggest close matches using shared utility
+            var availableTypes = report.DependencyFields
+                .Select(d => d.TypeName)
+                .Concat(report.ConfigurationFields.Select(c => c.TypeName))
+                .Concat(report.ConfigurationFields
+                    .Where(c => c.ConfigurationKey != null)
+                    .Select(c => $"Configuration key: {c.ConfigurationKey}"));
+            FuzzySuggestionUtility.PrintSuggestions(output, dependency, availableTypes);
 
             return;
         }
@@ -64,34 +64,5 @@ internal static class WhyPrinter
             if (match.Kind == "Dependency")
                 output.WriteLine($"  External: {match.IsExternal}");
         }
-    }
-
-    private static List<string> GetSuggestions(string dependency, ServiceFieldReport report)
-    {
-        var suggestions = new List<string>();
-
-        // Suggest from dependency types
-        foreach (var field in report.DependencyFields)
-        {
-            if (field.TypeName.Equals(dependency, StringComparison.OrdinalIgnoreCase))
-                suggestions.Add(field.TypeName);
-            else if (field.TypeName.IndexOf(dependency, StringComparison.OrdinalIgnoreCase) >= 0)
-                suggestions.Add(field.TypeName);
-        }
-
-        // Suggest from configuration types
-        foreach (var field in report.ConfigurationFields)
-        {
-            if (field.TypeName.Equals(dependency, StringComparison.OrdinalIgnoreCase))
-                suggestions.Add(field.TypeName);
-            else if (field.TypeName.IndexOf(dependency, StringComparison.OrdinalIgnoreCase) >= 0)
-                suggestions.Add(field.TypeName);
-
-            if (field.ConfigurationKey != null &&
-                field.ConfigurationKey.IndexOf(dependency, StringComparison.OrdinalIgnoreCase) >= 0)
-                suggestions.Add($"Configuration key: {field.ConfigurationKey}");
-        }
-
-        return suggestions.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 }

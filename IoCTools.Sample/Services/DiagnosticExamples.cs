@@ -5,6 +5,7 @@ using Abstractions.Annotations;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// This file contains diagnostic examples that demonstrate various IoCTools diagnostics.
@@ -360,6 +361,102 @@ public partial class IncorrectLifetimeBackgroundService : BackgroundService
 //}
 
 // ============================================
+// IOC090-IOC094: typeof() Registration Diagnostics
+// ============================================
+
+/// <summary>
+///     Example configuration method showing typeof() registrations
+///     Run this to see IOC090-IOC094 diagnostics
+///     </summary>
+public static class TypeOfRegistrationExamples
+{
+    public static void ConfigureTypeOfRegistrations(IServiceCollection services)
+    {
+        // IOC090: typeof() registration could use IoCTools attributes
+        // These implementations have no lifetime attributes
+        services.AddScoped(typeof(ISomeInterface), typeof(SomeClassWithoutAttributes));
+        services.AddSingleton(typeof(ISingletonService), typeof(SomeClassWithoutAttributes));
+
+        // IOC091: typeof() duplicates IoCTools registration (SameLifetimeService has [Scoped])
+        services.AddScoped(typeof(ISameLifetimeInterface), typeof(SameLifetimeService));
+
+        // IOC092: typeof() lifetime mismatch (ScopedService is [Scoped] by IoCTools)
+        services.AddTransient(typeof(IScopedInterface), typeof(ScopedService));
+
+        // IOC094: Open generic registration - informational only
+        services.AddScoped(typeof(ITypeOfRepository<>), typeof(TypeOfRepository<>));
+    }
+}
+
+// Interfaces and classes for typeof() diagnostic examples
+
+public interface ISomeInterface
+{
+    void DoWork();
+}
+
+/// <summary>
+///     No IoCTools attributes - triggers IOC090 when registered via typeof()
+///     </summary>
+public class SomeClassWithoutAttributes : ISomeInterface
+{
+    public void DoWork() { }
+}
+
+public interface ISingletonService
+{
+    void DoWork();
+}
+
+public interface ISameLifetimeInterface
+{
+    void DoWork();
+}
+
+/// <summary>
+///     Has [Scoped] attribute, but typeof() registration duplicates it - triggers IOC091
+///     </summary>
+[Scoped]
+public partial class SameLifetimeService : ISameLifetimeInterface
+{
+    [Inject] private readonly ILogger<SameLifetimeService> _logger;
+
+    public void DoWork() => _logger.LogInformation("Working");
+}
+
+public interface IScopedInterface
+{
+    void DoWork();
+}
+
+/// <summary>
+///     Registered as [Scoped] by IoCTools, but typeof() uses Transient - triggers IOC092
+///     </summary>
+[Scoped]
+public partial class ScopedService : IScopedInterface
+{
+    [Inject] private readonly ILogger<ScopedService> _logger;
+
+    public void DoWork() => _logger.LogInformation("Scoped service working");
+}
+
+/// <summary>
+///     Open generic interface - triggers IOC094 when registered via typeof()
+///     </summary>
+public interface ITypeOfRepository
+{
+    Task GetByIdAsync(int id);
+}
+
+/// <summary>
+///     Open generic implementation - triggers IOC094 when registered via typeof()
+///     </summary>
+public class TypeOfRepository : ITypeOfRepository
+{
+    public Task GetByIdAsync(int id) => Task.FromResult($"Item {id}");
+}
+
+// ============================================
 // IOC020-IOC027: Advanced Conditional Service and System Diagnostics
 // ============================================
 /// <summary>
@@ -520,7 +617,7 @@ public partial class DiagnosticDemonstrationService
     public void RunDiagnosticExamples()
     {
         _logger.LogInformation("Running diagnostic examples...");
-        _logger.LogInformation("Check build output for diagnostic messages IOC001-IOC026");
+        _logger.LogInformation("Check build output for diagnostic messages IOC001-IOC094");
         _logger.LogInformation("Configure diagnostic severity using MSBuild properties in the project file");
         _logger.LogInformation("Example: <IoCToolsNoImplementationSeverity>Error</IoCToolsNoImplementationSeverity>");
     }

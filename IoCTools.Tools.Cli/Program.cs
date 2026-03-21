@@ -237,7 +237,8 @@ public static class Program
                         .Select(r => r.ServiceType)
                         .Concat(summary.Records.Select(r => r.ImplementationType))
                         .Where(t => t != null)
-                        .Distinct()!;
+                        .Distinct()!
+                        .OfType<string>();
                     FuzzySuggestionUtility.PrintSuggestions(output, options.TypeFilter, allTypes);
                 }
             }

@@ -150,11 +150,9 @@ internal sealed class ServiceFieldInspector
     private static bool MatchesTypeName(INamedTypeSymbol symbol,
         string filter)
     {
-        if (string.IsNullOrWhiteSpace(filter)) return false;
-        var comparison = StringComparison.Ordinal;
-        return string.Equals(symbol.Name, filter, comparison) ||
-               string.Equals(symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), filter, comparison) ||
-               string.Equals(symbol.ToDisplayString(TypeFormat), filter, comparison);
+        return TypeFilterUtility.Matches(symbol.Name, filter)
+            || TypeFilterUtility.Matches(symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), filter)
+            || TypeFilterUtility.Matches(symbol.ToDisplayString(TypeFormat), filter);
     }
 
     private static bool IsServiceCandidate(INamedTypeSymbol symbol,
