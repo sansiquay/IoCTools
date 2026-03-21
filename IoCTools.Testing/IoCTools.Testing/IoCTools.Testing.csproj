@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsPackable>true</IsPackable>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>1.5.0</Version>
+        <PackageVersion>1.5.0</PackageVersion>
+        <AssemblyVersion>1.5.0.0</AssemblyVersion>
+        <FileVersion>1.5.0.0</FileVersion>
+        <Title>IoC Tools Testing Source Generator</Title>
+        <Copyright>MIT</Copyright>
+        <PackageProjectUrl>https://github.com/nate123456/IoCTools</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/nate123456/IoCTools</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Description>Source generator for IoCTools test fixture generation - generates Mock&lt;T&gt; fields, CreateSut() factories, and typed setup helpers for test classes marked with [Cover&lt;TService&gt;].</Description>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <CompilerVisibleProperties>IoCToolsTestingDiagnosticSeverity</CompilerVisibleProperties>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0">
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all"/>
+        <PackageReference Include="Moq" Version="4.20.72"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false"/>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false"/>
+    </ItemGroup>
+</Project>
