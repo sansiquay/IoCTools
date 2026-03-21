@@ -22,6 +22,10 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - ✓ CLI tool (`ioc-tools`) with services, fields, explain, graph, why, doctor, compare, profile, config-audit commands — existing
 - ✓ Cross-assembly diagnostic validation — existing
 - ✓ 1650+ tests passing across generator and CLI test suites — existing
+- ✓ typeof() diagnostics (IOC090-094) detecting manual registration patterns — validated in Phase 02
+- ✓ CLI improvements: JSON output, verbose debugging, color-coded output — validated in Phase 02
+- ✓ CLI wildcard filtering, fuzzy type suggestions, service count — validated in Phase 02
+- ✓ CLI suppress command for .editorconfig diagnostic suppression — validated in Phase 02
 
 ### Active
 
@@ -34,29 +38,12 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - [ ] Work with services that use `[Inject]`, `[DependsOn]`, inheritance, and configuration injection
 - [ ] Analyzers that detect manual mock/SUT boilerplate and suggest using generated fixtures instead
 
-**typeof() Diagnostics (IOC090-094)**
-- [ ] Add typeof() argument parsing to ManualRegistrationValidator
-- [ ] IOC090: typeof() interface-implementation registration could use IoCTools
-- [ ] IOC091: typeof() registration duplicates IoCTools registration
-- [ ] IOC092: typeof() registration lifetime mismatch
-- [ ] IOC094: Open generic typeof() could use IoCTools attributes
-- [ ] Integration tests and sample project examples for all typeof() diagnostics
-
 **Diagnostic UX Improvements**
 - [ ] Add HelpLinkUri to all diagnostic descriptors
 - [ ] Use specific IDE categories (Lifetime, Dependency, Configuration, Registration, Structural)
 - [ ] Suggest IServiceProvider/CreateScope() pattern in IOC012/013
 - [ ] Better config error messages with examples for IOC016-019
 - [ ] Show full inheritance path in IOC015 diagnostic
-
-**CLI Improvements**
-- [ ] --verbose flag for debugging (MSBuild diagnostics, generator timing, file paths)
-- [ ] --json output mode for all commands
-- [ ] Color-code diagnostic output by severity (red/yellow/cyan)
-- [ ] Extend fuzzy type suggestions to all commands
-- [ ] Add wildcard/regex support to FilterByType
-- [ ] Add service count to profile command output
-- [ ] Add .editorconfig recipe for suppressing IoCTools diagnostics
 
 **Code Quality**
 - [ ] Centralize RegisterAsAllAttribute checks using AttributeTypeChecker (20 inconsistent locations)
@@ -132,4 +119,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after initialization*
+*Last updated: 2026-03-21 after Phase 02 completion*
