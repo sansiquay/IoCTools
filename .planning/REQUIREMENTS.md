@@ -10,15 +10,15 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Test Fixture Generation
 
 - [x] **TEST-01**: IoCTools.Testing ships as a separate NuGet package with Moq as a peer dependency
-- [ ] **TEST-02**: Generator auto-declares `Mock<T>` fields for all constructor dependencies of a service
-- [ ] **TEST-03**: Generator produces a `CreateSut()` factory method that wires all mock `.Object` values into the service constructor
-- [ ] **TEST-04**: Generated fixtures support services using `[Inject]` fields
-- [ ] **TEST-05**: Generated fixtures support services using `[DependsOn]` attributes
-- [ ] **TEST-06**: Generated fixtures support inheritance hierarchies with proper base fixture chaining
-- [ ] **TEST-07**: Generator produces typed mock setup helper methods (e.g., `SetupUserRepository(Action<Mock<IUserRepository>>)`)
-- [ ] **TEST-08**: Generator produces configuration mock helpers for services using `[InjectConfiguration]` (pre-wired `IOptions<T>` setup)
-- [ ] **TEST-09**: Generated fixture compiles without manual intervention for all supported service patterns
-- [ ] **TEST-10**: Mock fields are auto-initialized (`new Mock<T>()`) in the fixture constructor
+- [x] **TEST-02**: Generator auto-declares `Mock<T>` fields for all constructor dependencies of a service
+- [x] **TEST-03**: Generator produces a `CreateSut()` factory method that wires all mock `.Object` values into the service constructor
+- [x] **TEST-04**: Generated fixtures support services using `[Inject]` fields
+- [x] **TEST-05**: Generated fixtures support services using `[DependsOn]` attributes
+- [x] **TEST-06**: Generated fixtures support inheritance hierarchies with proper base fixture chaining
+- [x] **TEST-07**: Generator produces typed mock setup helper methods (e.g., `SetupUserRepository(Action<Mock<IUserRepository>>)`)
+- [x] **TEST-08**: Generator produces configuration mock helpers for services using `[InjectConfiguration]` (pre-wired `IOptions<T>` setup)
+- [x] **TEST-09**: Generated fixture compiles without manual intervention for all supported service patterns
+- [x] **TEST-10**: Mock fields are auto-initialized (`new Mock<T>()`) in the fixture constructor
 - [ ] **TEST-11**: Comprehensive test suite for the test fixture generator covering all IoCTools service patterns
 
 ### Test Fixture Analyzers
@@ -139,15 +139,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-06 | Phase 2 | Complete |
 | CLI-07 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Complete |
-| TEST-02 | Phase 3 | Pending |
-| TEST-03 | Phase 3 | Pending |
-| TEST-04 | Phase 3 | Pending |
-| TEST-05 | Phase 3 | Pending |
-| TEST-06 | Phase 3 | Pending |
-| TEST-07 | Phase 3 | Pending |
-| TEST-08 | Phase 3 | Pending |
-| TEST-09 | Phase 3 | Pending |
-| TEST-10 | Phase 3 | Pending |
+| TEST-02 | Phase 3 | Complete |
+| TEST-03 | Phase 3 | Complete |
+| TEST-04 | Phase 3 | Complete |
+| TEST-05 | Phase 3 | Complete |
+| TEST-06 | Phase 3 | Complete |
+| TEST-07 | Phase 3 | Complete |
+| TEST-08 | Phase 3 | Complete |
+| TEST-09 | Phase 3 | Complete |
+| TEST-10 | Phase 3 | Complete |
 | TEST-11 | Phase 3 | Pending |
 | TDIAG-01 | Phase 3 | Complete |
 | TDIAG-02 | Phase 3 | Complete |
