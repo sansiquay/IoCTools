@@ -29,28 +29,28 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - ✓ Test fixture generation with `Mock<T>` fields, `CreateSut()` factories, and typed helpers — validated in Phase 03
 - ✓ IoCTools.Testing package with `Cover<T>` attribute and Moq 4.20.72 dependency — validated in Phase 03
 - ✓ Test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) for manual mock/SUT boilerplate detection — validated in Phase 03
+- ✓ HelpLinkUri on all diagnostic descriptors with anchor links to docs/diagnostics.md — validated in Phase 04
+- ✓ Diagnostic IDE categories (Lifetime, Dependency, Configuration, Registration, Structural, Testing) — validated in Phase 04
+- ✓ IServiceProvider/CreateScope() pattern suggestions in IOC012/013 — validated in Phase 04
+- ✓ Enhanced config error messages with examples for IOC016-019 — validated in Phase 04
+- ✓ Full inheritance path shown in IOC015 diagnostic — validated in Phase 04
+- ✓ Multi-page documentation structure with /docs/ directory — validated in Phase 04
+- ✓ Getting started guide (30-second, 5-minute, conceptual sections) — validated in Phase 04
+- ✓ Attributes reference with examples for all 15+ attributes — validated in Phase 04
+- ✓ Diagnostics reference (docs/diagnostics.md) with 99 diagnostics, category navigation, severity badges — validated in Phase 04
+- ✓ CLI reference (docs/cli-reference.md) documenting all 11 commands — validated in Phase 04
+- ✓ IoCTools.Testing package documentation (docs/testing.md) — validated in Phase 04
+- ✓ Platform constraints documentation (docs/platform-constraints.md) — validated in Phase 04
+- ✓ Migration guide (docs/migration.md) for manual DI, Autofac, StructureMap, DryIoc — validated in Phase 04
+- ✓ CHANGELOG.md following Keep a Changelog format — validated in Phase 04
+- ✓ Centralized RegisterAsAllAttribute checks using AttributeTypeChecker — validated in Phase 01
+- ✓ ReportDiagnosticDelegate pattern adopted in validators — validated in Phase 01
+- ✓ CS8603 null reference warnings resolved in sample code — validated in Phase 01
+- ✓ Code comments explaining InstanceSharing.Separate default behavior — validated in Phase 01
 
 ### Active
 
-**Diagnostic UX Improvements**
-- [ ] Add HelpLinkUri to all diagnostic descriptors
-- [ ] Use specific IDE categories (Lifetime, Dependency, Configuration, Registration, Structural)
-- [ ] Suggest IServiceProvider/CreateScope() pattern in IOC012/013
-- [ ] Better config error messages with examples for IOC016-019
-- [ ] Show full inheritance path in IOC015 diagnostic
-
-**Code Quality**
-- [ ] Centralize RegisterAsAllAttribute checks using AttributeTypeChecker (20 inconsistent locations)
-- [ ] Adopt ReportDiagnosticDelegate pattern in 3-4 more validators
-- [ ] Resolve CS8603 null reference warnings in sample code (3 instances in MultiInterfaceExamples.cs)
-- [ ] Add code comments explaining InstanceSharing.Separate default behavior
-
-**Documentation Overhaul**
-- [ ] Evaluate whether single-doc README can hold all features or needs multi-page structure
-- [ ] If warranted, migrate to multi-page docs (getting started, attributes reference, diagnostics reference, CLI reference, test fixtures guide)
-- [ ] Update all docs to cover v1.3.0 features completely
-- [ ] Cross-reference netstandard2.0 constraints
-- [ ] Document the new IoCTools.Testing package and test fixture generation
+*All requirements validated. No active requirements remaining.*
 
 ### Out of Scope
 
@@ -63,10 +63,10 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 ## Context
 
 **Existing Architecture:**
-- Three NuGet packages: `IoCTools.Abstractions` (netstandard2.0), `IoCTools.Generator` (netstandard2.0), `IoCTools.Tools.Cli` (net8.0 tool)
+- Four NuGet packages: `IoCTools.Abstractions` (netstandard2.0), `IoCTools.Generator` (netstandard2.0), `IoCTools.Tools.Cli` (net8.0 tool), `IoCTools.Testing` (net8.0)
 - Generator uses Roslyn `IIncrementalGenerator` with three pipelines: service discovery, constructor emission, diagnostics
-- The new `IoCTools.Testing` package will be a fourth package, likely targeting net8.0+ since test projects don't need netstandard2.0 compatibility
-- The generator already has full knowledge of the dependency graph — the test fixture generator can leverage this
+- IoCTools.Testing package provides `Cover<T>` attribute for test fixture generation with Moq integration
+- The generator has full knowledge of the dependency graph — test fixture generator leverages this
 
 **Real-World Test Patterns (from Delta project analysis):**
 - Services tested with constructor-based setup, `Mock<T>` field declarations at class level
@@ -113,4 +113,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 03 completion*
+*Last updated: 2026-03-21 after Phase 04 completion*
