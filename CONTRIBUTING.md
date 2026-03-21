@@ -35,15 +35,34 @@ dotnet test --verbosity normal
 - Use `[Scoped]`, `[Singleton]`, `[Transient]` attributes for service lifetime
 - Never use reflection for dependency injection - use the source generator
 
+## Platform Constraints
+
+IoCTools targets `netstandard2.0` for the generator internally, but your service code can use any .NET version and C# features. This distinction is important for contributors:
+
+- **Generator code** (`IoCTools.Generator`, `IoCTools.Abstractions`) is limited to netstandard2.0 APIs
+- **User service code** has no constraints from IoCTools
+
+When contributing to the generator, avoid:
+- Record types (`record struct`) - use classes/structs with manual equality
+- `HashCode.Combine()` - use manual hash code implementation
+- `Span<T>`/`Memory<T>` - limited availability in netstandard2.0
+
+See [Platform Constraints Documentation](docs/platform-constraints.md) for full details on limitations and workarounds.
+
 ## Diagnostic Guidelines
 
 When adding new diagnostics:
 
-1. Add descriptor to `DiagnosticDescriptors.cs`
+1. Add descriptor to `DiagnosticDescriptors.cs` with HelpLinkUri pointing to `docs/diagnostics.md#iocXXX`
 2. Implement validator in `IoCTools.Generator/Generator/Diagnostics/Validators/`
 3. Add tests in `IoCTools.Generator.Tests/`
-4. Update `README.md` diagnostic reference table
-5. Document severity configurability if applicable
+4. Update `docs/diagnostics.md` with the new diagnostic entry (including category, severity, cause, fix, examples)
+5. Update README.md Error-only diagnostic table if severity is Error
+6. Document severity configurability via MSBuild properties if applicable
+
+**HelpLinkUri format:** `https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#iocXXX`
+
+Ensure the anchor `#iocXXX` exists in docs/diagnostics.md before committing.
 
 ## Questions?
 
