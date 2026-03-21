@@ -65,12 +65,13 @@ Plans:
   4. Typed mock setup helpers (e.g., SetupUserRepository(Action<Mock<IUserRepository>>)) appear in IDE auto-complete on the generated fixture
   5. The test fixture generator has its own comprehensive test suite validating all supported service patterns
   6. Analyzer detects manual mock declarations and SUT construction for services with generated fixtures and suggests using the fixture instead
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md — Create IoCTools.Testing.Abstractions and IoCTools.Testing projects with CoverAttribute
+- [ ] 03-02-PLAN.md — Build test fixture generator with Mock<T> field, CreateSut(), and helper generation
+- [ ] 03-03-PLAN.md — Add test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) to IoCTools.Generator
+- [ ] 03-04-PLAN.md — Create comprehensive test suite for IoCTools.Testing with sample usage examples
 
 ### Phase 4: Documentation
 **Goal**: New and existing users can discover, learn, and reference all IoCTools features through well-structured documentation
@@ -97,5 +98,5 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 |-------|----------------|--------|-----------|
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
 | 2. typeof() Diagnostics and CLI | 5/5 | Complete   | 2026-03-21 |
-| 3. Test Fixture Generation | 0/3 | Not started | - |
+| 3. Test Fixture Generation | 0/4 | Not started | - |
 | 4. Documentation | 0/2 | Not started | - |
