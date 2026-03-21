@@ -10,7 +10,7 @@
         <AssemblyName>IoCTools.Tools.Cli</AssemblyName>
         <RootNamespace>IoCTools.Tools.Cli</RootNamespace>
         <PackageId>IoCTools.Tools.Cli</PackageId>
-        <Version>1.3.0</Version>
+        <Version>1.4.0</Version>
         <Description>Developer-facing CLI for IoCTools: fields, services, explain, graph, why, doctor, compare, profile, config-audit.</Description>
     </PropertyGroup>
 

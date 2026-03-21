@@ -394,7 +394,7 @@ IoCTools/
 - **Platform**: .NET 9.0 project using the latest C# language features
 - **Compatibility**: Generator targets `netstandard2.0` for broad framework support
 - **Packaging**: Both packages configured for automatic NuGet packaging (`GeneratePackageOnBuild`)
-- **Maturity**: v1.3.0 release with production-ready architecture and comprehensive validation
+- **Maturity**: v1.4.0 release with production-ready architecture and comprehensive validation
 - **Testing**: Comprehensive test coverage across formal test suite (1650+ tests) and sample application integration testing
 - **Architecture**: Intelligent service registration with individual lifetime attributes and cross-assembly diagnostic validation
 
@@ -667,7 +667,7 @@ IoCTools is a .NET source generator library that simplifies dependency injection
 - `IoCTools.Abstractions`: targets `netstandard2.0` - compatible with .NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+
 - `IoCTools.Generator`: targets `netstandard2.0` - distributed as Roslyn analyzer/source generator NuGet package
 - `IoCTools.Tools.Cli`: targets `net8.0` - distributed as .NET tool (`ioc-tools` command name)
-- NuGet packages published with `GeneratePackageOnBuild=true` at version 1.3.0
+- NuGet packages published with `GeneratePackageOnBuild=true` at version 1.4.0
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->

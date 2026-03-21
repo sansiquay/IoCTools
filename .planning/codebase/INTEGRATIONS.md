@@ -40,9 +40,9 @@
 **CI Pipeline:** No CI configuration files detected (no `.github/workflows/`, `.azure-pipelines.yml`, etc.)
 
 **Packaging:**
-- `IoCTools.Abstractions` - NuGet package, `netstandard2.0`, version 1.3.0, auto-packed on build
-- `IoCTools.Generator` - NuGet analyzer package, `netstandard2.0`, version 1.3.0, distributed as `analyzers/dotnet/cs/netstandard2.0`
-- `IoCTools.Tools.Cli` - .NET global tool (`PackAsTool=true`, tool command `ioc-tools`), version 1.3.0, `net8.0`
+- `IoCTools.Abstractions` - NuGet package, `netstandard2.0`, version 1.4.0, auto-packed on build
+- `IoCTools.Generator` - NuGet analyzer package, `netstandard2.0`, version 1.4.0, distributed as `analyzers/dotnet/cs/netstandard2.0`
+- `IoCTools.Tools.Cli` - .NET global tool (`PackAsTool=true`, tool command `ioc-tools`), version 1.4.0, `net8.0`
 
 ## Environment Configuration
 

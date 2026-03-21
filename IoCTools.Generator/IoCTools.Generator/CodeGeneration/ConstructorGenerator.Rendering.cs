@@ -32,7 +32,7 @@ internal static partial class ConstructorGenerator
                               {
                                   {{fieldsStr}}
 
-                                  [global::System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.3.0")]
+                                  [global::System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.4.0")]
                                   public {{constructorName}}({{parameterStr}}){{baseCallStr}}
                                   {
                                       {{assignmentStr}}
@@ -51,7 +51,7 @@ internal static partial class ConstructorGenerator
                               {
                                   {{fieldsStr}}
 
-                                  [global::System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.3.0")]
+                                  [global::System.CodeDom.Compiler.GeneratedCode("IoCTools", "1.4.0")]
                                   public {{constructorName}}({{parameterStr}}){{baseCallStr}}
                                   {
                                       {{assignmentStr}}

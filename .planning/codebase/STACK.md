@@ -95,7 +95,7 @@
 - `IoCTools.Abstractions`: targets `netstandard2.0` - compatible with .NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+
 - `IoCTools.Generator`: targets `netstandard2.0` - distributed as Roslyn analyzer/source generator NuGet package
 - `IoCTools.Tools.Cli`: targets `net8.0` - distributed as .NET tool (`ioc-tools` command name)
-- NuGet packages published with `GeneratePackageOnBuild=true` at version 1.3.0
+- NuGet packages published with `GeneratePackageOnBuild=true` at version 1.4.0
 
 ---
 
