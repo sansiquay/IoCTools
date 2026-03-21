@@ -19,15 +19,15 @@ using Microsoft.Extensions.Logging;
 // User management service with multiple responsibilities
 public interface IMultiUserService
 {
-    Task<User> GetUserAsync(int userId);
+    Task<User?> GetUserAsync(int userId);
 
-    Task<User> CreateUserAsync(string name,
+    Task<User?> CreateUserAsync(string name,
         string email);
 }
 
 public interface IMultiUserRepository
 {
-    Task<User> FindByIdAsync(int id);
+    Task<User?> FindByIdAsync(int id);
     Task<User> SaveAsync(User user);
     Task<IEnumerable<User>> GetAllAsync();
 }
@@ -47,10 +47,10 @@ public partial class UserService : IMultiUserService, IMultiUserRepository, IMul
     private readonly ConcurrentDictionary<int, User> _users = new();
     private int _nextId = 1;
 
-    public async Task<User> FindByIdAsync(int id)
+    public async Task<User?> FindByIdAsync(int id)
     {
         await Task.Delay(10); // Simulate async operation
-        return _users.GetValueOrDefault(id) ?? null;
+        return _users.GetValueOrDefault(id);
     }
 
     public async Task<User> SaveAsync(User user)
@@ -67,13 +67,13 @@ public partial class UserService : IMultiUserService, IMultiUserRepository, IMul
         return _users.Values.ToList();
     }
 
-    public async Task<User> GetUserAsync(int userId)
+    public async Task<User?> GetUserAsync(int userId)
     {
         _logger.LogInformation("Getting user {UserId}", userId);
         return await FindByIdAsync(userId);
     }
 
-    public async Task<User> CreateUserAsync(string name,
+    public async Task<User?> CreateUserAsync(string name,
         string email)
     {
         if (!IsValidName(name) || !IsValidEmail(email))
@@ -273,7 +273,7 @@ public partial class SharedInstanceCacheManager : IMultiCacheService, IMultiCach
 
 public interface IDataService
 {
-    Task<string> GetDataAsync(string id);
+    Task<string?> GetDataAsync(string id);
 }
 
 public interface IDataValidator
@@ -309,7 +309,7 @@ public partial class SelectiveDataService : IDataService, IDataValidator, IDataL
 
     public void LogAccess(string id) => _logger.LogInformation("Accessing data {Id}", id);
 
-    public async Task<string> GetDataAsync(string id)
+    public async Task<string?> GetDataAsync(string id)
     {
         if (!ValidateId(id))
             return null;

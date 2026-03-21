@@ -30,6 +30,12 @@ internal static partial class ServiceRegistrationGenerator
         var hasConditionalServiceAttribute = classSymbol.GetAttributes().Any(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ConditionalServiceAttribute));
 
+        // InstanceSharing.Separate (default): Each interface gets its own independent registration
+        // (e.g., services.AddScoped<IFoo, MyService>(); services.AddScoped<IBar, MyService>();).
+        // Resolving IFoo and IBar yields different MyService instances.
+        // InstanceSharing.Shared: A single concrete registration is created, and each interface
+        // registration uses a factory that resolves the shared instance via GetRequiredService.
+        //
         // For InstanceSharing.Shared: concrete class registration only with explicit lifetime or conditional
         // For InstanceSharing.Separate: always register concrete class when interfaces are specified
         var shouldRegisterConcreteClass = instanceSharing == "Shared"

@@ -328,7 +328,8 @@ public interface IValidationServiceSeparate
     bool Validate(string item);
 }
 
-// Default behavior: InstanceSharing.Separate creates separate instances without explicit lifetime
+// InstanceSharing.Separate (default): IRegistrationService and IValidationServiceSeparate each get their
+// own SeparateInstanceService instance when resolved. This is the standard DI behavior.
 [RegisterAs<IRegistrationService, IValidationServiceSeparate>] // Implicit InstanceSharing.Separate
 public partial class SeparateInstanceService : IRegistrationService, IValidationServiceSeparate
 {

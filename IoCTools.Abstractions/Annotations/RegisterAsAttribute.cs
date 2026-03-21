@@ -10,6 +10,10 @@ using Enumerations;
 ///     interfaces.
 /// </summary>
 /// <typeparam name="T1">The first interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1>(InstanceSharing instanceSharing = InstanceSharing.Separate) : Attribute
 {
@@ -21,6 +25,10 @@ public sealed class RegisterAsAttribute<T1>(InstanceSharing instanceSharing = In
 /// </summary>
 /// <typeparam name="T1">The first interface type to register the service as</typeparam>
 /// <typeparam name="T2">The second interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2>(InstanceSharing instanceSharing = InstanceSharing.Separate) : Attribute
 {
@@ -33,6 +41,10 @@ public sealed class RegisterAsAttribute<T1, T2>(InstanceSharing instanceSharing 
 /// <typeparam name="T1">The first interface type to register the service as</typeparam>
 /// <typeparam name="T2">The second interface type to register the service as</typeparam>
 /// <typeparam name="T3">The third interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3>(InstanceSharing instanceSharing = InstanceSharing.Separate)
     : Attribute
@@ -47,6 +59,10 @@ public sealed class RegisterAsAttribute<T1, T2, T3>(InstanceSharing instanceShar
 /// <typeparam name="T2">The second interface type to register the service as</typeparam>
 /// <typeparam name="T3">The third interface type to register the service as</typeparam>
 /// <typeparam name="T4">The fourth interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3, T4>(InstanceSharing instanceSharing = InstanceSharing.Separate)
     : Attribute
@@ -62,6 +78,10 @@ public sealed class RegisterAsAttribute<T1, T2, T3, T4>(InstanceSharing instance
 /// <typeparam name="T3">The third interface type to register the service as</typeparam>
 /// <typeparam name="T4">The fourth interface type to register the service as</typeparam>
 /// <typeparam name="T5">The fifth interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5>(InstanceSharing instanceSharing = InstanceSharing.Separate)
     : Attribute
@@ -78,6 +98,10 @@ public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5>(InstanceSharing inst
 /// <typeparam name="T4">The fourth interface type to register the service as</typeparam>
 /// <typeparam name="T5">The fifth interface type to register the service as</typeparam>
 /// <typeparam name="T6">The sixth interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5, T6>(
     InstanceSharing instanceSharing = InstanceSharing.Separate) : Attribute
@@ -95,6 +119,10 @@ public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5, T6>(
 /// <typeparam name="T5">The fifth interface type to register the service as</typeparam>
 /// <typeparam name="T6">The sixth interface type to register the service as</typeparam>
 /// <typeparam name="T7">The seventh interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5, T6, T7>(
     InstanceSharing instanceSharing = InstanceSharing.Separate) : Attribute
@@ -113,6 +141,10 @@ public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5, T6, T7>(
 /// <typeparam name="T6">The sixth interface type to register the service as</typeparam>
 /// <typeparam name="T7">The seventh interface type to register the service as</typeparam>
 /// <typeparam name="T8">The eighth interface type to register the service as</typeparam>
+/// <param name="instanceSharing">Controls instance sharing across registered interfaces.
+/// Default is <see cref="InstanceSharing.Separate"/> which creates independent registrations
+/// (one resolve per interface). Use <see cref="InstanceSharing.Shared"/> to share a single
+/// instance across all registered interfaces via a factory pattern.</param>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class RegisterAsAttribute<T1, T2, T3, T4, T5, T6, T7, T8>(
     InstanceSharing instanceSharing = InstanceSharing.Separate) : Attribute
