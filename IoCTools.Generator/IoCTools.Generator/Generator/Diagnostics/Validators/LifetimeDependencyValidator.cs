@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using IoCTools.Generator.Diagnostics;
 using IoCTools.Generator.Utilities;
 
@@ -32,10 +34,20 @@ internal static class LifetimeDependencyValidator
                 if (violationType != LifetimeViolationType.Compatible)
                 {
                     // For inheritance, we stick to IOC015 but with correct message
+                    var pathParts = new List<string>();
+                    var pathType = classSymbol;
+                    while (pathType != null && pathType.SpecialType != SpecialType.System_Object)
+                    {
+                        pathParts.Add(pathType.Name);
+                        if (SymbolEqualityComparer.Default.Equals(pathType, currentType)) break;
+                        pathType = pathType.BaseType;
+                    }
+                    var inheritancePath = string.Join(" -> ", pathParts);
+
                     var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
                         DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
                     var diagnostic = Diagnostic.Create(descriptor,
-                        classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, baseServiceLifetime);
+                        classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, baseServiceLifetime, inheritancePath);
                     context.ReportDiagnostic(diagnostic);
                     return;
                 }
@@ -56,10 +68,21 @@ internal static class LifetimeDependencyValidator
                             var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, depLifetime);
                             if (violationType != LifetimeViolationType.Compatible)
                             {
+                                var pathParts2 = new List<string>();
+                                var pathType2 = classSymbol;
+                                while (pathType2 != null && pathType2.SpecialType != SpecialType.System_Object)
+                                {
+                                    pathParts2.Add(pathType2.Name);
+                                    if (SymbolEqualityComparer.Default.Equals(pathType2, currentType)) break;
+                                    pathType2 = pathType2.BaseType;
+                                }
+                                pathParts2.Add(typeArg.Name);
+                                var inheritancePath2 = string.Join(" -> ", pathParts2);
+
                                 var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
                                     DiagnosticDescriptors.InheritanceChainLifetimeValidation, diagnosticConfig.LifetimeValidationSeverity);
                                 var diagnostic = Diagnostic.Create(descriptor,
-                                    classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, depLifetime);
+                                    classDeclaration.GetLocation(), classSymbol.Name, serviceLifetime, depLifetime, inheritancePath2);
                                 context.ReportDiagnostic(diagnostic);
                                 return;
                             }
