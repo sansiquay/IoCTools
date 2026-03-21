@@ -22,11 +22,24 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore IoCTools.sln
 
+      - name: Restore CLI test projects
+        run: |
+          for proj in IoCTools.Tools.Cli.Tests/TestProjects/*/; do
+            dotnet restore "$proj"
+          done
+
       - name: Build solution
         run: dotnet build IoCTools.sln --configuration Release --no-restore
 
+      - name: Build CLI test projects
+        run: |
+          for proj in IoCTools.Tools.Cli.Tests/TestProjects/*/; do
+            dotnet build "$proj" --configuration Release --no-restore
+          done
+
       - name: Run tests
         run: dotnet test IoCTools.sln --configuration Release --no-build --no-restore --verbosity normal
+        timeout-minutes: 10
 
   publish:
     name: publish NuGet
