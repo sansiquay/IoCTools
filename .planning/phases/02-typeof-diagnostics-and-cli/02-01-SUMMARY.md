@@ -110,3 +110,14 @@ None - no external service configuration required.
 *Phase: 02-typeof-diagnostics-and-cli*
 *Plan: 01*
 *Completed: 2026-03-21*
+
+## Self-Check: PASSED
+
+- [x] SUMMARY.md created at `.planning/phases/02-typeof-diagnostics-and-cli/02-01-SUMMARY.md`
+- [x] Task 1 commit exists: `587736e`
+- [x] Task 2 commit exists: `fbe8242`
+- [x] Final metadata commit exists: `3c01da4`
+- [x] Generator builds with 0 errors
+- [x] All IOC090-094 descriptors present in RegistrationDiagnostics.cs
+- [x] typeof() detection logic present in ManualRegistrationValidator.cs
+- [x] docs/diagnostics.md updated with all four new diagnostics
