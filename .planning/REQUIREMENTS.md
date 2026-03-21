@@ -55,7 +55,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **CLI-04**: Fuzzy type suggestions extended to all commands (extract WhyPrinter pattern)
 - [ ] **CLI-05**: Wildcard/regex support in FilterByType
 - [ ] **CLI-06**: Service count added to profile command output
-- [ ] **CLI-07**: .editorconfig recipe generation for suppressing IoCTools diagnostics
+- [x] **CLI-07**: .editorconfig recipe generation for suppressing IoCTools diagnostics
 
 ### Code Quality
 
@@ -137,7 +137,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-04 | Phase 2 | Pending |
 | CLI-05 | Phase 2 | Pending |
 | CLI-06 | Phase 2 | Pending |
-| CLI-07 | Phase 2 | Pending |
+| CLI-07 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
