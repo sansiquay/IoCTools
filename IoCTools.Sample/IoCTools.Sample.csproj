@@ -54,11 +54,15 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.1"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="6.0.0"/>
+        <!-- Test framework for TestingExamples.cs -->
+        <PackageReference Include="xunit" Version="2.9.3"/>
+        <PackageReference Include="Moq" Version="4.20.72"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\IoCTools.Abstractions\IoCTools.Abstractions.csproj"/>
         <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj" OutputItemType="Analyzer"/>
+        <ProjectReference Include="..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
