@@ -26,17 +26,11 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - ✓ CLI improvements: JSON output, verbose debugging, color-coded output — validated in Phase 02
 - ✓ CLI wildcard filtering, fuzzy type suggestions, service count — validated in Phase 02
 - ✓ CLI suppress command for .editorconfig diagnostic suppression — validated in Phase 02
+- ✓ Test fixture generation with `Mock<T>` fields, `CreateSut()` factories, and typed helpers — validated in Phase 03
+- ✓ IoCTools.Testing package with `Cover<T>` attribute and Moq 4.20.72 dependency — validated in Phase 03
+- ✓ Test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) for manual mock/SUT boilerplate detection — validated in Phase 03
 
 ### Active
-
-**Test Fixture Generation (new package: `IoCTools.Testing`)**
-- [ ] Generate test fixture base classes that auto-declare `Mock<T>` fields for all service dependencies
-- [ ] Generate SUT factory methods that wire mocks into the service constructor
-- [ ] Generate typed mock setup helper methods for readable test arrangement
-- [ ] Support Moq as the mocking framework (Moq-only, no abstraction layer)
-- [ ] Ship as separate NuGet package `IoCTools.Testing` to isolate test-time dependencies
-- [ ] Work with services that use `[Inject]`, `[DependsOn]`, inheritance, and configuration injection
-- [ ] Analyzers that detect manual mock/SUT boilerplate and suggest using generated fixtures instead
 
 **Diagnostic UX Improvements**
 - [ ] Add HelpLinkUri to all diagnostic descriptors
@@ -119,4 +113,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 02 completion*
+*Last updated: 2026-03-21 after Phase 03 completion*
