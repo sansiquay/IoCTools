@@ -1000,3 +1000,137 @@ Quick reference for all IoCTools diagnostic messages. For detailed examples and 
 **Cause:** An open generic is registered via `typeof()` (e.g., `typeof(IRepository<>)`).
 
 **Fix:** This is informational only. IoCTools does not yet support open generic registration. Consider using closed generic registrations with IoCTools attributes.
+
+---
+
+## TDIAG-01
+
+**Severity:** Info
+**Category:** IoCTools.Testing
+
+**Cause:** Test class has a manual `Mock<T>` field but uses `[Cover<TService>]` which generates mock fields automatically.
+
+**Fix:** Remove the manual mock field declaration and use the auto-generated `_mockFieldName` field from the fixture.
+
+Example:
+```csharp
+// Before (manual):
+[Cover<UserService>]
+public partial class UserServiceTests
+{
+    private readonly Mock<IUserRepository> _mockRepo = new(); // TDIAG-01
+}
+
+// After (use generated):
+[Cover<UserService>]
+public partial class UserServiceTests
+{
+    // _mockUserRepository is auto-generated
+    [Fact]
+    public void Test() {
+        var sut = CreateSut(); // Also auto-generated
+    }
+}
+```
+
+---
+
+## TDIAG-02
+
+**Severity:** Info
+**Category:** IoCTools.Testing
+
+**Cause:** Test class manually constructs the service using `new Service(mock1.Object, ...)` but `CreateSut()` is auto-generated.
+
+**Fix:** Replace manual construction with a call to the auto-generated `CreateSut()` method.
+
+Example:
+```csharp
+// Before (manual):
+var sut = new UserService(_mockUserRepository.Object, _mockLogger.Object);
+
+// After (use generated):
+var sut = CreateSut();
+```
+
+---
+
+## TDIAG-03
+
+**Severity:** Info
+**Category:** IoCTools.Testing
+
+**Cause:** Test class has manual `Mock<T>` fields that match a service's constructor dependencies.
+
+**Fix:** Add `[Cover<TService>]` attribute to the test class (must be `partial`) to auto-generate fixture.
+
+Example:
+```csharp
+// Before:
+public class UserServiceTests // Not partial
+{
+    private readonly Mock<IUserRepository> _mockRepo = new();
+    private readonly Mock<ILogger<UserService>> _mockLogger = new();
+}
+
+// After:
+[Cover<UserService>]
+public partial class UserServiceTests // Added Cover<T> and partial
+{
+    // Mocks, CreateSut(), and helpers auto-generated
+}
+```
+
+---
+
+## TDIAG-04
+
+**Severity:** Error
+**Category:** IoCTools.Testing
+
+**Cause:** Service referenced in `[Cover<T>]` has no generated constructor (not partial, no service intent).
+
+**Fix:** Mark the service class as `partial` and add a lifetime attribute (`[Scoped]`, `[Singleton]`, `[Transient]`), `[Inject]` fields, or `[DependsOn]` attributes.
+
+Example:
+```csharp
+// Before (no constructor):
+public class UserService // Not partial
+{
+    public UserService(IUserRepository repo) { }
+}
+
+// After:
+[Scoped] // Add lifetime attribute
+public partial class UserService // Make partial
+{
+    [Inject] private readonly IUserRepository _userRepository;
+    // Constructor auto-generated
+}
+```
+
+---
+
+## TDIAG-05
+
+**Severity:** Error
+**Category:** IoCTools.Testing
+
+**Cause:** Test class uses `[Cover<T>]` but is not marked `partial`, preventing fixture generation.
+
+**Fix:** Add the `partial` modifier to the test class declaration.
+
+Example:
+```csharp
+// Before:
+[Cover<UserService>]
+public class UserServiceTests // Not partial
+{
+}
+
+// After:
+[Cover<UserService>]
+public partial class UserServiceTests // Added partial
+{
+}
+```
