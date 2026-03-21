@@ -41,11 +41,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Diagnostic UX
 
-- [ ] **DUX-01**: HelpLinkUri added to all 87+ diagnostic descriptors
-- [ ] **DUX-02**: IDE categories updated to specific groupings (Lifetime, Dependency, Configuration, Registration, Structural)
-- [ ] **DUX-03**: IOC012/013 messages suggest IServiceProvider/CreateScope() pattern for intentional lifetime violations
-- [ ] **DUX-04**: IOC015 message shows full inheritance path (A -> B -> C)
-- [ ] **DUX-05**: IOC016-019 messages include configuration examples showing valid usage
+- [x] **DUX-01**: HelpLinkUri added to all 87+ diagnostic descriptors
+- [x] **DUX-02**: IDE categories updated to specific groupings (Lifetime, Dependency, Configuration, Registration, Structural)
+- [x] **DUX-03**: IOC012/013 messages suggest IServiceProvider/CreateScope() pattern for intentional lifetime violations
+- [x] **DUX-04**: IOC015 message shows full inheritance path (A -> B -> C)
+- [x] **DUX-05**: IOC016-019 messages include configuration examples showing valid usage
 
 ### CLI Improvements
 
@@ -119,11 +119,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUAL-03 | Phase 1 | Pending |
 | QUAL-04 | Phase 1 | Pending |
 | QUAL-05 | Phase 1 | Pending |
-| DUX-01 | Phase 1 | Pending |
-| DUX-02 | Phase 1 | Pending |
-| DUX-03 | Phase 1 | Pending |
-| DUX-04 | Phase 1 | Pending |
-| DUX-05 | Phase 1 | Pending |
+| DUX-01 | Phase 1 | Complete |
+| DUX-02 | Phase 1 | Complete |
+| DUX-03 | Phase 1 | Complete |
+| DUX-04 | Phase 1 | Complete |
+| DUX-05 | Phase 1 | Complete |
 | DIAG-01 | Phase 2 | Pending |
 | DIAG-02 | Phase 2 | Pending |
 | DIAG-03 | Phase 2 | Pending |
