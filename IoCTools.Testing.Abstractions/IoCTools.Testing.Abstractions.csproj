@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsPackable>true</IsPackable>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>1.5.0</Version>
+        <PackageVersion>1.5.0</PackageVersion>
+        <AssemblyVersion>1.5.0.0</AssemblyVersion>
+        <FileVersion>1.5.0.0</FileVersion>
+        <Title>IoC Tools Testing Abstractions Package</Title>
+        <Copyright>MIT</Copyright>
+        <PackageProjectUrl>https://github.com/nate123456/IoCTools</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/nate123456/IoCTools</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Description>Test fixture generation attributes for IoCTools - mark test classes with [Cover&lt;TService&gt;] to auto-generate Mock&lt;T&gt; fields and CreateSut() factories.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="../README.md" Pack="true" PackagePath="\" Visible="false"/>
+    </ItemGroup>
+</Project>
