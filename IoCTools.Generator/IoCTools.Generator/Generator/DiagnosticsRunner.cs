@@ -436,6 +436,10 @@ internal static class DiagnosticsRunner
             // IOC050/IOC051 + options duplication (cross-assembly scenario)
             if (diagnosticConfig.DiagnosticsEnabled)
                 ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, autoConfigOptions);
+
+            // TDIAG-01 through TDIAG-05: Test fixture analysis
+            if (diagnosticConfig.DiagnosticsEnabled)
+                TestFixtureAnalyzer.Validate(compilation, context.ReportDiagnostic, diagnosticConfig);
         }
         catch (Exception ex)
         {
