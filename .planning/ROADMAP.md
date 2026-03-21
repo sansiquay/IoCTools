@@ -45,12 +45,12 @@ Plans:
   3. Running any CLI command with --json produces valid JSON to stdout that can be piped to jq
   4. Running any CLI command with --verbose shows MSBuild diagnostic output, generator timing, and resolved file paths
   5. CLI diagnostic output is color-coded by severity (red for Error, yellow for Warning, cyan for Info) in terminal
-**Plans:** 5 plans
+**Plans:** 2/5 plans executed
 
 Plans:
-- [ ] 02-01-PLAN.md — Add IOC090-094 diagnostic descriptors and extend ManualRegistrationValidator with typeof() detection
+- [x] 02-01-PLAN.md — Add IOC090-094 diagnostic descriptors and extend ManualRegistrationValidator with typeof() detection
 - [ ] 02-02-PLAN.md — Create integration tests for typeof() diagnostics and add sample project examples
-- [ ] 02-03-PLAN.md — Add CLI infrastructure: AnsiColor utility, OutputContext abstraction, --json/--verbose flags, color-coded printers
+- [x] 02-03-PLAN.md — Add CLI infrastructure: AnsiColor utility, OutputContext abstraction, --json/--verbose flags, color-coded printers
 - [ ] 02-04-PLAN.md — Add wildcard filtering (TypeFilterUtility), fuzzy suggestions (FuzzySuggestionUtility), and profile service count
 - [ ] 02-05-PLAN.md — Add ioc-tools suppress command with DiagnosticCatalog, .editorconfig generation, --live mode
 
@@ -96,6 +96,6 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
-| 2. typeof() Diagnostics and CLI | 0/5 | Not started | - |
+| 2. typeof() Diagnostics and CLI | 2/5 | In Progress|  |
 | 3. Test Fixture Generation | 0/3 | Not started | - |
 | 4. Documentation | 0/2 | Not started | - |
