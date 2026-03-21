@@ -30,6 +30,7 @@
     <ProjectReference Include="..\IoCTools.Testing\IoCTools.Testing\IoCTools.Testing.csproj"/>
     <ProjectReference Include="..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj"/>
     <ProjectReference Include="..\IoCTools.Abstractions\IoCTools.Abstractions.csproj"/>
+    <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

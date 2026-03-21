@@ -7,27 +7,23 @@ using Microsoft.CodeAnalysis.CSharp;
 
 /// <summary>
 /// Test helper for running the IoCTools.Testing generator in unit tests.
+/// Note: The test fixture generation depends on the main generator first creating
+/// constructors for services. This helper runs both generators together.
 /// </summary>
 internal static class TestHelper
 {
     public static GenerationResult Generate(string source)
     {
-        var references = new[]
-        {
-            typeof(object).Assembly,
-            typeof(CSharpCompilation).Assembly,
-            Assembly.Load("Microsoft.CodeAnalysis, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35") ?? Assembly.Load("Microsoft.CodeAnalysis"),
-            Assembly.Load("Microsoft.CodeAnalysis.CSharp, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35") ?? Assembly.Load("Microsoft.CodeAnalysis.CSharp"),
-        };
-
-        // Add IoCTools.Abstractions references
+        // Add IoCTools references
         var iocToolsAssembly = typeof(Abstractions.Annotations.ScopedAttribute).Assembly;
+        var iocTestingAssembly = typeof(IoCTools.Testing.Annotations.CoverAttribute<>).Assembly;
         var metadataRefs = new List<MetadataReference>
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(IEnumerable<>).Assembly.Location),
             MetadataReference.CreateFromFile(iocToolsAssembly.Location),
+            MetadataReference.CreateFromFile(iocTestingAssembly.Location),
             MetadataReference.CreateFromFile(typeof(CSharpCompilation).Assembly.Location)
         };
 
@@ -55,15 +51,54 @@ internal static class TestHelper
             // Not critical if not available
         }
 
+        // Try to add Microsoft.Extensions.Configuration
+        try
+        {
+            var configAssembly = Assembly.Load("Microsoft.Extensions.Configuration, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60")
+                ?? Assembly.Load("Microsoft.Extensions.Configuration");
+            if (configAssembly != null)
+                metadataRefs.Add(MetadataReference.CreateFromFile(configAssembly.Location));
+        }
+        catch
+        {
+            // Not critical if not available
+        }
+
+        // Try to add Microsoft.Extensions.Options
+        try
+        {
+            var optionsAssembly = Assembly.Load("Microsoft.Extensions.Options, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60")
+                ?? Assembly.Load("Microsoft.Extensions.Options");
+            if (optionsAssembly != null)
+                metadataRefs.Add(MetadataReference.CreateFromFile(optionsAssembly.Location));
+        }
+        catch
+        {
+            // Not critical if not available
+        }
+
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
+
+        // Run both generators together
         var compilation = CSharpCompilation.Create(
             "Test",
             new[] { syntaxTree },
             metadataRefs,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                allowUnsafe: false,
+                nullableContextOptions: NullableContextOptions.Enable));
 
-        var generator = new IoCTools.Testing.IoCToolsTestingGenerator();
-        var driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() });
+        var mainGenerator = new IoCTools.Generator.DependencyInjectionGenerator();
+        var testingGenerator = new IoCTools.Testing.IoCToolsTestingGenerator();
+        var driver = CSharpGeneratorDriver.Create(new[]
+        {
+            mainGenerator.AsSourceGenerator(),
+            testingGenerator.AsSourceGenerator()
+        },
+            Array.Empty<AdditionalText>(),
+            new CSharpParseOptions(LanguageVersion.Preview));
+
         driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
         var generatedTrees = outputCompilation.SyntaxTrees
