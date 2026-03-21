@@ -143,10 +143,10 @@ internal static class FixtureEmitter
 
         while (current != null)
         {
-            if (!string.IsNullOrEmpty(current.ContainingNamespace?.ToString()) &&
-                !current.ContainingNamespace.IsGlobalNamespace)
+            var ns = current.ContainingNamespace?.ToString();
+            if (!string.IsNullOrEmpty(ns) && !current.ContainingNamespace.IsGlobalNamespace)
             {
-                namespaces.Add(current.ContainingNamespace.ToString());
+                namespaces.Add(ns);
             }
 
             if (current is INamedTypeSymbol namedType && namedType.IsGenericType)
