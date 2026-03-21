@@ -595,3 +595,255 @@ while (currentType != null && currentType.SpecialType != SpecialType.System_Obje
 ## Future Work
 
 See `ideas.md` for a curated list of future improvements, diagnostics, and feature ideas.
+
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**IoCTools v1.5.0**
+
+IoCTools is a .NET source generator library that simplifies dependency injection in .NET applications. It auto-discovers services via lifetime attributes, generates constructors, validates DI configuration at build time with 86 diagnostics (IOC001-IOC086), and includes a CLI for inspection/debugging. This milestone adds a test fixture generator, expands diagnostics, improves the CLI, and overhauls documentation.
+
+**Core Value:** Eliminate DI boilerplate — both in production code (service registration, constructors) and now in test code (mock declarations, SUT construction) — with zero runtime overhead through compile-time source generation.
+
+### Constraints
+
+- **netstandard2.0**: Generator and Abstractions must maintain netstandard2.0 target for broad compatibility — no records, init-only properties, required members
+- **IoCTools.Testing target**: Can target net8.0+ since it's test-project-only
+- **Moq dependency**: IoCTools.Testing will take a dependency on Moq — version should align with common usage (latest stable)
+- **Source generator limitations**: Generated test fixtures must work within Roslyn source generator constraints (no runtime reflection)
+<!-- GSD:project-end -->
+
+<!-- GSD:stack-start source:codebase/STACK.md -->
+## Technology Stack
+
+## Languages
+- C# (LangVersion: `latest` in generator/abstractions, `11.0` in test project, `default` in sample) - All projects
+- MSBuild / `.targets` files - Build integration in `IoCTools.Generator/build/IoCTools.Generator.targets`
+## Runtime
+- .NET 8.0 - Sample app (`IoCTools.Sample`), CLI tool (`IoCTools.Tools.Cli`), both test projects
+- .NET Standard 2.0 - Generator (`IoCTools.Generator`) and abstractions (`IoCTools.Abstractions`) for broad framework compatibility
+- NuGet (dotnet CLI)
+- Lockfile: Not present (no `packages.lock.json`)
+- .NET SDK 9.0.100 (pinned via `global.json` with `rollForward: latestFeature`)
+## Frameworks
+- Roslyn `IIncrementalGenerator` API - Source generator pipeline in `IoCTools.Generator/IoCTools.Generator/DependencyInjectionGenerator.cs`
+- Microsoft.Extensions.DependencyInjection (6.x) - DI container integration used in tests and sample
+- Microsoft.Extensions.Hosting (6.0.1) - `IHostedService` background service support in sample
+- xunit 2.9.3 - Test runner for `IoCTools.Generator.Tests`
+- xunit 2.6.3 - Test runner for `IoCTools.Tools.Cli.Tests`
+- FluentAssertions 6.12.0 - Assertion library in both test projects
+- Xunit.SkippableFact 1.5.23 - Conditional test skipping in generator tests
+- Microsoft.NET.Test.Sdk 17.8.0 / 17.9.0 - Test SDK for both test projects
+- coverlet.collector 6.0.4 - Code coverage collection in generator tests
+- MSBuild targets file (`IoCTools.Generator.targets`) - Exposes MSBuild properties to the analyzer
+- `dotnet pack` - NuGet package creation with `GeneratePackageOnBuild=true` on generator and abstractions
+- `PackAsTool=true` on `IoCTools.Tools.Cli` - Packaged as a .NET global/local tool (`ioc-tools` command)
+## Key Dependencies
+- `Microsoft.CodeAnalysis.CSharp` 4.5.0 - Roslyn compiler APIs for source generation and analysis (used in generator, tests, CLI)
+- `Microsoft.CodeAnalysis.Analyzers` 3.3.4 - Roslyn analyzer rules enforcement (generator and tests)
+- `Microsoft.CodeAnalysis.CSharp.Workspaces` 4.5.0 - Workspace APIs for CLI project loading
+- `Microsoft.CodeAnalysis.Workspaces.MSBuild` 4.5.0 - MSBuild workspace integration for CLI
+- `Microsoft.Build.Locator` 1.10.12 - Locates MSBuild for CLI workspace loading
+- `Microsoft.Extensions.Configuration` 6.x - Configuration system used in tests and sample
+- `Microsoft.Extensions.Configuration.Json` 6.x - JSON configuration support
+- `Microsoft.Extensions.Logging` 6.x - Logging abstractions used in tests
+- `Microsoft.Extensions.Options` 6.x - Options pattern support
+- `Microsoft.Extensions.Caching.Memory` 6.0.2 - Memory cache used in tests and sample
+- `Microsoft.Extensions.Http` 6.0.1 - HttpClient factory in sample
+- `System.Collections.Immutable` 6.0.0 - Immutable collections in generator tests
+- `Microsoft.CodeAnalysis.CSharp.Scripting` 4.5.0 - Scripting API used in generator tests
+- `Mediator.Abstractions` 2.1.7 - Mediator pattern abstractions (demonstrates `[SkipAssignableTypes]` pattern)
+- `Microsoft.Extensions.Options.DataAnnotations` 6.0.0 - Options validation with data annotations
+## Configuration
+- MSBuild properties passed to the generator via `CompilerVisibleProperty` mechanism
+- Key MSBuild properties:
+- `IoCTools.sln` - Visual Studio solution file
+- `global.json` - SDK version pin at `9.0.100`
+- `IoCTools.Generator/build/IoCTools.Generator.targets` - NuGet-bundled MSBuild targets
+- `NuGet.Config` - Not detected
+## Platform Requirements
+- .NET SDK 9.0.100+
+- Compatible IDE: Visual Studio, Rider, VS Code with C# Dev Kit
+- `IoCTools.Abstractions`: targets `netstandard2.0` - compatible with .NET Framework 4.6.1+, .NET Core 2.0+, .NET 5+
+- `IoCTools.Generator`: targets `netstandard2.0` - distributed as Roslyn analyzer/source generator NuGet package
+- `IoCTools.Tools.Cli`: targets `net8.0` - distributed as .NET tool (`ioc-tools` command name)
+- NuGet packages published with `GeneratePackageOnBuild=true` at version 1.3.0
+<!-- GSD:stack-end -->
+
+<!-- GSD:conventions-start source:CONVENTIONS.md -->
+## Conventions
+
+## Naming Patterns
+- PascalCase for all `.cs` files matching the primary type they contain
+- Partial class files use dot-separated suffixes: `ConstructorGenerator.cs`, `ConstructorGenerator.Parameters.cs`, `ConstructorGenerator.Rendering.cs`
+- Test files named `{Subject}Tests.cs` exactly matching test class name
+- Diagnostic descriptor files grouped by concern: `StructuralDiagnostics.cs`, `LifetimeDiagnostics.cs`, `RegistrationDiagnostics.cs`
+- PascalCase; sealed where possible (`public sealed class CliServicesCommandTests`)
+- Internal static utility classes throughout generator: `TypeNameUtilities`, `LifetimeCompatibilityChecker`, `ServiceDependencyUtilities`
+- Validators named `{Concern}Validator`: `CircularDependencyValidator`, `LifetimeDependencyValidator`, `ManualRegistrationValidator`
+- Analyzers named `{Concern}Analyzer`: `DependencyAnalyzer`, `ConfigurationFieldAnalyzer`, `TypeAnalyzer`
+- Generators named `{Concern}Generator`: `ConstructorGenerator`, `ServiceRegistrationGenerator`
+- Pipeline classes named `{Stage}Pipeline`: `ServiceClassPipeline`, `RegistrationPipeline`, `DiagnosticsPipeline`
+- PascalCase for public/internal; camelCase for private locals
+- `Get{X}` for retrieval, `Build{X}` for construction, `Validate{X}` for validation, `Generate{X}` for code generation
+- `Has{X}` / `Is{X}` for boolean predicate methods and properties
+- `Collect{X}`, `Compile{X}`, `Extract{X}` for aggregation
+- camelCase throughout
+- Single-letter lambdas (`x`, `a`, `m`) acceptable in concise LINQ chains; prefer descriptive names in longer expressions
+- Private fields: `_camelCase` prefix (e.g., `_data`, `_className`, `_attributes`)
+- Private static readonly: same `_camelCase` convention (e.g., `private static readonly SemaphoreSlim Gate`)
+- Static readonly constants in `DiagnosticDescriptors` use PascalCase property names matching diagnostic titles
+- `I` prefix + PascalCase: `IServiceCollection`, `IConfiguration`, `INamedTypeSymbol`
+- PascalCase type name; PascalCase member names
+- Example: `LifetimeViolationType.SingletonDependsOnScoped`, `ServiceLifetime.Singleton`
+- XML doc comments on every enum member describing meaning
+- `Attribute` suffix on class name; exposed without suffix in usage
+- Sealed: `public sealed class ScopedAttribute : Attribute`
+- `[AttributeUsage(...)]` always declared on attribute classes
+## Code Style
+- 4 spaces indentation (`.editorconfig`)
+- UTF-8, LF line endings, final newline, no trailing whitespace
+- `var` preferred for all types when apparent or built-in (`.editorconfig`: `csharp_style_var_*`)
+- File-scoped namespaces preferred: `namespace IoCTools.Generator.Utilities;`
+- `using` directives inside namespace (`.editorconfig`: `csharp_using_directive_placement = inside_namespace`)
+- System directives sorted first (`dotnet_sort_system_directives_first = true`)
+- Blank line separates System usings from other using groups (`dotnet_separate_import_directive_groups = true`)
+- Preferred for single-line methods and properties (`csharp_style_expression_bodied_methods = when_on_single_line`)
+- Example: `public static string RepoRoot { get; } = LocateRepoRoot();`
+- Nullable reference types enabled (`<Nullable>enable</Nullable>`)
+- Null-forgiving operator `!` used only where caller has verified non-null
+- Defensive null checks with early return in generator methods:
+- Null-conditional `?.` and null-coalescing `??` used freely in LINQ and property access chains
+- `try/catch(Exception)` with silent skip used when loading optional assemblies (common in `SourceGeneratorTestHelper`)
+- Validators always check `if (!diagnosticConfig.DiagnosticsEnabled) return;` first
+- No exception propagation from source generator pipeline methods — emit diagnostics instead
+## Import Organization
+- Not used; all imports via fully qualified namespace `using` directives
+- Generator code uses short `using Utilities;` (relative to file namespace) internally
+- `IoCTools.Generator.Tests/GlobalUsings.cs` declares `global using FluentAssertions;` and `global using Microsoft.CodeAnalysis;`
+- `IoCTools.Generator.Tests.csproj` adds `global using Xunit;` via `<Using Include="Xunit"/>`
+## Error Handling
+- All validators receive `DiagnosticConfiguration` and short-circuit via `if (!config.DiagnosticsEnabled) return;`
+- Diagnostics emitted via `context.ReportDiagnostic(Diagnostic.Create(...))` — never throw from generator
+- `ConstructorGenerator` returns empty string `""` for non-partial classes rather than emitting error from code generation; diagnostics handled separately by `IOC080`
+- Guard clauses with `ArgumentNullException` for required symbol parameters:
+- `ArgumentException` for invalid string values (e.g., lifetime validation in `ServiceRegistration`)
+- Exceptions from `Program.Main` propagate naturally; `CliTestHost` captures exit code
+## Logging
+## Comments
+- `<summary>` XML docs on all public and internal-public static methods and classes
+- Inline `//` comments explaining non-obvious logic, generator decisions, and defensive patterns
+- `// CRITICAL:`, `// FIXED:`, `// Defensive null checks` markers common in test helper and generator
+- `[Obsolete]` attribute with explanatory message for deprecated diagnostic descriptors
+- `<summary>` required on public API surface and internal utilities
+- `<param>`, `<returns>`, `<remarks>` used on methods with complex signatures
+- Test classes use `<summary>` on class to describe test scope (common pattern)
+- `#region` directives used to group related test methods (seen in `LifetimeCompatibilityCheckerTests.cs`, `EnhancedTestUtilities.cs`, `MSBuildDiagnosticConfigurationTests.cs`)
+- Region names: `#region GetViolationType - Singleton Consumer`, `#region Test Infrastructure`, `#region Mock Objects`
+## Function Design
+- Generator validators tend to be 40-100 lines; large validators split into partial classes or helper static methods
+- `ConstructorGenerator` split across 5 partial files: `ConstructorGenerator.cs`, `.ConfigBinding.cs`, `.Namespaces.cs`, `.Parameters.cs`, `.Rendering.cs`
+- Test methods: typically 10-30 lines following Arrange/Act/Assert; longer for integration scenarios with inline source code strings
+- Named parameters preferred for attribute constructors with more than 2 arguments
+- `params string[]` used in CLI test host (`CliTestHost.RunAsync(params string[] args)`)
+- Optional parameters with defaults used in public helpers: `bool includeSystemReferences = true`
+- Tuple returns used for multi-value outputs: `(Dictionary<...> AllImplementations, HashSet<...> AllRegisteredServices, ...)` from `TypeAnalyzer.CollectTypesAndBuildMaps`
+- `string` return from code generators (empty string signals skip)
+- `bool` from predicate helpers (`Has...`, `Is...`, `Contains...`)
+## Module Design
+- Generator internals use `internal static class` (never public)
+- Public API surface confined to `IoCTools.Abstractions` project: attribute types and enumerations
+- Test infrastructure uses `internal` with `InternalsVisibleTo` declared in `.csproj`
+- Source generator target classes must be `partial` — enforced by `IOC080` diagnostic
+- `ConstructorGenerator` and `ServiceRegistrationGenerator` themselves split into partial files by concern (parameters, rendering, conditional, multi-interface, RegisterAs)
+- Attribute types: always `sealed`
+- Test classes: `sealed` when no inheritance expected (CLI tests use `sealed`)
+- Generator utility classes: `static` (no instantiation)
+- `readonly struct` used for lightweight value carriers in generator pipeline: `ServiceClassInfo`
+- Manual `IEquatable<T>` implementation required (no record structs — `netstandard2.0` constraint)
+<!-- GSD:conventions-end -->
+
+<!-- GSD:architecture-start source:ARCHITECTURE.md -->
+## Architecture
+
+## Pattern Overview
+- Zero runtime overhead — all code generation occurs at compile time via `IIncrementalGenerator`
+- Three-pipeline architecture inside the generator: service discovery, constructor emission, and diagnostics emission run independently but share the same `IncrementalValuesProvider<ServiceClassInfo>`
+- Attribute-driven service intent: a class is only processed when it carries recognized markers (lifetime attributes, `[Inject]`, `[DependsOn]`, `IHostedService`, or is a partial class with interfaces)
+- Cross-assembly awareness in diagnostics: referenced assemblies that themselves reference `IoCTools.Abstractions` are scanned for registered types
+## Layers
+- Purpose: Public API — all attributes and enumerations consumed by user projects
+- Location: `IoCTools.Abstractions/`
+- Contains: `[Scoped]`, `[Singleton]`, `[Transient]`, `[Inject]`, `[DependsOn]`, `[RegisterAs]`, `[RegisterAsAll]`, `[ConditionalService]`, `[ExternalService]`, `[InjectConfiguration]`, enums (`InstanceSharing`, `RegistrationMode`, `NamingConvention`, `Lifetime`)
+- Depends on: Nothing (no project references)
+- Used by: Every consumer project, `IoCTools.Generator`, `IoCTools.Sample`
+- Purpose: Roslyn `IIncrementalGenerator` — produces constructor C# files and a service registration extension method file at build time
+- Location: `IoCTools.Generator/IoCTools.Generator/`
+- Contains: Pipelines, emitters, code generators, analyzers, validators, models, utilities
+- Depends on: `IoCTools.Abstractions`, `Microsoft.CodeAnalysis.CSharp` (4.5.0)
+- Used by: Consumer projects (referenced as an analyzer/generator NuGet package)
+- Purpose: Developer-facing command-line tool for inspecting, debugging, and auditing IoCTools-enabled projects
+- Location: `IoCTools.Tools.Cli/`
+- Contains: Commands (`fields`, `services`, `explain`, `graph`, `why`, `doctor`, `compare`, `profile`, `config-audit`), printers, artifact reader, summary builder
+- Depends on: `IoCTools.Generator` (via `InternalsVisibleTo`), MSBuild workspace APIs
+- Used by: Developers running `ioc-tools` CLI
+- Purpose: Live demonstration project and integration test suite
+- Location: `IoCTools.Sample/`
+- Contains: 18 service example files covering every feature, generated output under `generated/`
+- Depends on: `IoCTools.Abstractions`, `IoCTools.Generator` (via generator reference)
+- Purpose: Automated unit and integration tests for generator behavior
+- Location: `IoCTools.Generator.Tests/`, `IoCTools.Tools.Cli.Tests/`
+- Contains: 100+ test files using Roslyn compilation helpers (`SourceGeneratorTestHelper.cs`)
+- Depends on: `IoCTools.Generator` (via `InternalsVisibleTo`), xUnit, FluentAssertions
+## Data Flow
+- No runtime state — the generator is stateless; `ServiceClassInfo` is an immutable value struct used only within a single compilation pipeline run
+- MSBuild properties (`build_property.*`) configure behavior via `GeneratorStyleOptions` and `DiagnosticConfiguration`, read fresh each build
+## Key Abstractions
+- Purpose: Thin data transfer struct carrying everything the generator needs about one service class
+- Location: `IoCTools.Generator/IoCTools.Generator/Models/ServiceClassInfo.cs`
+- Pattern: Immutable value struct — `INamedTypeSymbol ClassSymbol`, `TypeDeclarationSyntax? ClassDeclaration`, `SemanticModel? SemanticModel`
+- Purpose: Represents one `IServiceCollection.Add*<TInterface, TImpl>()` call to be emitted
+- Location: `IoCTools.Generator/IoCTools.Generator/Models/ServiceRegistration.cs`
+- Pattern: Validated value object — constructor throws on invalid lifetimes; holds `ClassSymbol`, `InterfaceSymbol`, `Lifetime`, `UseSharedInstance`, `HasConfigurationInjection`
+- Purpose: Carries the result of walking the full inheritance chain for one class — separates base vs. derived dependencies for proper constructor generation
+- Location: `IoCTools.Generator/IoCTools.Generator/Models/InheritanceHierarchyDependencies.cs`
+- Pattern: Class with five typed collections: `AllDependencies`, `BaseDependencies`, `DerivedDependencies`, `RawAllDependencies` (with level), `AllDependenciesWithExternalFlag`
+- Purpose: MSBuild-configurable options controlling which types are skipped, implicit lifetime default
+- Location: `IoCTools.Generator/IoCTools.Generator/Utilities/GeneratorStyleOptions.cs`
+- Pattern: Sealed class built once per pipeline run via `From(AnalyzerConfigOptionsProvider, Compilation)` — reads `build_property.*` keys and supports glob patterns
+- Purpose: Per-project diagnostic severity overrides read from MSBuild properties
+- Location: `IoCTools.Generator/IoCTools.Generator/Models/DiagnosticConfiguration.cs`
+- Pattern: Mutable configuration parsed by `DiagnosticUtilities.GetDiagnosticConfiguration()` from `build_property.IoCTools*` keys
+## Entry Points
+- Location: `IoCTools.Generator/IoCTools.Generator/DependencyInjectionGenerator.cs`
+- Triggers: Roslyn calls `Initialize()` on every incremental compilation
+- Responsibilities: Wires `ServiceClassPipeline`, `RegistrationPipeline`, `ConstructorEmitter`, and `DiagnosticsPipeline` together — this file is intentionally ~18 lines
+- Location: `IoCTools.Tools.Cli/Program.cs`
+- Triggers: CLI invocation (`ioc-tools <command> [args]`)
+- Responsibilities: Dispatches to command runners (`fields`, `services`, `explain`, `graph`, `why`, `doctor`, `compare`, `profile`, `config-audit`); each runner creates a `ProjectContext` (MSBuild workspace), optionally a `GeneratorArtifactWriter` (reads `.ioc-tools/generated/` cached outputs), and calls an appropriate Printer
+## Error Handling
+- Generator: `catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)` → `GeneratorDiagnostics.Report(context, "IOC996", ...)` — OOM and StackOverflow are re-thrown directly
+- Individual validators are wrapped in try/catch where one validator failure should not suppress downstream diagnostics (e.g., `DiagnosticsRunner.ValidateRedundantMemberNames`)
+- CLI: top-level `catch (OperationCanceledException)` → exit 1; `catch (Exception)` → `Console.Error.WriteLine`; `DoctorPrinter` returns exit code 1 when any Error-severity diagnostic is present
+## Cross-Cutting Concerns
+<!-- GSD:architecture-end -->
+
+<!-- GSD:workflow-start source:GSD defaults -->
+## GSD Workflow Enforcement
+
+Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+
+Use these entry points:
+- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
+- `/gsd:debug` for investigation and bug fixing
+- `/gsd:execute-phase` for planned phase work
+
+Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- GSD:workflow-end -->
+
+<!-- GSD:profile-start -->
+## Developer Profile
+
+> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
+> This section is managed by `generate-claude-profile` -- do not edit manually.
+<!-- GSD:profile-end -->

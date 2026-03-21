@@ -32,6 +32,7 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - [ ] Support Moq as the mocking framework (Moq-only, no abstraction layer)
 - [ ] Ship as separate NuGet package `IoCTools.Testing` to isolate test-time dependencies
 - [ ] Work with services that use `[Inject]`, `[DependsOn]`, inheritance, and configuration injection
+- [ ] Analyzers that detect manual mock/SUT boilerplate and suggest using generated fixtures instead
 
 **typeof() Diagnostics (IOC090-094)**
 - [ ] Add typeof() argument parsing to ManualRegistrationValidator

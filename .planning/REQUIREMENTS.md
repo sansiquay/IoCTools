@@ -21,6 +21,14 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **TEST-10**: Mock fields are auto-initialized (`new Mock<T>()`) in the fixture constructor
 - [ ] **TEST-11**: Comprehensive test suite for the test fixture generator covering all IoCTools service patterns
 
+### Test Fixture Analyzers
+
+- [ ] **TDIAG-01**: Detect manual `new Mock<T>()` fields where T is a dependency of an IoCTools service that has a generated fixture — suggest using the fixture
+- [ ] **TDIAG-02**: Detect manual SUT construction (`new ServiceName(mock.Object, ...)`) where a generated `CreateSut()` exists — suggest using CreateSut()
+- [ ] **TDIAG-03**: Detect test classes with mock fields matching an IoCTools service's dependency graph — suggest inheriting from the generated fixture base class
+- [ ] **TDIAG-04**: Integration tests for all test fixture analyzer diagnostics
+- [ ] **TDIAG-05**: Test fixture analyzer examples added to sample/test project
+
 ### typeof() Diagnostics
 
 - [ ] **DIAG-01**: typeof() argument parsing foundation added to ManualRegistrationValidator
@@ -106,56 +114,61 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| TEST-05 | TBD | Pending |
-| TEST-06 | TBD | Pending |
-| TEST-07 | TBD | Pending |
-| TEST-08 | TBD | Pending |
-| TEST-09 | TBD | Pending |
-| TEST-10 | TBD | Pending |
-| TEST-11 | TBD | Pending |
-| DIAG-01 | TBD | Pending |
-| DIAG-02 | TBD | Pending |
-| DIAG-03 | TBD | Pending |
-| DIAG-04 | TBD | Pending |
-| DIAG-05 | TBD | Pending |
-| DIAG-06 | TBD | Pending |
-| DIAG-07 | TBD | Pending |
-| DUX-01 | TBD | Pending |
-| DUX-02 | TBD | Pending |
-| DUX-03 | TBD | Pending |
-| DUX-04 | TBD | Pending |
-| DUX-05 | TBD | Pending |
-| CLI-01 | TBD | Pending |
-| CLI-02 | TBD | Pending |
-| CLI-03 | TBD | Pending |
-| CLI-04 | TBD | Pending |
-| CLI-05 | TBD | Pending |
-| CLI-06 | TBD | Pending |
-| CLI-07 | TBD | Pending |
-| QUAL-01 | TBD | Pending |
-| QUAL-02 | TBD | Pending |
-| QUAL-03 | TBD | Pending |
-| QUAL-04 | TBD | Pending |
-| QUAL-05 | TBD | Pending |
-| DOC-01 | TBD | Pending |
-| DOC-02 | TBD | Pending |
-| DOC-03 | TBD | Pending |
-| DOC-04 | TBD | Pending |
-| DOC-05 | TBD | Pending |
-| DOC-06 | TBD | Pending |
-| DOC-07 | TBD | Pending |
-| DOC-08 | TBD | Pending |
-| DOC-09 | TBD | Pending |
+| QUAL-01 | Phase 1 | Pending |
+| QUAL-02 | Phase 1 | Pending |
+| QUAL-03 | Phase 1 | Pending |
+| QUAL-04 | Phase 1 | Pending |
+| QUAL-05 | Phase 1 | Pending |
+| DUX-01 | Phase 1 | Pending |
+| DUX-02 | Phase 1 | Pending |
+| DUX-03 | Phase 1 | Pending |
+| DUX-04 | Phase 1 | Pending |
+| DUX-05 | Phase 1 | Pending |
+| DIAG-01 | Phase 2 | Pending |
+| DIAG-02 | Phase 2 | Pending |
+| DIAG-03 | Phase 2 | Pending |
+| DIAG-04 | Phase 2 | Pending |
+| DIAG-05 | Phase 2 | Pending |
+| DIAG-06 | Phase 2 | Pending |
+| DIAG-07 | Phase 2 | Pending |
+| CLI-01 | Phase 2 | Pending |
+| CLI-02 | Phase 2 | Pending |
+| CLI-03 | Phase 2 | Pending |
+| CLI-04 | Phase 2 | Pending |
+| CLI-05 | Phase 2 | Pending |
+| CLI-06 | Phase 2 | Pending |
+| CLI-07 | Phase 2 | Pending |
+| TEST-01 | Phase 3 | Pending |
+| TEST-02 | Phase 3 | Pending |
+| TEST-03 | Phase 3 | Pending |
+| TEST-04 | Phase 3 | Pending |
+| TEST-05 | Phase 3 | Pending |
+| TEST-06 | Phase 3 | Pending |
+| TEST-07 | Phase 3 | Pending |
+| TEST-08 | Phase 3 | Pending |
+| TEST-09 | Phase 3 | Pending |
+| TEST-10 | Phase 3 | Pending |
+| TEST-11 | Phase 3 | Pending |
+| TDIAG-01 | Phase 3 | Pending |
+| TDIAG-02 | Phase 3 | Pending |
+| TDIAG-03 | Phase 3 | Pending |
+| TDIAG-04 | Phase 3 | Pending |
+| TDIAG-05 | Phase 3 | Pending |
+| DOC-01 | Phase 4 | Pending |
+| DOC-02 | Phase 4 | Pending |
+| DOC-03 | Phase 4 | Pending |
+| DOC-04 | Phase 4 | Pending |
+| DOC-05 | Phase 4 | Pending |
+| DOC-06 | Phase 4 | Pending |
+| DOC-07 | Phase 4 | Pending |
+| DOC-08 | Phase 4 | Pending |
+| DOC-09 | Phase 4 | Pending |
 
 **Coverage:**
-- v1.5.0 requirements: 42 total
-- Mapped to phases: 0
-- Unmapped: 42
+- v1.5.0 requirements: 47 total
+- Mapped to phases: 47
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 after roadmap creation*
