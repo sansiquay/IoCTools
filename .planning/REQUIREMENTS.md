@@ -71,9 +71,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **DOC-02**: If warranted, migrate to multi-page docs in `/docs/` directory
 - [x] **DOC-03**: Getting started guide (5-minute path to first working service)
 - [x] **DOC-04**: Attributes reference page with examples for all attributes
-- [ ] **DOC-05**: Diagnostics reference page (searchable table of all diagnostics with fix guidance)
-- [ ] **DOC-06**: CLI reference page with command examples
-- [ ] **DOC-07**: IoCTools.Testing usage guide
+- [x] **DOC-05**: Diagnostics reference page (searchable table of all diagnostics with fix guidance)
+- [x] **DOC-06**: CLI reference page with command examples
+- [x] **DOC-07**: IoCTools.Testing usage guide
 - [x] **DOC-08**: Update README to cover v1.3.0+ features completely
 - [x] **DOC-09**: Cross-reference netstandard2.0 constraints in documentation
 
@@ -158,9 +158,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-02 | Phase 4 | Complete |
 | DOC-03 | Phase 4 | Complete |
 | DOC-04 | Phase 4 | Complete |
-| DOC-05 | Phase 4 | Pending |
-| DOC-06 | Phase 4 | Pending |
-| DOC-07 | Phase 4 | Pending |
+| DOC-05 | Phase 4 | Complete |
+| DOC-06 | Phase 4 | Complete |
+| DOC-07 | Phase 4 | Complete |
 | DOC-08 | Phase 4 | Complete |
 | DOC-09 | Phase 4 | Complete |
 
