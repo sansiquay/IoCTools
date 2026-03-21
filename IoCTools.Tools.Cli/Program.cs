@@ -411,7 +411,20 @@ public static class Program
         var sw = Stopwatch.StartNew();
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
         sw.Stop();
-        ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName, output);
+
+        // Get service counts from the generated registration extension
+        var artifacts = await GeneratorArtifactWriter.CreateAsync(context, null, token);
+        var hint = HintNameBuilder.GetExtensionHint(context.Project);
+        int serviceCount = 0;
+        int configurationCount = 0;
+        if (artifacts.TryGetFile(hint, out var path))
+        {
+            var summary = RegistrationSummaryBuilder.Build(path!);
+            serviceCount = summary.Records.Count(r => r.Kind == RegistrationKind.Service);
+            configurationCount = summary.Records.Count(r => r.Kind == RegistrationKind.Configuration);
+        }
+
+        ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName, serviceCount, configurationCount, output);
         output.ReportTiming("Command completed");
         return 0;
     }
