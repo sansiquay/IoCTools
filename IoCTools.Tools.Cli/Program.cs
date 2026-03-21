@@ -40,6 +40,7 @@ public static class Program
                 "compare" => await RunCompareAsync(remaining, cts.Token),
                 "profile" => await RunProfileAsync(remaining, cts.Token),
                 "config-audit" => await RunConfigAuditAsync(remaining, cts.Token),
+                "suppress" => await RunSuppressAsync(remaining, cts.Token),
                 "help" => UsagePrinter.ExitWithUsage(),
                 _ => UsagePrinter.ExitUnknown(command)
             };
@@ -82,6 +83,14 @@ public static class Program
         if (reports.Count == 0)
         {
             Console.WriteLine("No IoCTools-enabled services found in file.");
+            if (options.TypeFilters.Count > 0)
+            {
+                // Get all service types in the file for fuzzy suggestions
+                var allReports = await inspector.GetFieldReportsAsync(options.FilePath, Array.Empty<string>(), token);
+                var allTypes = allReports.Select(r => r.TypeName);
+                foreach (var filter in options.TypeFilters)
+                    FuzzySuggestionUtility.PrintSuggestions(output, filter, allTypes);
+            }
             return 0;
         }
 
@@ -223,6 +232,13 @@ public static class Program
                 else
                 {
                     Console.WriteLine($"// No registrations found for type '{options.TypeFilter}'");
+                    // Suggest close matches
+                    var allTypes = summary.Records
+                        .Select(r => r.ServiceType)
+                        .Concat(summary.Records.Select(r => r.ImplementationType))
+                        .Where(t => t != null)
+                        .Distinct()!;
+                    FuzzySuggestionUtility.PrintSuggestions(output, options.TypeFilter, allTypes);
                 }
             }
             else
@@ -281,7 +297,12 @@ public static class Program
         var reports = await inspector.GetFieldReportsAsync(null, new[] { options.TypeName }, token);
         var target = reports.FirstOrDefault(r => string.Equals(r.TypeName, options.TypeName, StringComparison.Ordinal));
         if (target == null)
-            return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
+        {
+            Console.Error.WriteLine($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
+            var allTypes = reports.Select(r => r.TypeName);
+            FuzzySuggestionUtility.PrintSuggestions(output, options.TypeName, allTypes);
+            return 1;
+        }
 
         ExplainPrinter.Write(target, output);
         output.ReportTiming("Command completed");
@@ -411,5 +432,39 @@ public static class Program
         ConfigAuditPrinter.Write(reports, options.SettingsPath, output);
         output.ReportTiming("Command completed");
         return 0;
+    }
+
+    private static async Task<int> RunSuppressAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseSuppress(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
+
+        IReadOnlyList<string>? liveDiagnosticIds = null;
+
+        if (options.Live)
+        {
+            output.Verbose("Running generator for --live diagnostic detection...");
+            await using var context = await ProjectContext.CreateAsync(options.Common, token);
+            output.Verbose($"Project loaded: {context.Project.FilePath}");
+
+            // Use DiagnosticRunner to get actual firing diagnostics
+            var diagnostics = await DiagnosticRunner.RunAsync(context, token);
+            liveDiagnosticIds = diagnostics
+                .Where(d => d.Id.StartsWith("IOC", StringComparison.OrdinalIgnoreCase))
+                .Select(d => d.Id)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            output.Verbose($"Found {liveDiagnosticIds.Count} live IoCTools diagnostics");
+        }
+
+        var result = SuppressPrinter.Write(options, output, liveDiagnosticIds);
+        output.ReportTiming("suppress command completed");
+        return result;
     }
 }
