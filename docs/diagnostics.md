@@ -956,3 +956,47 @@ Quick reference for all IoCTools diagnostic messages. For detailed examples and 
 **Cause:** `SupportsReloading=true` is used on a primitive type field, but it only works with Options pattern types.
 
 **Fix:** Remove `SupportsReloading=true` from primitive fields. Use `IOptionsSnapshot<T>` with a complex options type for reloadable configuration.
+
+---
+
+## IOC090
+
+**Severity:** Warning
+**Category:** IoCTools.Registration
+
+**Cause:** A service is registered via `typeof()` but the implementation lacks IoCTools attributes.
+
+**Fix:** Add `[Scoped]`, `[Singleton]`, or `[Transient]` (and `[RegisterAs]` if needed) instead of using `typeof()`.
+
+---
+
+## IOC091
+
+**Severity:** Warning
+**Category:** IoCTools.Registration
+
+**Cause:** A service is registered via `typeof()` with the same lifetime that IoCTools already generates.
+
+**Fix:** Remove the `typeof()` registration and rely on IoCTools attributes.
+
+---
+
+## IOC092
+
+**Severity:** Error
+**Category:** IoCTools.Registration
+
+**Cause:** A service is registered via `typeof()` with a different lifetime than what IoCTools generates.
+
+**Fix:** Align lifetimes or remove the `typeof()` registration.
+
+---
+
+## IOC094
+
+**Severity:** Info
+**Category:** IoCTools.Registration
+
+**Cause:** An open generic is registered via `typeof()` (e.g., `typeof(IRepository<>)`).
+
+**Fix:** This is informational only. IoCTools does not yet support open generic registration. Consider using closed generic registrations with IoCTools attributes.

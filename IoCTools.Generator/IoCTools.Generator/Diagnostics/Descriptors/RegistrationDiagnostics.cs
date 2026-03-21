@@ -240,7 +240,47 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc086");
+        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc086");
+
+    public static readonly DiagnosticDescriptor TypeOfRegistrationCouldUseAttributes = new(
+        "IOC090",
+        "typeof() registration could use IoCTools attributes",
+        "'{0}' is registered via typeof() as {1}, but the implementation '{2}' lacks IoCTools attributes. Consider adding [{1}] (and [RegisterAs]) instead.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Warning,
+        true,
+        "Prefer IoCTools lifetime attributes over typeof()-based manual registrations for consistent DI management and build-time validation.",
+        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc090");
+
+    public static readonly DiagnosticDescriptor TypeOfRegistrationDuplicatesIoCTools = new(
+        "IOC091",
+        "typeof() registration duplicates IoCTools registration",
+        "Service '{0}' is registered via typeof() with lifetime '{1}' but IoCTools already registers implementation '{2}' with the same lifetime. Remove the typeof() registration.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Warning,
+        true,
+        "Avoid duplicate typeof()-based registrations when IoCTools already emits the same service/implementation pair.",
+        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc091");
+
+    public static readonly DiagnosticDescriptor TypeOfRegistrationLifetimeMismatch = new(
+        "IOC092",
+        "typeof() registration lifetime differs from IoCTools",
+        "Service '{0}' is registered via typeof() with lifetime '{1}' but IoCTools registers it with lifetime '{2}'. Align lifetimes or remove the typeof() registration.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Error,
+        true,
+        "Keep typeof() registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.",
+        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc092");
+
+    public static readonly DiagnosticDescriptor OpenGenericTypeOfCouldUseAttributes = new(
+        "IOC094",
+        "Open generic typeof() could use IoCTools attributes",
+        "'{0}' is registered as an open generic via typeof(). IoCTools does not yet support open generic registration. Consider using closed generic registrations with IoCTools attributes.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Info,
+        true,
+        "Open generic registrations (typeof(IRepository<>)) are not yet supported by IoCTools. This is informational only.",
+        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
         "IOC063",
