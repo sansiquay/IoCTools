@@ -165,6 +165,45 @@ internal static class CommandLineParser
         return ParseResult<ConfigAuditCommandOptions>.Ok(new ConfigAuditCommandOptions(common, settings));
     }
 
+    internal static ParseResult<SuppressCommandOptions> ParseSuppress(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<SuppressCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<SuppressCommandOptions>.Fail("--project is required.");
+
+        var common = BuildCommon(projectValues[^1], map);
+
+        HashSet<string>? severities = null;
+        if (map.TryGetValue("severity", out var sevValues))
+        {
+            severities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var sv in sevValues)
+            {
+                foreach (var s in sv.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    severities.Add(s.Trim());
+            }
+        }
+
+        HashSet<string>? codes = null;
+        if (map.TryGetValue("codes", out var codeValues))
+        {
+            codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var cv in codeValues)
+            {
+                foreach (var c in cv.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    codes.Add(c.Trim());
+            }
+        }
+
+        var live = map.ContainsKey("live");
+        var outputPath = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
+
+        return ParseResult<SuppressCommandOptions>.Ok(
+            new SuppressCommandOptions(common, severities, codes, live, outputPath));
+    }
+
     private static bool TryCollectOptions(string[] args,
         out Dictionary<string, List<string>> map,
         out string? error)
@@ -233,6 +272,9 @@ internal static class CommandLineParser
             "--source" or "-s" => "source",
             "--json" => "json",
             "--verbose" or "-v" => "verbose",
+            "--severity" => "severity",
+            "--codes" => "codes",
+            "--live" => "live",
             _ => key
         };
     }
@@ -248,7 +290,7 @@ internal static class CommandLineParser
         return true;
     }
 
-    private static bool IsFlag(string key) => key is "fixable-only" or "source" or "json" or "verbose";
+    private static bool IsFlag(string key) => key is "fixable-only" or "source" or "json" or "verbose" or "live";
 
     private static bool TryCollectValue(
         ref int index,
@@ -348,3 +390,10 @@ internal sealed record CompareCommandOptions(CommonOptions Common, string Output
 internal sealed record ProfileCommandOptions(CommonOptions Common, string? TypeName);
 
 internal sealed record ConfigAuditCommandOptions(CommonOptions Common, string? SettingsPath);
+
+internal sealed record SuppressCommandOptions(
+    CommonOptions Common,
+    HashSet<string>? Severities,
+    HashSet<string>? Codes,
+    bool Live,
+    string? OutputPath);
