@@ -2,7 +2,9 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 internal static class ManualRegistrationValidator
@@ -72,13 +74,18 @@ internal static class ManualRegistrationValidator
 
                 if (containing == null || !containing.Contains("Microsoft.Extensions.DependencyInjection")) continue;
 
-                if (name is not ("AddScoped" or "AddSingleton" or "AddTransient")) continue;
+                // Check for IServiceCollection.Add{Lifetime}() extension methods
+                var isAddMethod = name is "AddScoped" or "AddSingleton" or "AddTransient";
+                // Check for ServiceDescriptor.{Lifetime}() static factory methods (D-02)
+                var isServiceDescriptorFactory = name is "Scoped" or "Singleton" or "Transient"
+                    && methodSymbol.ContainingType?.Name == "ServiceDescriptor";
+                if (!isAddMethod && !isServiceDescriptorFactory) continue;
 
                 var lifetime = name switch
                 {
-                    "AddScoped" => "Scoped",
-                    "AddSingleton" => "Singleton",
-                    "AddTransient" => "Transient",
+                    "AddScoped" or "Scoped" => "Scoped",
+                    "AddSingleton" or "Singleton" => "Singleton",
+                    "AddTransient" or "Transient" => "Transient",
                     _ => null
                 };
                 if (lifetime == null) continue;
@@ -86,13 +93,51 @@ internal static class ManualRegistrationValidator
                 var typeArgsSymbol = methodSymbol.TypeArguments;
                 if (typeArgsSymbol.Length == 0 && methodSymbol.ReducedFrom?.TypeArguments.Length > 0)
                     typeArgsSymbol = methodSymbol.ReducedFrom.TypeArguments;
-                if (typeArgsSymbol.Length == 0) continue;
 
-                var svcNamed = typeArgsSymbol[0] as INamedTypeSymbol;
-                var implNamed = typeArgsSymbol.Length > 1
-                    ? typeArgsSymbol[1] as INamedTypeSymbol
-                    : svcNamed;
-                if (svcNamed == null || implNamed == null) continue;
+                INamedTypeSymbol? svcNamed = null;
+                INamedTypeSymbol? implNamed = null;
+                bool isTypeOfRegistration = false;
+
+                if (typeArgsSymbol.Length > 0)
+                {
+                    // Generic type argument path (existing behavior)
+                    svcNamed = typeArgsSymbol[0] as INamedTypeSymbol;
+                    implNamed = typeArgsSymbol.Length > 1
+                        ? typeArgsSymbol[1] as INamedTypeSymbol
+                        : svcNamed;
+                    if (svcNamed == null || implNamed == null) continue;
+                }
+                else
+                {
+                    // typeof() argument path (DIAG-01)
+                    var args = invocation.ArgumentList.Arguments;
+                    if (args.Count < 1) continue;
+
+                    // Check for open generics first (IOC094, D-04)
+                    if (IsOpenGenericTypeOf(args[0]) || (args.Count >= 2 && IsOpenGenericTypeOf(args[1])))
+                    {
+                        var openGenericText = args[0].Expression is TypeOfExpressionSyntax toe
+                            ? toe.Type.ToString() : "unknown";
+                        var diag = Diagnostic.Create(
+                            DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes,
+                            invocation.GetLocation(),
+                            openGenericText);
+                        context.ReportDiagnostic(diag);
+                        continue;
+                    }
+
+                    var svcType = ExtractTypeFromTypeOf(args[0], semanticModel);
+                    var implType = args.Count >= 2
+                        ? ExtractTypeFromTypeOf(args[1], semanticModel)
+                        : svcType;
+
+                    if (svcType == null || implType == null) continue;
+
+                    svcNamed = svcType;
+                    implNamed = implType;
+                    isTypeOfRegistration = true;
+                    // Fall through to the shared diagnostic emission logic below
+                }
 
                 var serviceTypeName = Normalize(svcNamed.ToDisplayString());
                 var implTypeName = Normalize(implNamed.ToDisplayString());
@@ -110,7 +155,10 @@ internal static class ManualRegistrationValidator
 
                 if (iocLifetime == null)
                 {
-                    var diag = Diagnostic.Create(DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
+                    var diag = Diagnostic.Create(
+                        isTypeOfRegistration
+                            ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
+                            : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
                         invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
                     context.ReportDiagnostic(diag);
                     continue;
@@ -118,13 +166,19 @@ internal static class ManualRegistrationValidator
 
                 if (iocLifetime == lifetime)
                 {
-                    var diag = Diagnostic.Create(DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools,
+                    var diag = Diagnostic.Create(
+                        isTypeOfRegistration
+                            ? DiagnosticDescriptors.TypeOfRegistrationDuplicatesIoCTools
+                            : DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools,
                         invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
                     context.ReportDiagnostic(diag);
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(DiagnosticDescriptors.ManualRegistrationLifetimeMismatch,
+                    var diag = Diagnostic.Create(
+                        isTypeOfRegistration
+                            ? DiagnosticDescriptors.TypeOfRegistrationLifetimeMismatch
+                            : DiagnosticDescriptors.ManualRegistrationLifetimeMismatch,
                         invocation.GetLocation(), serviceTypeName, lifetime, iocLifetime);
                     context.ReportDiagnostic(diag);
                 }
@@ -142,6 +196,23 @@ internal static class ManualRegistrationValidator
         {
             var (hasLifetime, _, _, _) = ServiceDiscovery.GetDirectLifetimeAttributes(symbol);
             return hasLifetime ? LifetimeUtilities.GetServiceLifetimeFromSymbol(symbol, "Scoped") : null;
+        }
+
+        static INamedTypeSymbol? ExtractTypeFromTypeOf(ArgumentSyntax arg, SemanticModel semanticModel)
+        {
+            if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                return null;
+            // CRITICAL: GetTypeInfo on typeOfExpr.Type, NOT on typeOfExpr itself (Pitfall 1)
+            var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type);
+            return typeInfo.Type as INamedTypeSymbol;
+        }
+
+        static bool IsOpenGenericTypeOf(ArgumentSyntax arg)
+        {
+            if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                return false;
+            return typeOfExpr.Type is GenericNameSyntax generic
+                && generic.TypeArgumentList.Arguments.Any(a => a is OmittedTypeArgumentSyntax);
         }
     }
 }
