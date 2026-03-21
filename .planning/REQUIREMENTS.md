@@ -9,7 +9,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Test Fixture Generation
 
-- [ ] **TEST-01**: IoCTools.Testing ships as a separate NuGet package with Moq as a peer dependency
+- [x] **TEST-01**: IoCTools.Testing ships as a separate NuGet package with Moq as a peer dependency
 - [ ] **TEST-02**: Generator auto-declares `Mock<T>` fields for all constructor dependencies of a service
 - [ ] **TEST-03**: Generator produces a `CreateSut()` factory method that wires all mock `.Object` values into the service constructor
 - [ ] **TEST-04**: Generated fixtures support services using `[Inject]` fields
@@ -138,7 +138,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLI-05 | Phase 2 | Complete |
 | CLI-06 | Phase 2 | Complete |
 | CLI-07 | Phase 2 | Complete |
-| TEST-01 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
 | TEST-04 | Phase 3 | Pending |

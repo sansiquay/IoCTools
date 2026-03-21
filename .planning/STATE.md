@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-03-21T18:28:27.739Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-21T19:17:49.318Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Eliminate DI boilerplate in both production and test code through compile-time source generation with zero runtime overhead.
-**Current focus:** Phase 02 — typeof-diagnostics-and-cli
+**Current focus:** Phase 03 — test-fixture-generation
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (test-fixture-generation) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: Not started
 | Phase 02-typeof-diagnostics-and-cli P05 | 12min | 2 tasks | 5 files |
 | Phase 02-typeof-diagnostics-and-cli P02 | 6min | 2 tasks | 2 files |
 | Phase 02-typeof-diagnostics-and-cli P04 | 8min | 3 tasks | 7 files |
+| Phase 03-test-fixture-generation P01 | 160 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase 02-typeof-diagnostics-and-cli]: Manual diagnostic catalog approach over reflection
 - [Phase 02-typeof-diagnostics-and-cli]: Default severity filter is warning+info to prevent accidentally suppressing errors
 - [Phase 02-typeof-diagnostics-and-cli]: typeof() diagnostics integration tests cover all IOC090-094 scenarios with 12 tests including ServiceDescriptor factory methods and open generic detection
+- [Phase 03]: IoCTools.Testing targets net8.0 (not netstandard2.0) since test projects don't need broad framework compatibility
+- [Phase 03]: Moq 4.20.72 direct dependency - concrete, no abstraction layer
+- [Phase 03]: Separate Testing.Abstractions package isolates test attributes from production code
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T18:23:10.152Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-03-21T19:17:49.316Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
