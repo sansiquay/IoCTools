@@ -23,11 +23,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Test Fixture Analyzers
 
-- [ ] **TDIAG-01**: Detect manual `new Mock<T>()` fields where T is a dependency of an IoCTools service that has a generated fixture — suggest using the fixture
-- [ ] **TDIAG-02**: Detect manual SUT construction (`new ServiceName(mock.Object, ...)`) where a generated `CreateSut()` exists — suggest using CreateSut()
-- [ ] **TDIAG-03**: Detect test classes with mock fields matching an IoCTools service's dependency graph — suggest inheriting from the generated fixture base class
-- [ ] **TDIAG-04**: Integration tests for all test fixture analyzer diagnostics
-- [ ] **TDIAG-05**: Test fixture analyzer examples added to sample/test project
+- [x] **TDIAG-01**: Detect manual `new Mock<T>()` fields where T is a dependency of an IoCTools service that has a generated fixture — suggest using the fixture
+- [x] **TDIAG-02**: Detect manual SUT construction (`new ServiceName(mock.Object, ...)`) where a generated `CreateSut()` exists — suggest using CreateSut()
+- [x] **TDIAG-03**: Detect test classes with mock fields matching an IoCTools service's dependency graph — suggest inheriting from the generated fixture base class
+- [x] **TDIAG-04**: Integration tests for all test fixture analyzer diagnostics
+- [x] **TDIAG-05**: Test fixture analyzer examples added to sample/test project
 
 ### typeof() Diagnostics
 
@@ -149,11 +149,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-09 | Phase 3 | Pending |
 | TEST-10 | Phase 3 | Pending |
 | TEST-11 | Phase 3 | Pending |
-| TDIAG-01 | Phase 3 | Pending |
-| TDIAG-02 | Phase 3 | Pending |
-| TDIAG-03 | Phase 3 | Pending |
-| TDIAG-04 | Phase 3 | Pending |
-| TDIAG-05 | Phase 3 | Pending |
+| TDIAG-01 | Phase 3 | Complete |
+| TDIAG-02 | Phase 3 | Complete |
+| TDIAG-03 | Phase 3 | Complete |
+| TDIAG-04 | Phase 3 | Complete |
+| TDIAG-05 | Phase 3 | Complete |
 | DOC-01 | Phase 4 | Pending |
 | DOC-02 | Phase 4 | Pending |
 | DOC-03 | Phase 4 | Pending |

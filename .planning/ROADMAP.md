@@ -70,7 +70,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Create IoCTools.Testing.Abstractions and IoCTools.Testing projects with CoverAttribute
 - [ ] 03-02-PLAN.md — Build test fixture generator with Mock<T> field, CreateSut(), and helper generation
-- [ ] 03-03-PLAN.md — Add test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) to IoCTools.Generator
+- [x] 03-03-PLAN.md — Add test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) to IoCTools.Generator
 - [ ] 03-04-PLAN.md — Create comprehensive test suite for IoCTools.Testing with sample usage examples
 
 ### Phase 4: Documentation
