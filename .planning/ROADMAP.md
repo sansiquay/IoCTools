@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Code Quality and Diagnostic UX** - Harden exception handling, centralize patterns, and polish diagnostic metadata across the existing codebase
 - [x] **Phase 2: typeof() Diagnostics and CLI** - Add typeof() registration diagnostics (IOC090-094) and extend CLI with --json, --verbose, color output, and filtering improvements (completed 2026-03-21)
 - [x] **Phase 3: Test Fixture Generation** - Ship IoCTools.Testing as a new NuGet package that generates Moq-based test fixture base classes from the DI graph (completed 2026-03-21)
-- [ ] **Phase 4: Documentation** - Evaluate and build documentation structure covering all v1.5.0 features including the new testing package
+- [x] **Phase 4: Documentation** - Evaluate and build documentation structure covering all v1.5.0 features including the new testing package (completed 2026-03-21)
 
 ## Phase Details
 
@@ -82,13 +82,13 @@ Plans:
   2. Every diagnostic (IOC001-IOC094, TDIAG-01 through TDIAG-05) is documented with its message, cause, and fix guidance in a searchable reference
   3. The IoCTools.Testing package has a dedicated usage guide showing fixture generation, mock setup, and CreateSut() patterns
   4. All HelpLinkUri values from Phase 1 resolve to actual documentation pages (no 404s)
-**Plans:** 2/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 04-01-PLAN.md — Restructure README.md to lean 250-300 line landing page and create CHANGELOG.md
 - [x] 04-02-PLAN.md — Create getting-started.md, attributes.md, and configuration.md
 - [x] 04-03-PLAN.md — Create testing.md, cli-reference.md, platform-constraints.md, and migration.md
-- [ ] 04-04-PLAN.md — Enhance diagnostics.md with categories and update CONTRIBUTING.md
+- [x] 04-04-PLAN.md — Enhance diagnostics.md with categories and update CONTRIBUTING.md
 
 ## Progress
 
@@ -101,4 +101,4 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
 | 2. typeof() Diagnostics and CLI | 5/5 | Complete   | 2026-03-21 |
 | 3. Test Fixture Generation | 4/4 | Complete   | 2026-03-21 |
-| 4. Documentation | 2/4 | In Progress|  |
+| 4. Documentation | 4/4 | Complete   | 2026-03-21 |
