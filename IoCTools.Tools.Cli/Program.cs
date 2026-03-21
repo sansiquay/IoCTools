@@ -72,7 +72,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var reports = await inspector.GetFieldReportsAsync(options.FilePath, options.TypeFilters, token);
 
@@ -151,6 +154,7 @@ public static class Program
             Console.WriteLine();
         }
 
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -162,7 +166,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var symbol = await inspector.FindServiceSymbolAsync(options.FilePath, options.TypeName, token);
         if (symbol == null)
@@ -178,6 +185,7 @@ public static class Program
         }
 
         Console.WriteLine(path);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -189,7 +197,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
         var hintName = HintNameBuilder.GetExtensionHint(context.Project);
         if (!artifacts.TryGetFile(hintName, out var path))
@@ -225,6 +236,7 @@ public static class Program
             var summary = RegistrationSummaryBuilder.Build(path!);
             RegistrationPrinter.Write(summary);
         }
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -236,7 +248,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
         var hintName = HintNameBuilder.GetExtensionHint(context.Project);
         if (!artifacts.TryGetFile(hintName, out var path))
@@ -246,6 +261,7 @@ public static class Program
         }
 
         Console.WriteLine(path);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -257,7 +273,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var reports = await inspector.GetFieldReportsAsync(null, new[] { options.TypeName }, token);
         var target = reports.FirstOrDefault(r => string.Equals(r.TypeName, options.TypeName, StringComparison.Ordinal));
@@ -265,6 +284,7 @@ public static class Program
             return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
 
         ExplainPrinter.Write(target);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -276,7 +296,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
         var hint = HintNameBuilder.GetExtensionHint(context.Project);
         if (!artifacts.TryGetFile(hint, out var path))
@@ -287,6 +310,7 @@ public static class Program
 
         var summary = RegistrationSummaryBuilder.Build(path!);
         GraphPrinter.Write(summary, options.Format, options.TypeName);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -298,7 +322,10 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var reports = await inspector.GetFieldReportsAsync(null, new[] { options.TypeName }, token);
         var target = reports.FirstOrDefault(r => string.Equals(r.TypeName, options.TypeName, StringComparison.Ordinal));
@@ -306,6 +333,7 @@ public static class Program
             return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
 
         WhyPrinter.Write(target, options.Dependency);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -317,10 +345,14 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
 
         var diagnostics = await DiagnosticRunner.RunAsync(context, token);
         DoctorPrinter.Write(diagnostics, options.FixableOnly);
+        output.ReportTiming("Command completed");
         return diagnostics.Any(d => d.Severity == "Error") ? 1 : 0;
     }
 
@@ -332,11 +364,15 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var artifacts = await GeneratorArtifactWriter.CreateAsync(context, options.OutputDirectory, token);
         CompareRunner.WriteSnapshot(artifacts, options.OutputDirectory);
         if (options.BaselineDirectory != null)
             CompareRunner.Compare(options.BaselineDirectory, options.OutputDirectory);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -348,10 +384,13 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         var sw = Stopwatch.StartNew();
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
         sw.Stop();
         ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName);
+        output.ReportTiming("Command completed");
         return 0;
     }
 
@@ -363,10 +402,14 @@ public static class Program
             return UsagePrinter.ExitWithError(parse.Error);
 
         var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
         await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
         var inspector = new ServiceFieldInspector(context.Project);
         var reports = await inspector.GetFieldReportsAsync(null, Array.Empty<string>(), token);
         ConfigAuditPrinter.Write(reports, options.SettingsPath);
+        output.ReportTiming("Command completed");
         return 0;
     }
 }

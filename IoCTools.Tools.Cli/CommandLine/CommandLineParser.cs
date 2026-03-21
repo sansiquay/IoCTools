@@ -231,6 +231,8 @@ internal static class CommandLineParser
             "--settings" => "settings",
             "--fixable-only" => "fixable-only",
             "--source" or "-s" => "source",
+            "--json" => "json",
+            "--verbose" or "-v" => "verbose",
             _ => key
         };
     }
@@ -246,7 +248,7 @@ internal static class CommandLineParser
         return true;
     }
 
-    private static bool IsFlag(string key) => key is "fixable-only" or "source";
+    private static bool IsFlag(string key) => key is "fixable-only" or "source" or "json" or "verbose";
 
     private static bool TryCollectValue(
         ref int index,
@@ -292,8 +294,10 @@ internal static class CommandLineParser
         var framework = map.TryGetValue("framework", out var frameworkValues)
             ? frameworkValues[^1]
             : null;
+        var json = map.ContainsKey("json");
+        var verbose = map.ContainsKey("verbose");
 
-        return new CommonOptions(NormalizePath(projectPath), configuration, framework);
+        return new CommonOptions(NormalizePath(projectPath), configuration, framework, json, verbose);
     }
 
     private static string NormalizePath(string path)
@@ -311,7 +315,7 @@ internal sealed record ParseResult<T>(bool Success, T? Value, string? Error)
     public static ParseResult<T> Fail(string? error) => new(false, default, error ?? "Invalid arguments.");
 }
 
-internal sealed record CommonOptions(string ProjectPath, string Configuration, string? Framework);
+internal sealed record CommonOptions(string ProjectPath, string Configuration, string? Framework, bool Json, bool Verbose);
 
 internal sealed record FieldsCommandOptions(CommonOptions Common, string FilePath, IReadOnlyList<string> TypeFilters, bool OutputSource, string? OutputDirectory);
 
