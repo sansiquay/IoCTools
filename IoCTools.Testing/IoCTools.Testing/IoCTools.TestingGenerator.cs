@@ -1,5 +1,8 @@
 namespace IoCTools.Testing;
 
+using Generator.Pipeline;
+using CodeGeneration;
+
 using Microsoft.CodeAnalysis;
 
 /// <summary>
@@ -16,7 +19,7 @@ public sealed class IoCToolsTestingGenerator : IIncrementalGenerator
     /// <param name="context">The generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Test fixture pipeline will be attached in 03-02
-        // Analyzer diagnostics will be attached in 03-03
+        var testClasses = TestFixturePipeline.Build(context);
+        context.RegisterSourceOutput(testClasses, FixtureEmitter.Emit);
     }
 }
