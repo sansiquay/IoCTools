@@ -79,14 +79,16 @@ Plans:
 **Requirements**: DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06, DOC-07, DOC-08, DOC-09
 **Success Criteria** (what must be TRUE):
   1. A new user can go from zero to a working service registration in under 5 minutes following the getting started guide
-  2. Every diagnostic (IOC001-IOC094) is documented with its message, cause, and fix guidance in a searchable reference
+  2. Every diagnostic (IOC001-IOC094, TDIAG-01 through TDIAG-05) is documented with its message, cause, and fix guidance in a searchable reference
   3. The IoCTools.Testing package has a dedicated usage guide showing fixture generation, mock setup, and CreateSut() patterns
   4. All HelpLinkUri values from Phase 1 resolve to actual documentation pages (no 404s)
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Restructure README.md to lean 250-300 line landing page and create CHANGELOG.md
+- [ ] 04-02-PLAN.md — Create getting-started.md, attributes.md, and configuration.md
+- [ ] 04-03-PLAN.md — Create testing.md, cli-reference.md, platform-constraints.md, and migration.md
+- [ ] 04-04-PLAN.md — Enhance diagnostics.md with categories and update CONTRIBUTING.md
 
 ## Progress
 
@@ -99,4 +101,4 @@ Note: Phase 2 and Phase 3 can execute in parallel (both depend only on Phase 1).
 | 1. Code Quality and Diagnostic UX | 2/2 | Complete | 2026-03-21 |
 | 2. typeof() Diagnostics and CLI | 5/5 | Complete   | 2026-03-21 |
 | 3. Test Fixture Generation | 4/4 | Complete   | 2026-03-21 |
-| 4. Documentation | 0/2 | Not started | - |
+| 4. Documentation | 0/4 | Not started | - |
