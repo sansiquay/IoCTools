@@ -3,7 +3,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 internal static class DependencyUsageValidator
 {
     internal static void ValidateRedundantDependencies(
-        SourceProductionContext context,
+        ReportDiagnosticDelegate reportDiagnostic,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         InheritanceHierarchyDependencies hierarchyDependencies)
@@ -36,11 +36,11 @@ internal static class DependencyUsageValidator
                 detail,
                 classSymbol.Name);
 
-            context.ReportDiagnostic(diagnostic);
+            reportDiagnostic(diagnostic);
         }
     }
 
-    internal static void ValidateUnusedDependencies(SourceProductionContext context,
+    internal static void ValidateUnusedDependencies(ReportDiagnosticDelegate reportDiagnostic,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
@@ -84,7 +84,7 @@ internal static class DependencyUsageValidator
                     TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                     "the [Inject] field",
                     classSymbol.Name);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
             }
             else if (dependency.Source == DependencySource.DependsOn)
             {
@@ -100,7 +100,7 @@ internal static class DependencyUsageValidator
                     TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                     "a [DependsOn] attribute",
                     classSymbol.Name);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
             }
             else if (dependency.Source == DependencySource.ConfigurationInjection)
             {
@@ -123,7 +123,7 @@ internal static class DependencyUsageValidator
                         TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                         "[InjectConfiguration]",
                         classSymbol.Name);
-                    context.ReportDiagnostic(diagnostic);
+                    reportDiagnostic(diagnostic);
                 }
                 else
                 {
@@ -136,12 +136,12 @@ internal static class DependencyUsageValidator
                         TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType),
                         "[DependsOnConfiguration]",
                         classSymbol.Name);
-                    context.ReportDiagnostic(diagnostic);
+                    reportDiagnostic(diagnostic);
                 }
             }
     }
 
-    internal static void ValidateManualDependencyFieldShadows(SourceProductionContext context,
+    internal static void ValidateManualDependencyFieldShadows(ReportDiagnosticDelegate reportDiagnostic,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
@@ -191,14 +191,14 @@ internal static class DependencyUsageValidator
                 dependency.FieldName,
                 classSymbol.Name,
                 TypeNameUtilities.FormatTypeNameForDiagnostic(dependency.ServiceType));
-            context.ReportDiagnostic(diag);
+            reportDiagnostic(diag);
 
             // MemberNames entry for this dependency is suppressed; warn so the attribute is corrected
-            ReportSuppressedMemberNames(context, classSymbol, dependency.ServiceType, dependency.FieldName);
+            ReportSuppressedMemberNames(reportDiagnostic, classSymbol, dependency.ServiceType, dependency.FieldName);
         }
     }
 
-    private static void ReportSuppressedMemberNames(SourceProductionContext context,
+    private static void ReportSuppressedMemberNames(ReportDiagnosticDelegate reportDiagnostic,
         INamedTypeSymbol classSymbol,
         ITypeSymbol dependencyType,
         string fieldName)
@@ -234,7 +234,7 @@ internal static class DependencyUsageValidator
                     memberName,
                     attribute.AttributeClass.Name,
                     classSymbol.Name);
-                context.ReportDiagnostic(diag);
+                reportDiagnostic(diag);
             }
         }
     }
@@ -248,7 +248,7 @@ internal static class DependencyUsageValidator
         return Array.Empty<string>();
     }
 
-    internal static void ValidateRedundantDependencyWrappers(SourceProductionContext context,
+    internal static void ValidateRedundantDependencyWrappers(ReportDiagnosticDelegate reportDiagnostic,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
@@ -298,7 +298,7 @@ internal static class DependencyUsageValidator
                     classSymbol.Name,
                     fieldName);
 
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
             }
     }
 

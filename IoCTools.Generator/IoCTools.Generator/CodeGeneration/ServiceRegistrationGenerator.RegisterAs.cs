@@ -7,8 +7,6 @@ internal static partial class ServiceRegistrationGenerator
     private static bool IsRegisterAsAttribute(AttributeData attr)
         => AttributeTypeChecker.IsRegisterAsAttribute(attr);
 
-    private delegate void ReportDiagnosticDelegate(Diagnostic diagnostic);
-
     private static IEnumerable<ServiceRegistration> GetRegisterAsRegistrationsCore(
         INamedTypeSymbol classSymbol,
         AttributeData registerAsAttribute,

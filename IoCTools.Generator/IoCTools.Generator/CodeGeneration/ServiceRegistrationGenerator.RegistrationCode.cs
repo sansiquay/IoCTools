@@ -87,12 +87,12 @@ internal static partial class ServiceRegistrationGenerator
             GenerateConditionalServiceRegistrations(deduplicatedConditionalServices, registrations, uniqueNamespaces,
                 needsConfigParameter);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            if (deduplicatedConditionalServices.Any())
-                throw new InvalidOperationException(
-                    $"Failed to generate conditional service registrations. Conditional services count: {deduplicatedConditionalServices.Count}. Error: {ex.Message}",
-                    ex);
+            // Re-throw with OOM/SOF filter per D-07/D-08. The caller (RegistrationEmitter.Emit())
+            // has SourceProductionContext and emits IOC999 in its catch handler at line 66-69.
+            // This ensures the error surfaces in build output rather than being silently swallowed.
+            throw;
         }
 
         if (configOptions != null && configOptions.Any())

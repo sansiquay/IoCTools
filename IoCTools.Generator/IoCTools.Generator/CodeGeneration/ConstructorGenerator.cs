@@ -434,10 +434,12 @@ internal static partial class ConstructorGenerator
                 constructorName,
                 assignmentStr);
         }
-        catch (Exception)
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
-            // Log the exception if needed and return empty constructor
-            return "";
+            // Re-throw with OOM/SOF filter per D-07/D-08. The caller (ConstructorEmitter.cs)
+            // has SourceProductionContext and emits IOC995/IOC992 diagnostics in its catch handlers.
+            // This ensures the error surfaces in build output rather than being silently swallowed.
+            throw;
         }
     }
 

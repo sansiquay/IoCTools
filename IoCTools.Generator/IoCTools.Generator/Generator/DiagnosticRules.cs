@@ -17,7 +17,7 @@ internal static class DiagnosticRules
         IEnumerable<INamedTypeSymbol> servicesWithAttributes)
     {
         ConditionalServiceValidator
-            .ValidateAttributeCombinations(context, servicesWithAttributes);
+            .ValidateAttributeCombinations(context.ReportDiagnostic, servicesWithAttributes);
     }
 
     // Conditional services handled by ConditionalServiceValidator
@@ -28,7 +28,7 @@ internal static class DiagnosticRules
         DiagnosticConfiguration diagnosticConfig)
     {
         CircularDependencyValidator
-            .ValidateCircularDependenciesComplete(context, servicesWithAttributes, allRegisteredServices,
+            .ValidateCircularDependenciesComplete(context.ReportDiagnostic, servicesWithAttributes, allRegisteredServices,
                 diagnosticConfig);
     }
 
@@ -333,7 +333,7 @@ internal static class DiagnosticRules
         InheritanceHierarchyDependencies hierarchyDependencies)
     {
         DependencyUsageValidator
-            .ValidateRedundantDependencies(context, classDeclaration, classSymbol, hierarchyDependencies);
+            .ValidateRedundantDependencies(context.ReportDiagnostic, classDeclaration, classSymbol, hierarchyDependencies);
     }
 
     public static void ValidateUnusedDependencies(SourceProductionContext context,
@@ -341,7 +341,7 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
         InheritanceHierarchyDependencies hierarchyDependencies) =>
-        DependencyUsageValidator.ValidateUnusedDependencies(context, classDeclaration, classSymbol, semanticModel,
+        DependencyUsageValidator.ValidateUnusedDependencies(context.ReportDiagnostic, classDeclaration, classSymbol, semanticModel,
             hierarchyDependencies);
 
     public static void ValidateRedundantDependencyWrappers(SourceProductionContext context,
@@ -349,7 +349,7 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
         InheritanceHierarchyDependencies hierarchyDependencies) =>
-        DependencyUsageValidator.ValidateRedundantDependencyWrappers(context, classDeclaration, classSymbol,
+        DependencyUsageValidator.ValidateRedundantDependencyWrappers(context.ReportDiagnostic, classDeclaration, classSymbol,
             semanticModel, hierarchyDependencies);
 
     public static void ValidateManualDependencyFieldShadows(SourceProductionContext context,
@@ -357,7 +357,7 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol,
         SemanticModel? semanticModel,
         InheritanceHierarchyDependencies hierarchyDependencies) =>
-        DependencyUsageValidator.ValidateManualDependencyFieldShadows(context, classDeclaration, classSymbol,
+        DependencyUsageValidator.ValidateManualDependencyFieldShadows(context.ReportDiagnostic, classDeclaration, classSymbol,
             semanticModel, hierarchyDependencies);
 
     public static void ValidateDuplicateDependsOn(SourceProductionContext context,

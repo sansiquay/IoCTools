@@ -2,7 +2,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 internal static class ConditionalServiceValidator
 {
-    internal static void ValidateAttributeCombinations(SourceProductionContext context,
+    internal static void ValidateAttributeCombinations(ReportDiagnosticDelegate reportDiagnostic,
         IEnumerable<INamedTypeSymbol> servicesWithAttributes)
     {
         var seen = new HashSet<string>();
@@ -14,11 +14,11 @@ internal static class ConditionalServiceValidator
             if (syntaxRef == null) continue;
             if (syntaxRef.GetSyntax() is not TypeDeclarationSyntax classDeclaration) continue;
 
-            ValidateConditionalServices(context, classSymbol, classDeclaration);
+            ValidateConditionalServices(reportDiagnostic, classSymbol, classDeclaration);
         }
     }
 
-    private static void ValidateConditionalServices(SourceProductionContext context,
+    private static void ValidateConditionalServices(ReportDiagnosticDelegate reportDiagnostic,
         INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration)
     {
@@ -35,7 +35,7 @@ internal static class ConditionalServiceValidator
                 DiagnosticDescriptors.ConditionalServiceMultipleAttributes,
                 classDeclaration.GetLocation(),
                 classSymbol.Name);
-            context.ReportDiagnostic(diagnostic);
+            reportDiagnostic(diagnostic);
         }
 
         foreach (var conditionalAttribute in conditionalServiceAttributes)
@@ -50,7 +50,7 @@ internal static class ConditionalServiceValidator
                             DiagnosticDescriptors.ConditionalServiceEmptyConditions,
                             classDeclaration.GetLocation(),
                             classSymbol.Name);
-                        context.ReportDiagnostic(diagnostic);
+                        reportDiagnostic(diagnostic);
                     }
                     else if (error.Contains("conflict"))
                     {
@@ -59,7 +59,7 @@ internal static class ConditionalServiceValidator
                             classDeclaration.GetLocation(),
                             classSymbol.Name,
                             error);
-                        context.ReportDiagnostic(diagnostic);
+                        reportDiagnostic(diagnostic);
                     }
                     else if (error.Contains("ConfigValue") && error.Contains("without Equals or NotEquals"))
                     {
@@ -69,7 +69,7 @@ internal static class ConditionalServiceValidator
                             classDeclaration.GetLocation(),
                             classSymbol.Name,
                             configValue);
-                        context.ReportDiagnostic(diagnostic);
+                        reportDiagnostic(diagnostic);
                     }
                     else if (error.Contains("Equals or NotEquals") && error.Contains("without ConfigValue"))
                     {
@@ -77,7 +77,7 @@ internal static class ConditionalServiceValidator
                             DiagnosticDescriptors.ConditionalServiceComparisonWithoutConfigValue,
                             classDeclaration.GetLocation(),
                             classSymbol.Name);
-                        context.ReportDiagnostic(diagnostic);
+                        reportDiagnostic(diagnostic);
                     }
                     else if (error.Contains("ConfigValue is empty"))
                     {
@@ -85,7 +85,7 @@ internal static class ConditionalServiceValidator
                             DiagnosticDescriptors.ConditionalServiceEmptyConfigKey,
                             classDeclaration.GetLocation(),
                             classSymbol.Name);
-                        context.ReportDiagnostic(diagnostic);
+                        reportDiagnostic(diagnostic);
                     }
         }
     }

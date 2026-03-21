@@ -15,7 +15,7 @@ internal static class MissedOpportunityValidator
     /// </summary>
     private static HashSet<string> FrameworkBaseTypes => DiagnosticConfiguration.GetDefaultFrameworkBaseTypes();
 
-    internal static void Validate(SourceProductionContext context,
+    internal static void Validate(ReportDiagnosticDelegate reportDiagnostic,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         SemanticModel semanticModel,
@@ -76,7 +76,7 @@ internal static class MissedOpportunityValidator
             location,
             classSymbol.Name,
             joined);
-        context.ReportDiagnostic(diagnostic);
+        reportDiagnostic(diagnostic);
     }
 
     /// <summary>

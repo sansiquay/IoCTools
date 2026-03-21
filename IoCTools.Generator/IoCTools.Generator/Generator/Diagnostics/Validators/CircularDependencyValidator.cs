@@ -5,7 +5,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 internal static class CircularDependencyValidator
 {
-    internal static void ValidateCircularDependenciesComplete(SourceProductionContext context,
+    internal static void ValidateCircularDependenciesComplete(ReportDiagnosticDelegate reportDiagnostic,
         List<INamedTypeSymbol> servicesWithAttributes,
         HashSet<string> allRegisteredServices,
         DiagnosticConfiguration diagnosticConfig)
@@ -76,7 +76,7 @@ internal static class CircularDependencyValidator
                 var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
                     DiagnosticDescriptors.CircularDependency, diagnosticConfig.LifetimeValidationSeverity);
                 var diagnostic = Diagnostic.Create(descriptor, location, cycle);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
             }
         }
     }

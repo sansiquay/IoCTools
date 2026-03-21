@@ -267,7 +267,7 @@ internal static class DiagnosticsRunner
                         var syntaxRef = currentType.DeclaringSyntaxReferences.FirstOrDefault();
                         if (syntaxRef?.GetSyntax() is not TypeDeclarationSyntax typeDecl) continue;
                         var semanticModel = compilation.GetSemanticModel(typeDecl.SyntaxTree);
-                        MissedOpportunityValidator.Validate(context, typeDecl, currentType, semanticModel, implicitLifetimeLocal, diagnosticConfig);
+                        MissedOpportunityValidator.Validate(context.ReportDiagnostic, typeDecl, currentType, semanticModel, implicitLifetimeLocal, diagnosticConfig);
                     }
                 }
 
@@ -339,7 +339,7 @@ internal static class DiagnosticsRunner
                 if (syntaxRef?.GetSyntax() is TypeDeclarationSyntax typeDecl && diagnosticConfig.DiagnosticsEnabled)
                 {
                     var semanticModel = compilation.GetSemanticModel(typeDecl.SyntaxTree);
-                    MissedOpportunityValidator.Validate(context, typeDecl, currentType, semanticModel, implicitLifetime, diagnosticConfig);
+                    MissedOpportunityValidator.Validate(context.ReportDiagnostic, typeDecl, currentType, semanticModel, implicitLifetime, diagnosticConfig);
                 }
 
                 foreach (var interfaceType in currentType.Interfaces)
@@ -417,7 +417,7 @@ internal static class DiagnosticsRunner
 
                     // IOC068: Suggest DependsOn for types with DI-like constructors
                     if (diagnosticConfig.DiagnosticsEnabled)
-                        MissedOpportunityValidator.Validate(context, serviceInfo.ClassDeclaration, serviceInfo.ClassSymbol,
+                        MissedOpportunityValidator.Validate(context.ReportDiagnostic, serviceInfo.ClassDeclaration, serviceInfo.ClassSymbol,
                             serviceInfo.SemanticModel, implicitLifetime, diagnosticConfig);
                 }
             }

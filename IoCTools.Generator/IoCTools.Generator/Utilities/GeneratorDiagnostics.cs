@@ -1,5 +1,11 @@
 namespace IoCTools.Generator.Utilities;
 
+/// <summary>
+/// Delegate for reporting diagnostics, enabling validators to be tested independently
+/// of SourceProductionContext. Pass context.ReportDiagnostic when calling from the pipeline.
+/// </summary>
+internal delegate void ReportDiagnosticDelegate(Diagnostic diagnostic);
+
 internal static class GeneratorDiagnostics
 {
     public static void Report(SourceProductionContext context,
