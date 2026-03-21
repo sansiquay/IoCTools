@@ -56,7 +56,7 @@ internal static class DiagnosticScan
             var hasDependsOnAttribute = classSymbol.GetAttributes()
                 .Any(attr => attr.AttributeClass?.Name?.StartsWith("DependsOn") == true);
             var hasRegisterAsAllAttribute = classSymbol.GetAttributes()
-                .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+                .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
             var hasRegisterAsAttribute = classSymbol.GetAttributes()
                 .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
             var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(classSymbol);

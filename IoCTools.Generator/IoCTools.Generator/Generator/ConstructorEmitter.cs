@@ -31,7 +31,7 @@ internal static class ConstructorEmitter
                     attr.AttributeClass?.ToDisplayString() ==
                     "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
             var hasRegisterAsAllAttribute = serviceInfo.ClassSymbol.GetAttributes()
-                .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+                .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
             var (hasLifetimeAttribute, _, _, _) = ServiceDiscovery.GetLifetimeAttributes(serviceInfo.ClassSymbol);
             var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(serviceInfo.ClassSymbol);
 

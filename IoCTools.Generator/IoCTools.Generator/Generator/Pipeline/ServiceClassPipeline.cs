@@ -28,7 +28,7 @@ internal static class ServiceClassPipeline
                     var hasInjectConfig = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(symbol);
                     var hasDependsOn = symbol.GetAttributes()
                         .Any(AttributeTypeChecker.IsDependsOnAttribute);
-                    var hasRegAll = symbol.GetAttributes().Any(a => a.AttributeClass?.Name == "RegisterAsAllAttribute");
+                    var hasRegAll = symbol.GetAttributes().Any(a => AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.RegisterAsAllAttribute));
                     var hasRegAs = symbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
                     var hasConditional = symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() ==
                                                                          "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");

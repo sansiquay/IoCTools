@@ -177,7 +177,7 @@ internal static class TypeAnalyzer
             attr.AttributeClass?.Name == "InjectAttribute" ||
             attr.AttributeClass?.Name == "InjectConfigurationAttribute" ||
             attr.AttributeClass?.Name == "DependsOnAttribute" ||
-            attr.AttributeClass?.Name == "RegisterAsAllAttribute" ||
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute) ||
             attr.AttributeClass?.Name == "ExternalServiceAttribute" ||
             attr.AttributeClass?.Name == "ConditionalServiceAttribute" ||
             AttributeTypeChecker.IsSkipRegistrationAttribute(attr) ||

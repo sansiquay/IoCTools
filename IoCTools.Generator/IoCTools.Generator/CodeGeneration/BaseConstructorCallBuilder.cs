@@ -196,7 +196,7 @@ internal static class BaseConstructorCallBuilder
             attr.AttributeClass?.ToDisplayString() ==
             "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
         var hasRegisterAsAllAttribute = baseClass.GetAttributes()
-            .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+            .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
         var hasRegisterAsAttribute = baseClass.GetAttributes()
             .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
         var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(baseClass);

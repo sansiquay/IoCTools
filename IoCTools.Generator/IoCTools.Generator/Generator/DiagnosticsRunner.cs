@@ -312,7 +312,7 @@ internal static class DiagnosticsRunner
                     var hasDependsOnAttribute = currentType.GetAttributes()
                         .Any(AttributeTypeChecker.IsDependsOnAttribute);
                     var hasRegisterAsAllAttribute = currentType.GetAttributes()
-                        .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+                        .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
                     var hasRegisterAsAttribute = currentType.GetAttributes()
                         .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
                     var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(currentType);
@@ -374,7 +374,7 @@ internal static class DiagnosticsRunner
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.ScopedAttribute) ||
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.SingletonAttribute) ||
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.TransientAttribute) ||
-                    attr.AttributeClass?.Name == "RegisterAsAllAttribute" ||
+                    AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute) ||
                     AttributeTypeChecker.IsRegisterAsAttribute(attr));
                 var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(referencedType);
                 if (hasServiceRelatedAttribute || isHostedService ||

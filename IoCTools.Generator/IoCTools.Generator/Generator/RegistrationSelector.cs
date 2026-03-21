@@ -92,8 +92,7 @@ internal static class RegistrationSelector
         if (isHostedService) lifetime = "BackgroundService";
 
         var serviceRegisterAsAllAttr = classSymbol.GetAttributes().FirstOrDefault(attr =>
-            attr.AttributeClass?.ToDisplayString() ==
-            "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
+            AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
         foreach (var conditionalAttr in conditionalServiceAttrs)
         {
@@ -156,8 +155,7 @@ internal static class RegistrationSelector
                 return serviceRegistrations;
 
             var hasRegisterAsAll = classSymbol.GetAttributes().Any(attr =>
-                attr.AttributeClass?.ToDisplayString() ==
-                "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
+                AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
             var hasRegisterAs = classSymbol.GetAttributes()
                 .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
@@ -216,8 +214,7 @@ internal static class RegistrationSelector
                 if (isHostedService) lifetime = "BackgroundService";
 
                 var serviceRegisterAsAllAttr = classSymbol.GetAttributes().FirstOrDefault(attr =>
-                    attr.AttributeClass?.ToDisplayString() ==
-                    "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute");
+                    AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
                 foreach (var conditionalAttr in conditionalServiceAttrs)
                 {

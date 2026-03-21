@@ -72,7 +72,7 @@ internal static class DependencySetValidator
             a.AttributeClass?.ToDisplayString() is "IoCTools.Abstractions.Annotations.ScopedAttribute"
                 or "IoCTools.Abstractions.Annotations.SingletonAttribute"
                 or "IoCTools.Abstractions.Annotations.TransientAttribute"
-                or "IoCTools.Abstractions.Annotations.RegisterAsAllAttribute"
+                or AttributeTypeChecker.RegisterAsAllAttribute
                 or "IoCTools.Abstractions.Annotations.ManualServiceAttribute"
                 or "IoCTools.Abstractions.Annotations.ExternalServiceAttribute" ||
             AttributeTypeChecker.IsRegisterAsAttribute(a) ||

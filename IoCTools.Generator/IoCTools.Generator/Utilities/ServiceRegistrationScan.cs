@@ -40,7 +40,7 @@ internal static class ServiceRegistrationScan
                 var hasLifetimeAttribute = ServiceDiscovery.GetDirectLifetimeAttributes(namedType).HasAny;
 
                 var hasRegisterAsAllAttribute = namedType.GetAttributes()
-                    .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+                    .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
                 var hasRegisterAsAttribute = namedType.GetAttributes()
                     .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
@@ -93,7 +93,7 @@ internal static class ServiceRegistrationScan
                 var hasLifetimeAttribute = ServiceDiscovery.GetDirectLifetimeAttributes(nestedType).HasAny;
 
                 var hasRegisterAsAllAttribute = nestedType.GetAttributes()
-                    .Any(attr => attr.AttributeClass?.Name == "RegisterAsAllAttribute");
+                    .Any(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
 
                 var hasRegisterAsAttribute = nestedType.GetAttributes()
                     .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));

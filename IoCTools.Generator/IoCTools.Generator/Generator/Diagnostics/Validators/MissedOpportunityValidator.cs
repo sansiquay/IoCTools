@@ -28,7 +28,7 @@ internal static class MissedOpportunityValidator
         var hasLifetime = ServiceDiscovery.GetLifetimeAttributes(classSymbol).HasAny;
         var hasDependsOn = classSymbol.GetAttributes().Any(AttributeTypeChecker.IsDependsOnAttribute);
         var hasInjectFields = ServiceDiscovery.HasInjectFieldsAcrossPartialClasses(classSymbol);
-        var hasRegisterAsAll = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "RegisterAsAllAttribute");
+        var hasRegisterAsAll = classSymbol.GetAttributes().Any(a => AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.RegisterAsAllAttribute));
         var hasRegisterAs = classSymbol.GetAttributes().Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a));
         var hasConditional = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "ConditionalServiceAttribute");
         var isExternal = classSymbol.GetAttributes().Any(a => a.AttributeClass?.Name == "ExternalServiceAttribute");
