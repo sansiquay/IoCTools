@@ -24,12 +24,15 @@ internal static class FixtureEmitter
             return;
         }
 
-        var source = GenerateFixtureSource(testClass, parameters);
+        var hasFluentValidation = testClass.SemanticModel?.Compilation != null &&
+            FluentValidationFixtureHelper.HasFluentValidationReference(testClass.SemanticModel.Compilation);
+
+        var source = GenerateFixtureSource(testClass, parameters, hasFluentValidation);
         var fileName = $"{testClass.TestClassName}.Fixture.g.cs";
         context.AddSource(fileName, SourceText.From(source, Encoding.UTF8));
     }
 
-    private static string GenerateFixtureSource(TestClassInfo testClass, ImmutableArray<IParameterSymbol> parameters)
+    private static string GenerateFixtureSource(TestClassInfo testClass, ImmutableArray<IParameterSymbol> parameters, bool hasFluentValidation)
     {
         var sb = new StringBuilder();
 
@@ -45,6 +48,12 @@ internal static class FixtureEmitter
         var namespaces = CollectNamespaces(parameters);
         namespaces.Add("Moq");
         namespaces.Add("System");
+
+        if (hasFluentValidation && parameters.Any(p => FluentValidationFixtureHelper.IsFluentValidatorType(p.Type)))
+        {
+            namespaces.Add("System.Linq");
+            namespaces.Add("System.Threading");
+        }
 
         foreach (var ns in namespaces.OrderBy(n => n))
         {
@@ -114,6 +123,22 @@ internal static class FixtureEmitter
             {
                 // Standard typed helper
                 sb.AppendLine($"        protected void {methodName}(Action<Mock<{paramType}>> configure) => configure({fieldName});");
+            }
+        }
+
+        // FluentValidation setup helpers
+        if (hasFluentValidation)
+        {
+            foreach (var param in parameters)
+            {
+                if (FluentValidationFixtureHelper.IsFluentValidatorType(param.Type))
+                {
+                    var fieldName = TypeNameUtilities.GetMockFieldName(param.Type);
+                    var validatedTypeName = ((INamedTypeSymbol)param.Type).TypeArguments[0].ToDisplayString();
+
+                    sb.AppendLine();
+                    sb.Append(FluentValidationFixtureHelper.GenerateSetupHelpers(fieldName, validatedTypeName, param.Name));
+                }
             }
         }
 
