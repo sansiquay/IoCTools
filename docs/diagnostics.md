@@ -10,6 +10,7 @@ Quick reference for all IoCTools diagnostic messages with remediation guidance.
 - [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
+- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
 
 ## Severity Legend
 
@@ -1261,6 +1262,107 @@ public partial class UserServiceTests // Added partial
 ```
 
 **Related:** [TDIAG-04](#tdiag-04) (service not partial), [IOC080](#ioc080) (partial class requirement)
+
+---
+
+## FluentValidation Diagnostics
+
+Diagnostics for FluentValidation validator composition, lifetime management, and structural requirements.
+
+### IOC100
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
+
+**Cause:** A validator directly instantiates a DI-managed child validator using `new`, bypassing dependency injection. The child validator's own dependencies won't be resolved.
+
+**Fix:** Inject the child validator via `[Inject]` field and use `OnConstructed()` partial method to wire it with `SetValidator()`.
+
+**Example:**
+```csharp
+// Before (direct instantiation bypasses DI):
+[Scoped]
+public partial class OrderValidator : AbstractValidator<Order>
+{
+    public OrderValidator()
+    {
+        RuleFor(o => o.Address)
+            .SetValidator(new AddressValidator()); // IOC100
+    }
+}
+
+// After (injected via constructor):
+[Scoped]
+public partial class OrderValidator : AbstractValidator<Order>
+{
+    [Inject] private readonly AddressValidator _addressValidator;
+
+    partial void OnConstructed()
+    {
+        RuleFor(o => o.Address)
+            .SetValidator(_addressValidator);
+    }
+}
+```
+
+**Related:** [IOC101](#ioc101) (lifetime mismatch), [IOC102](#ioc102) (missing partial), [IOC080](#ioc080) (partial class requirement)
+
+---
+
+### IOC101
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
+
+**Cause:** A validator composition creates a captive dependency — a parent validator with a longer lifetime captures a child validator with a shorter lifetime. For example, a `[Singleton]` parent composing a `[Scoped]` child.
+
+**Fix:** Align lifetimes so the parent's lifetime is equal to or shorter than the child's. Typically, make the parent `[Scoped]` to match.
+
+**Example:**
+```csharp
+// Before (Singleton captures Scoped child):
+[Singleton]
+public partial class OrderValidator : AbstractValidator<Order>
+{
+    [Inject] private readonly AddressValidator _addressValidator; // IOC101 if AddressValidator is Scoped
+}
+
+// After (matching lifetimes):
+[Scoped]
+public partial class OrderValidator : AbstractValidator<Order>
+{
+    [Inject] private readonly AddressValidator _addressValidator;
+}
+```
+
+**Related:** [IOC100](#ioc100) (direct instantiation), [IOC012](#ioc012) (service lifetime mismatch), [IOC015](#ioc015) (inherited lifetime conflict)
+
+---
+
+### IOC102
+
+**Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
+
+**Cause:** A validator class extends `AbstractValidator<T>` and has IoCTools attributes (`[Scoped]`, `[Inject]`, `[DependsOn]`, etc.) but is not marked `partial`. Constructor generation requires the `partial` modifier.
+
+**Fix:** Add the `partial` modifier to the validator class declaration.
+
+**Example:**
+```csharp
+// Before (missing partial):
+[Scoped]
+public class OrderValidator : AbstractValidator<Order> // IOC102
+{
+    [Inject] private readonly IOrderRepository _repo;
+}
+
+// After (added partial):
+[Scoped]
+public partial class OrderValidator : AbstractValidator<Order>
+{
+    [Inject] private readonly IOrderRepository _repo;
+}
+```
+
+**Related:** [IOC080](#ioc080) (partial class requirement for services), [IOC100](#ioc100) (direct instantiation)
 
 ---
 
