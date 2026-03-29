@@ -204,6 +204,32 @@ internal static class CommandLineParser
             new SuppressCommandOptions(common, severities, codes, live, outputPath));
     }
 
+    internal static ParseResult<ValidatorsCommandOptions> ParseValidators(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<ValidatorsCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<ValidatorsCommandOptions>.Fail("--project is required.");
+
+        var common = BuildCommon(projectValues[^1], map);
+        var filter = map.TryGetValue("filter", out var filterValues) ? filterValues[^1] : null;
+        return ParseResult<ValidatorsCommandOptions>.Ok(new ValidatorsCommandOptions(common, filter));
+    }
+
+    internal static ParseResult<ValidatorGraphCommandOptions> ParseValidatorGraph(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<ValidatorGraphCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<ValidatorGraphCommandOptions>.Fail("--project is required.");
+
+        var common = BuildCommon(projectValues[^1], map);
+        var why = map.TryGetValue("why", out var whyValues) ? whyValues[^1] : null;
+        return ParseResult<ValidatorGraphCommandOptions>.Ok(new ValidatorGraphCommandOptions(common, why));
+    }
+
     private static bool TryCollectOptions(string[] args,
         out Dictionary<string, List<string>> map,
         out string? error)
@@ -275,6 +301,8 @@ internal static class CommandLineParser
             "--severity" => "severity",
             "--codes" => "codes",
             "--live" => "live",
+            "--filter" => "filter",
+            "--why" => "why",
             _ => key
         };
     }
@@ -397,3 +425,7 @@ internal sealed record SuppressCommandOptions(
     HashSet<string>? Codes,
     bool Live,
     string? OutputPath);
+
+internal sealed record ValidatorsCommandOptions(CommonOptions Common, string? Filter);
+
+internal sealed record ValidatorGraphCommandOptions(CommonOptions Common, string? WhyValidator);

@@ -41,6 +41,8 @@ public static class Program
                 "profile" => await RunProfileAsync(remaining, cts.Token),
                 "config-audit" => await RunConfigAuditAsync(remaining, cts.Token),
                 "suppress" => await RunSuppressAsync(remaining, cts.Token),
+                "validators" => await RunValidatorsAsync(remaining, cts.Token),
+                "validator-graph" => await RunValidatorGraphAsync(remaining, cts.Token),
                 "help" => UsagePrinter.ExitWithUsage(),
                 _ => UsagePrinter.ExitUnknown(command)
             };
@@ -480,5 +482,52 @@ public static class Program
         var result = SuppressPrinter.Write(options, output, liveDiagnosticIds);
         output.ReportTiming("suppress command completed");
         return result;
+    }
+
+    private static async Task<int> RunValidatorsAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseValidators(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
+
+        var validators = ValidatorInspector.DiscoverValidators(context.Compilation);
+        ValidatorPrinter.WriteList(validators, options.Filter, output);
+        output.ReportTiming("validators command completed");
+        return 0;
+    }
+
+    private static async Task<int> RunValidatorGraphAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseValidatorGraph(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
+
+        var validators = ValidatorInspector.DiscoverValidators(context.Compilation);
+
+        if (options.WhyValidator != null)
+        {
+            ValidatorPrinter.WriteWhy(options.WhyValidator, validators, output);
+        }
+        else
+        {
+            ValidatorPrinter.WriteGraph(validators, output);
+        }
+
+        output.ReportTiming("validator-graph command completed");
+        return 0;
     }
 }

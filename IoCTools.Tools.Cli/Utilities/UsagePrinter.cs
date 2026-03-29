@@ -21,6 +21,8 @@ internal static class UsagePrinter
         Console.WriteLine("  dotnet ioc-tools profile --project <csproj> [--type Namespace.Service]");
         Console.WriteLine("  dotnet ioc-tools config-audit --project <csproj> [--settings appsettings.json]");
         Console.WriteLine("  dotnet ioc-tools suppress --project <csproj> [--severity warning,info] [--codes IOC035,IOC053] [--live] [--output .editorconfig]");
+        Console.WriteLine("  dotnet ioc-tools validators --project <csproj> [--filter ModelType]");
+        Console.WriteLine("  dotnet ioc-tools validator-graph --project <csproj> [--why ValidatorName]");
         Console.WriteLine();
         Console.WriteLine("Common switches:");
         Console.WriteLine("  --configuration <Debug|Release>    Build configuration (default Debug)");
