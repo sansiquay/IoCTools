@@ -27,7 +27,7 @@
 | 1-4 | 15 | ✅ Complete |
 | 1 (FV) | 7 | ✅ Complete |
 | 5 | 1 | Planned |
-| 6 | TBD | Planned |
+| 6 | 1 | Planned |
 
 ### Phase 1: Add first-party FluentValidation source generator support
 
@@ -60,4 +60,7 @@ Plans:
 **Goal:** Update all documentation to cover FluentValidation features — add IOC100-102 to diagnostics reference, document CLI validator commands, and document test fixture validation helpers.
 **Gap Closure:** Closes MISSING-01, MISSING-02, MISSING-03 from audit
 **Depends on:** Phase 5
-**Plans:** TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Add FluentValidation entries to diagnostics, CLI reference, testing docs, README, and CHANGELOG
