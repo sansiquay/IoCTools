@@ -130,6 +130,11 @@ internal static class DiagnosticCatalog
             new("IOC079", "Prefer DependsOnConfiguration over IConfiguration", "IoCTools.Configuration", "Warning"),
             new("IOC088", "Configuration type has circular reference", "IoCTools.Configuration", "Error"),
             new("IOC089", "SupportsReloading is only supported for Options pattern types", "IoCTools.Configuration", "Warning"),
+
+            // IoCTools.FluentValidation
+            new("IOC100", "Validator directly instantiates DI-managed child validator", "IoCTools.FluentValidation", "Warning"),
+            new("IOC101", "Validator composition creates lifetime mismatch", "IoCTools.FluentValidation", "Warning"),
+            new("IOC102", "Validator class missing partial modifier", "IoCTools.FluentValidation", "Error"),
         };
     }
 }
