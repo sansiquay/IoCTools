@@ -36,10 +36,10 @@
 **Plans:** 7 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffolding, models, and type utilities
-- [ ] 01-02-PLAN.md — Main generator partial method hook for FV coordination
-- [ ] 01-03-PLAN.md — Validator discovery pipeline and registration emitter
-- [ ] 01-04-PLAN.md — Composition graph builder (SetValidator/Include/SetInheritanceValidator)
-- [ ] 01-05-PLAN.md — Anti-pattern diagnostics (IOC100-IOC102)
-- [ ] 01-06-PLAN.md — Test fixture IValidator<T> helpers
+- [x] 01-01-PLAN.md — Project scaffolding, models, and type utilities
+- [x] 01-02-PLAN.md — Main generator partial method hook for FV coordination
+- [x] 01-03-PLAN.md — Validator discovery pipeline and registration emitter
+- [x] 01-04-PLAN.md — Composition graph builder (SetValidator/Include/SetInheritanceValidator)
+- [x] 01-05-PLAN.md — Anti-pattern diagnostics (IOC100-IOC102)
+- [x] 01-06-PLAN.md — Test fixture IValidator<T> helpers
 - [ ] 01-07-PLAN.md — CLI validator inspection and graph commands

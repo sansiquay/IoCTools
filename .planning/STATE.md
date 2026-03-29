@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5.0
 milestone_name: milestone
-status: unknown
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-29T20:30:42.411Z"
+status: Milestone complete
+stopped_at: Completed 01-07-PLAN.md
+last_updated: "2026-03-29T21:50:42.675Z"
 progress:
   total_phases: 2
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 9
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Eliminate DI boilerplate in both production and test code through compile-time source generation with zero runtime overhead.
-**Current focus:** Phase 04 — documentation
+**Current focus:** Phase 01 — add-first-party-fluentvalidation-source-generator-support
 
 ## Current Position
 
-Phase: 04
+Phase: 01
 Plan: Not started
 
 ## Performance Metrics
@@ -60,6 +60,13 @@ Plan: Not started
 | Phase 04-documentation P02 | 106 | 3 tasks | 3 files |
 | Phase 04-documentation P03 | 2 | 4 tasks | 5 files |
 | Phase 04-documentation P04 | 31514932 | 2 tasks | 2 files |
+| Phase 01 P02 | 2min | 2 tasks | 1 files |
+| Phase 01 P01 | 3min | 2 tasks | 9 files |
+| Phase 01 P03 | 149 | 2 tasks | 7 files |
+| Phase 01 P04 | 2min | 2 tasks | 5 files |
+| Phase 01 P05 | 4min | 2 tasks | 11 files |
+| Phase 01 P06 | 7min | 2 tasks | 4 files |
+| Phase 01 P07 | 4min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -100,6 +107,17 @@ Recent decisions affecting current work:
 - [Phase 04-documentation]: Category-based navigation in diagnostics.md improves discoverability
 - [Phase 04-documentation]: Severity badges and cross-references help users understand diagnostic relationships
 - [Phase 04-documentation]: typeof() diagnostics (IOC090-IOC094) documented with code examples
+- [Phase 01]: Partial method hook uses static partial void (no access modifier) for C# 3.0+ compatibility and silent removal when unimplemented
+- [Phase 01]: Name-based FluentValidation type detection avoids requiring FluentValidation package reference in generator
+- [Phase 01]: FluentValidation diagnostics start at IOC100 to avoid collision with existing IOC001-IOC094 and TDIAG-01-05
+- [Phase 01]: IoCTools.FluentValidation has no ProjectReference to IoCTools.Generator (D-05 independence)
+- [Phase 01]: Fully qualified global:: prefixed type names in FV registration lines avoid using statement complexity
+- [Phase 01]: Composition edges embedded in ValidatorClassInfo (Option A) for pipeline coherence over separate pipeline
+- [Phase 01]: CompositionEdge/CompositionType stubs created for plan 04 parallel execution; reconciled at merge
+- [Phase 01]: IOC101 only flags Singleton->shorter lifetime (matching standard IoCTools captive dependency pattern)
+- [Phase 01]: Name-based IValidator<T> detection avoids FluentValidation package dependency in generator
+- [Phase 01]: Compilation reference gating pattern for optional library-specific helper generation
+- [Phase 01]: Name-based Roslyn validator detection for CLI independence from FluentValidation generator
 
 ### Pending Todos
 
@@ -116,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T20:30:42.409Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-add-first-party-fluentvalidation-source-generator-support/01-CONTEXT.md
+Last session: 2026-03-29T21:40:43.382Z
+Stopped at: Completed 01-07-PLAN.md
+Resume file: None
