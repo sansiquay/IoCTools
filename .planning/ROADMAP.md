@@ -26,7 +26,7 @@
 |-------|-------|--------|
 | 1-4 | 15 | ✅ Complete |
 | 1 (FV) | 7 | ✅ Complete |
-| 5 | TBD | Planned |
+| 5 | 1 | Planned |
 | 6 | TBD | Planned |
 
 ### Phase 1: Add first-party FluentValidation source generator support
@@ -50,7 +50,10 @@ Plans:
 **Goal:** Fix blocking solution build failure, add IOC100-102 to DiagnosticCatalog for CLI suppress command, and resolve HelpLinkUri inconsistencies and analyzer release tracking.
 **Gap Closure:** Closes BROKEN-01, BROKEN-02, tech debt from audit
 **Depends on:** Phase 1
-**Plans:** TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 05-01-PLAN.md — Fix solution file, DiagnosticCatalog, HelpLinkUri, and RS2008
 
 ### Phase 6: FluentValidation documentation integration
 
