@@ -179,13 +179,16 @@ internal static partial class ServiceRegistrationGenerator
 
                  {{usings.ToString().Trim()}}
 
-                 public static class GeneratedServiceCollectionExtensions
+                 public static partial class GeneratedServiceCollectionExtensions
                  {
                      public static IServiceCollection Add{{methodNamePrefix}}RegisteredServices(this IServiceCollection services{{configParameter}})
                      {
                           {{registrations.ToString().Trim()}}
+                          Add{{methodNamePrefix}}FluentValidationServices(services);
                           return services;
                      }
+
+                     static partial void Add{{methodNamePrefix}}FluentValidationServices(IServiceCollection services);
                  }
                  """;
     }
