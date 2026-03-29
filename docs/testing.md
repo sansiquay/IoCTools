@@ -333,11 +333,78 @@ public partial class UserServiceTests
 
 ---
 
+## FluentValidation Helpers
+
+When your test project references FluentValidation, IoCTools.Testing auto-generates validation setup helpers for any `IValidator<T>` constructor parameter. No additional configuration needed — detection is automatic.
+
+### Generated Methods
+
+For each `IValidator<T>` parameter in the service under test, two helpers are generated:
+
+| Method | Description |
+|--------|-------------|
+| `Setup{ParamName}ValidationSuccess()` | Configures both `Validate()` and `ValidateAsync()` to return an empty `ValidationResult` |
+| `Setup{ParamName}ValidationFailure(params string[] errorMessages)` | Configures both sync and async to return a `ValidationResult` with the specified failures |
+
+### Example
+
+```csharp
+// Production code
+[Scoped]
+[DependsOn<IValidator<Order>, IOrderRepository>]
+public partial class OrderHandler
+{
+    public async Task Handle(Order order)
+    {
+        var result = await _validator.ValidateAsync(order);
+        if (!result.IsValid) throw new ValidationException(result.Errors);
+        await _orderRepository.Save(order);
+    }
+}
+
+// Test code
+[Cover<OrderHandler>]
+public partial class OrderHandlerTests
+{
+    [Fact]
+    public async Task Handle_ValidOrder_Saves()
+    {
+        // Generated helper -- sets up both Validate() and ValidateAsync()
+        SetupValidatorValidationSuccess();
+
+        var sut = CreateSut();
+        await sut.Handle(new Order());
+
+        // Verify save was called
+    }
+
+    [Fact]
+    public async Task Handle_InvalidOrder_Throws()
+    {
+        // Generated helper with custom error messages
+        SetupValidatorValidationFailure("Name is required", "Amount must be positive");
+
+        var sut = CreateSut();
+        await Assert.ThrowsAsync<ValidationException>(() => sut.Handle(new Order()));
+    }
+}
+```
+
+### Requirements
+
+- Test project must reference FluentValidation (helpers are only generated when FluentValidation is in compilation references)
+- Service under test must have an `IValidator<T>` constructor parameter (via `[DependsOn]` or `[Inject]`)
+- Both `Validate()` and `ValidateAsync()` are mocked together — no need to set up each separately
+
+---
+
 ## Related
 
 - [Getting Started](getting-started.md) — IoCTools introduction
 - [Attribute Reference](attributes.md) — All IoCTools attributes
 - [Diagnostics Reference](diagnostics.md) — All diagnostics including TDIAG-01 through TDIAG-05
+- [FluentValidation Diagnostics](diagnostics.md#fluentvalidation-diagnostics) — IOC100-IOC102
+- [CLI Validator Commands](cli-reference.md#validators) — Inspect validators from command line
 
 ---
 

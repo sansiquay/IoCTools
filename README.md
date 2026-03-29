@@ -10,7 +10,7 @@
 - **Self-describing services** – `[Scoped]`, `[DependsOn<T>]`, `[RegisterAs<…>]`, and `[ConditionalService]` live on the class, so intent never leaves the type
 - **Dependency sets** – Implement `IDependencySet` to reuse dependency bundles across services
 - **Inheritance-aware** – Derived services inherit base class lifetime; diagnostics validate across the full chain
-- **94+ diagnostics** – Build-time validation catches missing lifetimes, circular dependencies, lifetime mismatches, and more
+- **97+ diagnostics** – Build-time validation catches missing lifetimes, circular dependencies, lifetime mismatches, FluentValidation anti-patterns, and more
 - **Zero reflection** – Everything happens at compile time; generated code is plain C# you can inspect
 
 ## Installation
@@ -35,6 +35,7 @@ Or directly in your project file:
 - [typeof() diagnostics](docs/diagnostics.md#ioc090) — Build-time validation for manual DI registrations (IOC090-IOC094)
 - [CLI enhancements](docs/cli-reference.md) — JSON output, verbose mode, color-coded diagnostics, and config-audit
 - [Improved diagnostics](docs/diagnostics.md) — Enhanced messages with CreateScope() suggestions and inheritance paths
+- [FluentValidation support](docs/diagnostics.md#fluentvalidation-diagnostics) — Source generator for validator DI, composition graphs, and anti-pattern detection (IOC100-IOC102)
 
 ## Getting Started in Three Steps
 

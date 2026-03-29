@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - CLI wildcard filtering and fuzzy suggestions for type names
 - CLI `config-audit` command for detecting missing configuration keys
 - CLI `suppress` command for generating .editorconfig diagnostic suppression recipes
+- FluentValidation source generator support (IoCTools.FluentValidation) with validator discovery, composition graphs, and anti-pattern diagnostics (IOC100-IOC102)
+- CLI `validators` and `validator-graph` commands for inspecting FluentValidation validators
+- FluentValidation-aware test fixture helpers (`SetupValidationSuccess`/`SetupValidationFailure`)
 
 ### Changed
 - Enhanced IOC012/IOC013/IOC087 messages with IServiceProvider/CreateScope() suggestions
