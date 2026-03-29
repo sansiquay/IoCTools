@@ -84,7 +84,7 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 - **Version:** v1.5.0 (shipped 2026-03-21)
 - **LOC:** ~100,303 lines of C# code
 - **Packages:** 4 NuGet packages (Abstractions, Generator, Tools.Cli, Testing)
-- **Diagnostics:** 99 total (IOC001-IOC094, TDIAG-01-TDIAG-05)
+- **Diagnostics:** 102 total (IOC001-IOC094, IOC100-IOC102, TDIAG-01-TDIAG-05)
 - **Documentation:** 11 files, 3,420 lines across README.md, CHANGELOG.md, /docs/ directory
 - **Tests:** 1650+ passing across all test suites
 - **All v1.5.0 requirements validated**
@@ -109,6 +109,8 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 **Shipped v1.5.0:** Test fixture generation with IoCTools.Testing package, typeof() diagnostics (IOC090-094), CLI improvements, and documentation overhaul.
 
 **Phase 05 complete:** Fixed solution build failure (MSB5004 duplicate project), added IOC100-102 FluentValidation entries to CLI diagnostic catalog, corrected HelpLinkUri username, suppressed RS2008 analyzer warning.
+
+**Phase 06 complete:** FluentValidation documentation integration — added IOC100-102 to diagnostics reference with anchors matching HelpLinkUri, documented CLI `validators` and `validator-graph` commands, documented FluentValidation test fixture helpers, updated README.md and CHANGELOG.md.
 
 **Next Milestone:** TBD — Use `/gsd:new-milestone` to plan next work.
 
