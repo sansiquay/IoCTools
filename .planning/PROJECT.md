@@ -108,6 +108,8 @@ Eliminate DI boilerplate — both in production code (service registration, cons
 
 **Shipped v1.5.0:** Test fixture generation with IoCTools.Testing package, typeof() diagnostics (IOC090-094), CLI improvements, and documentation overhaul.
 
+**Phase 05 complete:** Fixed solution build failure (MSB5004 duplicate project), added IOC100-102 FluentValidation entries to CLI diagnostic catalog, corrected HelpLinkUri username, suppressed RS2008 analyzer warning.
+
 **Next Milestone:** TBD — Use `/gsd:new-milestone` to plan next work.
 
 ## Evolution
@@ -128,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v1.5.0 milestone completion*
+*Last updated: 2026-03-29 after Phase 05 completion*
