@@ -131,6 +131,13 @@ internal static class DiagnosticCatalog
             new("IOC088", "Configuration type has circular reference", "IoCTools.Configuration", "Error"),
             new("IOC089", "SupportsReloading is only supported for Options pattern types", "IoCTools.Configuration", "Warning"),
 
+            // IoCTools.Testing
+            new("TDIAG-01", "Test class has manual mock fields that could be generated", "IoCTools.Testing", "Info"),
+            new("TDIAG-02", "Test class has manual SUT construction that could be generated", "IoCTools.Testing", "Info"),
+            new("TDIAG-03", "Test class covers a service not registered with IoCTools", "IoCTools.Testing", "Warning"),
+            new("TDIAG-04", "Cover attribute references a type that is not a service", "IoCTools.Testing", "Error"),
+            new("TDIAG-05", "Test class has multiple Cover attributes", "IoCTools.Testing", "Error"),
+
             // IoCTools.FluentValidation
             new("IOC100", "Validator directly instantiates DI-managed child validator", "IoCTools.FluentValidation", "Warning"),
             new("IOC101", "Validator composition creates lifetime mismatch", "IoCTools.FluentValidation", "Warning"),

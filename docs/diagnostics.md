@@ -300,16 +300,6 @@ Diagnostics related to service dependencies, dependency sets, and dependency hyg
 
 ---
 
-### IOC079
-
-**Severity:** [!Warning](#) | **Category:** IoCTools.Configuration
-
-**Cause:** A class depends on `IConfiguration` directly instead of using typed configuration.
-
-**Fix:** Use `[DependsOnConfiguration<T>]` or typed options classes instead of raw `IConfiguration`.
-
----
-
 ## Lifetime Diagnostics
 
 Diagnostics related to service lifetime management and compatibility.
@@ -487,26 +477,6 @@ Diagnostics related to configuration binding and injection.
 **Cause:** `[InjectConfiguration]` is applied to a static field, which is not supported.
 
 **Fix:** Remove `[InjectConfiguration]` from the static field. Change to an instance field instead.
-
----
-
-### IOC043
-
-**Severity:** [!Warning](#) | **Category:** IoCTools.Dependency
-
-**Cause:** A dependency uses `IOptions<T>` types directly instead of `[DependsOnConfiguration]`.
-
-**Fix:** Use `[DependsOnConfiguration<T>]` instead of depending on `IOptions`/`IOptionsSnapshot`/`IOptionsMonitor` directly.
-
----
-
-### IOC044
-
-**Severity:** [!Warning](#) | **Category:** IoCTools.Dependency
-
-**Cause:** A dependency type is a primitive, value type, or string, which should use configuration injection instead.
-
-**Fix:** Use `[DependsOnConfiguration<T>]` or `[InjectConfiguration]` for configuration values.
 
 ---
 
@@ -1045,26 +1015,6 @@ Diagnostics related to code structure, partial class requirements, and attribute
 **Cause:** Multiple `[ConditionalService]` attributes on the same class may lead to unexpected behavior.
 
 **Fix:** Combine conditions into a single attribute or use separate classes for different conditions.
-
----
-
-### IOC041
-
-**Severity:** [!Error](#) | **Category:** IoCTools.Dependency
-
-**Cause:** A class has both IoCTools dependency declarations and a manual constructor, which conflict.
-
-**Fix:** Let IoCTools generate the constructor, or remove the IoCTools dependency declarations to use manual constructors.
-
----
-
-### IOC042
-
-**Severity:** [!Warning](#) | **Category:** IoCTools.Dependency
-
-**Cause:** A dependency is marked `External` but an implementation is already available in the solution.
-
-**Fix:** Remove the `External` flag to let IoCTools manage the dependency normally.
 
 ---
 

@@ -240,7 +240,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.",
-        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc086");
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc086");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationCouldUseAttributes = new(
         "IOC090",
@@ -250,7 +250,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools lifetime attributes over typeof()-based manual registrations for consistent DI management and build-time validation.",
-        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc090");
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc090");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationDuplicatesIoCTools = new(
         "IOC091",
@@ -260,7 +260,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid duplicate typeof()-based registrations when IoCTools already emits the same service/implementation pair.",
-        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc091");
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc091");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationLifetimeMismatch = new(
         "IOC092",
@@ -270,7 +270,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Keep typeof() registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.",
-        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc092");
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc092");
 
     public static readonly DiagnosticDescriptor OpenGenericTypeOfCouldUseAttributes = new(
         "IOC094",
@@ -280,7 +280,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Open generic registrations (typeof(IRepository<>)) are not yet supported by IoCTools. This is informational only.",
-        "https://github.com/nathan/p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
         "IOC063",
