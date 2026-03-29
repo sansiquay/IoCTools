@@ -27,5 +27,8 @@ public sealed class FluentValidationGenerator : IIncrementalGenerator
             var (validatorArray, compilation) = data;
             ValidatorRegistrationEmitter.Emit(ctx, validatorArray, compilation);
         });
+
+        // Wire diagnostic validators for composition anti-pattern detection
+        ValidatorDiagnosticsPipeline.Attach(context, validators);
     }
 }
