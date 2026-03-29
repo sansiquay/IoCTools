@@ -203,6 +203,65 @@ ioc-tools suppress --project MyProject.csproj --diagnostic IOC035
 
 **Output:** `.editorconfig` entries for the specified diagnostics.
 
+### `validators`
+
+Lists FluentValidation validator classes discovered by the IoCTools.FluentValidation generator.
+
+```bash
+ioc-tools validators --project MyProject.csproj
+```
+
+**Options:**
+- `--filter <pattern>` — Filter validators by type or model name
+
+**Output:** Lists all validators with lifetime, model type, and composition edge count.
+
+**Example output:**
+```
+Validators: 3
+
+  [Scoped] MyApp.OrderValidator -> Order (2 composition edges)
+  [Scoped] MyApp.AddressValidator -> Address
+  [Transient] MyApp.CustomerValidator -> Customer
+```
+
+**JSON mode:**
+```bash
+ioc-tools validators --project MyProject.csproj --json
+```
+Returns array of `{ validator, modelType, lifetime, hasComposition, compositionEdges[] }`.
+
+---
+
+### `validator-graph`
+
+Emits a tree visualization of validator composition hierarchy (SetValidator/Include/SetInheritanceValidator chains).
+
+```bash
+ioc-tools validator-graph --project MyProject.csproj
+```
+
+**Options:**
+- `--why <validator>` — Trace why a validator has its lifetime through composition chains
+
+**Output:** Tree showing validator composition relationships.
+
+**Example output:**
+```
+OrderValidator [Scoped] -> Order
++-- AddressValidator [Scoped] -> Address (via SetValidator (injected))
++-- CustomerValidator [Transient] -> Customer (via Include (injected))
+```
+
+**`--why` mode:**
+```bash
+ioc-tools validator-graph --project MyProject.csproj --why OrderValidator
+```
+```
+MyApp.OrderValidator is Scoped because:
+  - composes MyApp.AddressValidator [Scoped] via SetValidator (matching lifetime)
+```
+
 ---
 
 ## JSON Output Mode
@@ -266,6 +325,7 @@ ioc-tools services --project MyProject.csproj --output ./generated
 - [Getting Started](getting-started.md) — IoCTools introduction
 - [Configuration](configuration.md) — MSBuild properties and diagnostic severity
 - [Diagnostics Reference](diagnostics.md) — All diagnostic codes
+- [FluentValidation Diagnostics](diagnostics.md#fluentvalidation-diagnostics) — IOC100-IOC102
 
 ---
 
