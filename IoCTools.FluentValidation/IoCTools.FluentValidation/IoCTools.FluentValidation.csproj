@@ -35,4 +35,7 @@
     <ItemGroup>
         <CompilerVisibleProperty Include="IoCToolsFluentValidationSeverity"/>
     </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="IoCTools.FluentValidation.Tests"/>
+    </ItemGroup>
 </Project>
