@@ -47,6 +47,12 @@ None.
 
 None — milestone complete.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260329-r4w | Fix HelpLinkUri typo, solution build configs, duplicate diagnostic headings, add TDIAG to catalog | 2026-03-29 | 5f56c69 | [260329-r4w](./quick/260329-r4w-fix-helplinkuri-typo-solution-build-conf/) |
+
 ## Session Continuity
 
 Last session: 2026-03-29
