@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+using CompositionGraph;
 using Models;
 using Utilities;
 
@@ -42,13 +43,16 @@ internal static class ValidatorPipeline
                         return null;
 
                     var lifetime = FluentValidationTypeChecker.GetLifetimeFromAttributes(symbol);
+                    var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    var compositionEdges = CompositionGraphBuilder.BuildEdges(typeDecl, ctx.SemanticModel, fqn);
 
                     return new ValidatorClassInfo(
                         symbol,
                         typeDecl,
                         ctx.SemanticModel,
                         validatedType,
-                        lifetime);
+                        lifetime,
+                        compositionEdges.ToImmutableArray());
                 })
             .Where(static x => x.HasValue)
             .Select(static (x, _) => x!.Value)

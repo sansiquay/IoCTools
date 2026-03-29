@@ -1,6 +1,10 @@
 namespace IoCTools.FluentValidation.Models;
 
 using System;
+using System.Collections.Immutable;
+using System.Linq;
+
+using Generator.CompositionGraph;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,18 +23,21 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// <param name="semanticModel">The semantic model for later analysis.</param>
     /// <param name="validatedType">The T from AbstractValidator&lt;T&gt;.</param>
     /// <param name="lifetime">The IoCTools lifetime attribute value, or null if none.</param>
+    /// <param name="compositionEdges">Edges to child validators discovered in the class body.</param>
     public ValidatorClassInfo(
         INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration,
         SemanticModel semanticModel,
         INamedTypeSymbol validatedType,
-        string? lifetime)
+        string? lifetime,
+        ImmutableArray<CompositionEdge> compositionEdges = default)
     {
         ClassSymbol = classSymbol;
         ClassDeclaration = classDeclaration;
         SemanticModel = semanticModel;
         ValidatedType = validatedType;
         Lifetime = lifetime;
+        CompositionEdges = compositionEdges.IsDefault ? ImmutableArray<CompositionEdge>.Empty : compositionEdges;
         FullyQualifiedName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         ValidatedTypeFullyQualifiedName = validatedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }
@@ -61,6 +68,12 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     public string? Lifetime { get; }
 
     /// <summary>
+    /// Composition graph edges representing child validators invoked via
+    /// SetValidator, Include, or SetInheritanceValidator.
+    /// </summary>
+    public ImmutableArray<CompositionEdge> CompositionEdges { get; }
+
+    /// <summary>
     /// Cached fully qualified name of the validator class.
     /// </summary>
     public string FullyQualifiedName { get; }
@@ -75,7 +88,8 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// </summary>
     public bool Equals(ValidatorClassInfo other) =>
         FullyQualifiedName == other.FullyQualifiedName &&
-        ValidatedTypeFullyQualifiedName == other.ValidatedTypeFullyQualifiedName;
+        ValidatedTypeFullyQualifiedName == other.ValidatedTypeFullyQualifiedName &&
+        CompositionEdges.SequenceEqual(other.CompositionEdges);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) =>
