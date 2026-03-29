@@ -25,8 +25,9 @@
 | Phase | Plans | Status |
 |-------|-------|--------|
 | 1-4 | 15 | ✅ Complete |
-
-**Next:** Use `/gsd:new-milestone` to plan the next milestone.
+| 1 (FV) | 7 | ✅ Complete |
+| 5 | TBD | Planned |
+| 6 | TBD | Planned |
 
 ### Phase 1: Add first-party FluentValidation source generator support
 
@@ -42,4 +43,18 @@ Plans:
 - [x] 01-04-PLAN.md — Composition graph builder (SetValidator/Include/SetInheritanceValidator)
 - [x] 01-05-PLAN.md — Anti-pattern diagnostics (IOC100-IOC102)
 - [x] 01-06-PLAN.md — Test fixture IValidator<T> helpers
-- [ ] 01-07-PLAN.md — CLI validator inspection and graph commands
+- [x] 01-07-PLAN.md — CLI validator inspection and graph commands
+
+### Phase 5: Fix solution file and FV integration wiring
+
+**Goal:** Fix blocking solution build failure, add IOC100-102 to DiagnosticCatalog for CLI suppress command, and resolve HelpLinkUri inconsistencies and analyzer release tracking.
+**Gap Closure:** Closes BROKEN-01, BROKEN-02, tech debt from audit
+**Depends on:** Phase 1
+**Plans:** TBD
+
+### Phase 6: FluentValidation documentation integration
+
+**Goal:** Update all documentation to cover FluentValidation features — add IOC100-102 to diagnostics reference, document CLI validator commands, and document test fixture validation helpers.
+**Gap Closure:** Closes MISSING-01, MISSING-02, MISSING-03 from audit
+**Depends on:** Phase 5
+**Plans:** TBD
