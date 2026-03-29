@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-03-21T20:41:42.608Z"
+stopped_at: Phase 1 context gathered
+last_updated: "2026-03-29T20:30:42.411Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # Project State
@@ -105,6 +105,10 @@ Recent decisions affecting current work:
 
 None yet.
 
+### Roadmap Evolution
+
+- Phase 1 added: Add first-party FluentValidation source generator support
+
 ### Blockers/Concerns
 
 - [Research]: Compile-include strategy for sharing source between IoCTools.Generator and IoCTools.Testing needs spike validation during Phase 3 planning
@@ -112,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:30:22.367Z
-Stopped at: Completed 04-04-PLAN.md
-Resume file: None
+Last session: 2026-03-29T20:30:42.409Z
+Stopped at: Phase 1 context gathered
+Resume file: .planning/phases/01-add-first-party-fluentvalidation-source-generator-support/01-CONTEXT.md
