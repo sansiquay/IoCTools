@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <IoCToolsFluentValidationSeverity Condition="'$(IoCToolsFluentValidationSeverity)' == ''">Warning</IoCToolsFluentValidationSeverity>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="IoCToolsFluentValidationSeverity" />
+  </ItemGroup>
+</Project>
