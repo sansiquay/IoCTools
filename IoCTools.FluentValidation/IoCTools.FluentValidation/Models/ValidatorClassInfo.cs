@@ -1,6 +1,9 @@
 namespace IoCTools.FluentValidation.Models;
 
 using System;
+using System.Collections.Immutable;
+
+using Generator.CompositionGraph;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,18 +22,21 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// <param name="semanticModel">The semantic model for later analysis.</param>
     /// <param name="validatedType">The T from AbstractValidator&lt;T&gt;.</param>
     /// <param name="lifetime">The IoCTools lifetime attribute value, or null if none.</param>
+    /// <param name="compositionEdges">Edges describing child validator composition relationships.</param>
     public ValidatorClassInfo(
         INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration,
         SemanticModel semanticModel,
         INamedTypeSymbol validatedType,
-        string? lifetime)
+        string? lifetime,
+        ImmutableArray<CompositionEdge> compositionEdges = default)
     {
         ClassSymbol = classSymbol;
         ClassDeclaration = classDeclaration;
         SemanticModel = semanticModel;
         ValidatedType = validatedType;
         Lifetime = lifetime;
+        CompositionEdges = compositionEdges.IsDefault ? ImmutableArray<CompositionEdge>.Empty : compositionEdges;
         FullyQualifiedName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         ValidatedTypeFullyQualifiedName = validatedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }
@@ -69,6 +75,12 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// Cached fully qualified name of the validated type (T).
     /// </summary>
     public string ValidatedTypeFullyQualifiedName { get; }
+
+    /// <summary>
+    /// Composition edges describing how this validator composes child validators.
+    /// Populated by the composition graph builder (Plan 04).
+    /// </summary>
+    public ImmutableArray<CompositionEdge> CompositionEdges { get; }
 
     /// <summary>
     /// Compares by fully qualified names for incremental pipeline caching.

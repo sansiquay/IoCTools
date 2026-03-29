@@ -14,11 +14,12 @@ internal static class FluentValidationDiagnosticDescriptors
     /// <summary>
     /// IOC100: Validator directly instantiates a DI-managed child validator.
     /// Detects when a validator creates child validators via 'new' instead of constructor injection.
+    /// {0} = child validator type name, {1} = additional dependency chain info
     /// </summary>
     public static readonly DiagnosticDescriptor ValidatorDirectInstantiation = new DiagnosticDescriptor(
         "IOC100",
         "Validator directly instantiates DI-managed child validator",
-        "Validator '{0}' directly instantiates child validator '{1}' which is registered with DI. Use constructor injection instead.",
+        "{0} is directly instantiated but has DI dependencies that won't be resolved. {1}",
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -28,11 +29,12 @@ internal static class FluentValidationDiagnosticDescriptors
     /// <summary>
     /// IOC101: Validator composition creates a lifetime mismatch.
     /// Detects when a validator depends on a child validator with an incompatible lifetime.
+    /// {0} = parent name, {1} = parent lifetime, {2} = child name, {3} = child lifetime
     /// </summary>
     public static readonly DiagnosticDescriptor ValidatorLifetimeMismatch = new DiagnosticDescriptor(
         "IOC101",
         "Validator composition creates lifetime mismatch",
-        "Validator '{0}' ({1}) depends on child validator '{2}' ({3}). {4}",
+        "Validator '{0}' ({1}) composes '{2}' ({3}) creating a captive dependency. The child's shorter lifetime will be captured by the parent's longer lifetime.",
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
