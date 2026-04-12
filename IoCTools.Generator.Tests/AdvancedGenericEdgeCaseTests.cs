@@ -177,6 +177,49 @@ public partial class MixedGenericService<T> where T : class
     }
 
     [Fact]
+    public void Generics_OpenGenericSharedMultiInterface_UsesFactoryRegistrations()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using System.Collections.Generic;
+
+namespace Test;
+
+public interface IRepository<T> where T : class
+{
+    T? GetById(int id);
+}
+
+public interface ILookup<T> where T : class
+{
+    IEnumerable<T> GetAll();
+}
+
+[Scoped]
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+public partial class Repository<T> : IRepository<T>, ILookup<T> where T : class
+{
+    public T? GetById(int id) => default;
+    public IEnumerable<T> GetAll() => new List<T>();
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        result.HasErrors.Should()
+            .BeFalse(
+                $"Compilation failed: {string.Join(", ", result.CompilationDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))}");
+
+        var registrationText = result.GetServiceRegistrationText();
+
+        registrationText.Should().Contain("services.AddScoped(typeof(global::Test.Repository<>));");
+        registrationText.Should().Contain(
+            "services.AddScoped(typeof(global::Test.IRepository<>), provider => provider.GetRequiredService(typeof(global::Test.Repository<>)));");
+        registrationText.Should().Contain(
+            "services.AddScoped(typeof(global::Test.ILookup<>), provider => provider.GetRequiredService(typeof(global::Test.Repository<>)));");
+    }
+
+    [Fact]
     public void Generics_MultipleConstraints_GeneratesCorrectly()
     {
         // Arrange - Multiple generic parameters with complex constraints
