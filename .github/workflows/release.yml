@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 jobs:
   build-test-pack:
@@ -45,6 +44,7 @@ jobs:
         run: |
           mkdir -p artifacts
           for proj in \
+            IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj \
             IoCTools.Abstractions/IoCTools.Abstractions.csproj \
             IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj \
             IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj \

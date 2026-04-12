@@ -36,8 +36,10 @@ require_not_contains() {
 
 require_file .github/workflows/ci-main.yml
 require_file .github/workflows/release.yml
+require_file IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj
 
 for project in \
+  IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj \
   IoCTools.Abstractions/IoCTools.Abstractions.csproj \
   IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj \
   IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj \
@@ -45,6 +47,12 @@ for project in \
   IoCTools.FluentValidation/IoCTools.FluentValidation/IoCTools.FluentValidation.csproj; do
   require_file "$project"
 done
+
+require_contains IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj "<Version>$version</Version>"
+require_contains IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj "<PackageVersion>$version</PackageVersion>"
+require_contains IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj "<AssemblyVersion>$version.0</AssemblyVersion>"
+require_contains IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj "<FileVersion>$version.0</FileVersion>"
+require_contains IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj "https://github.com/sansiquay/IoCTools"
 
 require_contains IoCTools.Abstractions/IoCTools.Abstractions.csproj "<Version>$version</Version>"
 require_contains IoCTools.Abstractions/IoCTools.Abstractions.csproj "<PackageVersion>$version</PackageVersion>"
@@ -86,8 +94,10 @@ require_contains .github/workflows/release.yml "name: Release Packages"
 require_contains .github/workflows/release.yml "push:"
 require_contains .github/workflows/release.yml "tags:"
 require_contains .github/workflows/release.yml "- 'v*'"
+require_not_contains .github/workflows/release.yml "workflow_dispatch"
 require_contains .github/workflows/release.yml "build-test-pack:"
 require_contains .github/workflows/release.yml "publish:"
+require_contains .github/workflows/release.yml "IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Abstractions/IoCTools.Abstractions.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj"
