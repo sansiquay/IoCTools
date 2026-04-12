@@ -11,8 +11,16 @@
         <RootNamespace>IoCTools.Tools.Cli</RootNamespace>
         <PackageId>IoCTools.Tools.Cli</PackageId>
         <EnableMacOSCodeSign>false</EnableMacOSCodeSign>
-        <Version>1.5.0</Version>
+        <Version>1.5.1</Version>
+        <PackageVersion>1.5.1</PackageVersion>
+        <AssemblyVersion>1.5.1.0</AssemblyVersion>
+        <FileVersion>1.5.1.0</FileVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/sansiquay/IoCTools</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReleaseNotes>v1.5.1: prepare the release surface for the first public 1.5.1 packages and keep the packaging metadata aligned with the published repository.</PackageReleaseNotes>
         <Description>Developer-facing CLI for IoCTools: fields, services, explain, graph, why, doctor, compare, profile, config-audit, evidence, validators, validator-graph, and structured suppression output.</Description>
     </PropertyGroup>
 

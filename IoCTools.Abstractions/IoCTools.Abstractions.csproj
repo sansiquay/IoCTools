@@ -6,16 +6,16 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.5.0</Version>
-        <PackageVersion>1.5.0</PackageVersion>
-        <AssemblyVersion>1.5.0.0</AssemblyVersion>
-        <FileVersion>1.5.0.0</FileVersion>
+        <Version>1.5.1</Version>
+        <PackageVersion>1.5.1</PackageVersion>
+        <AssemblyVersion>1.5.1.0</AssemblyVersion>
+        <FileVersion>1.5.1.0</FileVersion>
         <Title>IoC Tools Abstractions Package</Title>
         <Copyright>MIT</Copyright>
-        <PackageProjectUrl>https://github.com/nate123456/IoCTools</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/nate123456/IoCTools</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/sansiquay/IoCTools</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageReleaseNotes>v1.5.0: align the abstractions package with the 1.5 release line, strengthen guidance toward DependsOn/DependsOnConfiguration, and ship the evidence-focused CLI/tooling surfaces.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.5.1: prepare the release surface for the first public 1.5.1 packages and keep the packaging metadata aligned with the published repository.</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
