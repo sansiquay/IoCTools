@@ -17,10 +17,9 @@ dotnet add package IoCTools.Generator --prerelease
 using IoCTools.Abstractions.Annotations;
 
 [Scoped]
+[DependsOn<ILogger<EmailService>>]
 public partial class EmailService : IEmailService
 {
-    [DependsOn<ILogger<EmailService>>]
-    // Constructor auto-generated
 }
 ```
 
@@ -32,6 +31,8 @@ builder.Services.AddYourAssemblyRegisteredServices(builder.Configuration);
 ```
 
 That's it — IoCTools generates the constructor and registration.
+
+For `1.5.0`, the authoring rule is explicit: never use `[Inject]` or `InjectConfiguration` in new code. Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
 
 [Learn more about lifetimes](#lifetimes) | [Attribute reference](attributes.md)
 
@@ -185,8 +186,8 @@ Understanding IoCTools' mental model helps you use it effectively.
 IoCTools treats each service class as the single source of truth for its registration:
 
 - **Lifetime** is declared on the class (`[Scoped]`, `[Singleton]`, `[Transient]`)
-- **Dependencies** are declared on the class (`[DependsOn<T>]`, `[Inject]`)
-- **Configuration** needs are declared on the class (`[DependsOnConfiguration<T>]`)
+- **Dependencies** are declared on the class (`[DependsOn<T>]`; `[Inject]` is compatibility-only)
+- **Configuration** needs are declared on the class (`[DependsOnConfiguration<T>]` / `[DependsOnOptions<T>]`; `InjectConfiguration` is compatibility-only)
 - **Interface exposure** is declared on the class (`[RegisterAs<T>]`)
 
 This means startup code never guesses or duplicates service intent.

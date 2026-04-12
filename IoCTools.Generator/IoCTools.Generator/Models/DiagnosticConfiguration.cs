@@ -6,6 +6,7 @@ public class DiagnosticConfiguration
 {
     public DiagnosticSeverity NoImplementationSeverity { get; set; } = DiagnosticSeverity.Error;
     public DiagnosticSeverity ManualImplementationSeverity { get; set; } = DiagnosticSeverity.Error;
+    public bool ManualImplementationSeverityConfigured { get; set; }
     public DiagnosticSeverity LifetimeValidationSeverity { get; set; } = DiagnosticSeverity.Error;
     public bool DiagnosticsEnabled { get; set; } = true;
     public bool LifetimeValidationEnabled { get; set; } = true;

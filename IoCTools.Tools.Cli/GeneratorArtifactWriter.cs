@@ -24,6 +24,12 @@ internal sealed class GeneratorArtifactWriter
         out string? path) =>
         _hintToPath.TryGetValue(hintName, out path);
 
+    public IReadOnlyList<GeneratedArtifact> GetArtifacts() =>
+        _hintToPath
+            .OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(pair => new GeneratedArtifact(pair.Key, pair.Value))
+            .ToArray();
+
     public static async Task<GeneratorArtifactWriter> CreateAsync(ProjectContext context,
         string? requestedOutputDirectory,
         CancellationToken cancellationToken)
@@ -86,3 +92,5 @@ internal sealed class GeneratorArtifactWriter
         return candidate;
     }
 }
+
+internal sealed record GeneratedArtifact(string ArtifactId, string Path);

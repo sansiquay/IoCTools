@@ -32,8 +32,12 @@ internal static class DiagnosticUtilities
 
         if (tryGetValue("build_property.IoCToolsNoImplementationSeverity", out var noImplSeverity))
             config.NoImplementationSeverity = ParseDiagnosticSeverity(noImplSeverity);
-        if (tryGetValue("build_property.IoCToolsManualSeverity", out var manualSeverity))
+        if (tryGetValue("build_property.IoCToolsManualSeverity", out var manualSeverity) &&
+            !string.IsNullOrWhiteSpace(manualSeverity))
+        {
             config.ManualImplementationSeverity = ParseDiagnosticSeverity(manualSeverity);
+            config.ManualImplementationSeverityConfigured = true;
+        }
         if (tryGetValue("build_property.IoCToolsDisableDiagnostics", out var disableStr) &&
             bool.TryParse(disableStr, out var disable))
             config.DiagnosticsEnabled = !disable;

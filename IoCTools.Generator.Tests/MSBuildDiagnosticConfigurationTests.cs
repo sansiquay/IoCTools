@@ -80,6 +80,30 @@ namespace TestNamespace
     }
 }";
 
+    /// <summary>
+    ///     Creates typeof()-based manual registration source to validate IoCToolsManualSeverity overrides.
+    /// </summary>
+    private static string GetTypeOfLifetimeMismatchSource() => @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace TestNamespace
+{
+    public interface IMyService { }
+
+    [Scoped]
+    public partial class MyServiceImpl : IMyService { }
+
+    public static class Program
+    {
+        public static void Main()
+        {
+            var services = new ServiceCollection();
+            services.AddTransient(typeof(IMyService), typeof(MyServiceImpl));
+        }
+    }
+}";
+
     #endregion
 
     #region Default Behavior Tests
@@ -237,6 +261,24 @@ namespace TestNamespace
         };
 
         ioc002Diagnostics[0].Severity.Should().Be(expectedSeverity);
+    }
+
+    [Theory]
+    [InlineData("Error", DiagnosticSeverity.Error)]
+    [InlineData("Warning", DiagnosticSeverity.Warning)]
+    [InlineData("Info", DiagnosticSeverity.Info)]
+    [InlineData("Hidden", DiagnosticSeverity.Hidden)]
+    public void MSBuildDiagnostics_TypeOfLifetimeMismatch_UsesManualSeverity(string severityValue,
+        DiagnosticSeverity expectedSeverity)
+    {
+        var sourceCode = GetTypeOfLifetimeMismatchSource();
+        var properties = new Dictionary<string, string> { ["build_property.IoCToolsManualSeverity"] = severityValue };
+
+        var (compilation, diagnostics) = CompileWithMSBuildProperties(sourceCode, properties);
+
+        var ioc092Diagnostics = diagnostics.Where(d => d.Id == "IOC092").ToList();
+        ioc092Diagnostics.Should().ContainSingle();
+        ioc092Diagnostics[0].Severity.Should().Be(expectedSeverity);
     }
 
     #endregion

@@ -44,7 +44,7 @@ internal static class DirectInstantiationValidator
                 // Child is a discovered DI-managed validator - always report
                 var dependencyInfo = BuildDependencyChainMessage(childValidator.Value);
                 var message = string.IsNullOrEmpty(dependencyInfo)
-                    ? $"Inject it through the constructor instead (registered as {childValidator.Value.Lifetime})."
+                    ? $"Inject it through the constructor instead (registered as {childValidator.Value.Lifetime})"
                     : dependencyInfo;
 
                 reportDiagnostic(Diagnostic.Create(
@@ -63,7 +63,7 @@ internal static class DirectInstantiationValidator
                         FluentValidationDiagnosticDescriptors.ValidatorDirectInstantiation,
                         edge.Location ?? Location.None,
                         edge.ChildValidatorTypeName,
-                        "Inject it through the constructor instead."));
+                        "Inject it through the constructor instead"));
                 }
             }
         }
@@ -118,7 +118,7 @@ internal static class DirectInstantiationValidator
             return string.Empty;
 
         var depList = string.Join(", ", allDeps);
-        return $"{childValidator.ClassSymbol.Name} depends on {depList} which won't be resolved.";
+        return $"{childValidator.ClassSymbol.Name} depends on {depList} which won't be resolved";
     }
 
     /// <summary>

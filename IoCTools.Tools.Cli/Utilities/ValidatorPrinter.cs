@@ -83,7 +83,7 @@ internal static class ValidatorPrinter
 
         if (output.IsJson)
         {
-            output.WriteJson(new { validator = validatorName, explanation });
+            output.WriteJson(ValidatorInspector.TraceLifetimeExplanation(validatorName, validators));
             return;
         }
 

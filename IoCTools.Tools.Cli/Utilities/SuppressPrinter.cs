@@ -79,7 +79,17 @@ internal static class SuppressPrinter
         // JSON mode
         if (output.IsJson)
         {
-            var rules = filtered.Select(e => new { e.Id, e.Title, e.Category, e.DefaultSeverity, suppressed = "none" });
+            var rules = filtered.Select(e => new
+            {
+                id = e.Id,
+                title = e.Title,
+                category = e.Category,
+                defaultSeverity = e.DefaultSeverity,
+                suppressedSeverity = "none",
+                selectionReason = DetermineSelectionReason(e, severityFilter, codeFilter, liveDiagnosticIds),
+                isErrorByDefault = string.Equals(e.DefaultSeverity, "Error", StringComparison.OrdinalIgnoreCase),
+                riskNote = BuildRiskNote(e, codeFilter)
+            });
             output.WriteJson(new { rules, editorconfig = content });
             return 0;
         }
@@ -87,6 +97,34 @@ internal static class SuppressPrinter
         // Direct to stdout for piping (not through OutputContext which suppresses in JSON mode)
         Console.Write(content);
         return 0;
+    }
+
+    private static string DetermineSelectionReason(DiagnosticCatalog.Entry entry,
+        HashSet<string> severityFilter,
+        HashSet<string>? codeFilter,
+        IReadOnlyList<string>? liveDiagnosticIds)
+    {
+        var selectedByCode = codeFilter?.Contains(entry.Id, StringComparer.OrdinalIgnoreCase) == true;
+        var selectedByLive = liveDiagnosticIds?.Contains(entry.Id, StringComparer.OrdinalIgnoreCase) == true;
+        var selectedBySeverity = severityFilter.Contains(entry.DefaultSeverity);
+
+        if (selectedByLive && selectedByCode) return "live+codes";
+        if (selectedByLive && selectedBySeverity) return "live+severity";
+        if (selectedByLive) return "live";
+        if (selectedByCode && selectedBySeverity) return "codes+severity";
+        if (selectedByCode) return "codes";
+        return "severity";
+    }
+
+    private static string? BuildRiskNote(DiagnosticCatalog.Entry entry,
+        HashSet<string>? codeFilter)
+    {
+        var isExplicitErrorSuppression = string.Equals(entry.DefaultSeverity, "Error", StringComparison.OrdinalIgnoreCase)
+                                         && codeFilter?.Contains(entry.Id, StringComparer.OrdinalIgnoreCase) == true;
+
+        return isExplicitErrorSuppression
+            ? "Suppressing an error-level rule should be treated as a deliberate compatibility exception."
+            : null;
     }
 
     private static int AppendToFile(string path, string content, OutputContext output)

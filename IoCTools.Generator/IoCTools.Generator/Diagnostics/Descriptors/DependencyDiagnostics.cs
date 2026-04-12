@@ -129,7 +129,7 @@ internal static partial class DiagnosticDescriptors
         "IoCTools.Dependency",
         DiagnosticSeverity.Warning,
         true,
-        "Reserve [DependsOn]/[Inject] for services (interfaces/classes). For configuration values, switch to [DependsOnConfiguration<...>] or [InjectConfiguration].",
+        "Reserve [DependsOn]/[Inject] for services (interfaces/classes). For configuration values, switch to [DependsOnConfiguration<...>] or [DependsOnOptions]. Do not introduce new InjectConfiguration usage.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc044");
 
     public static readonly DiagnosticDescriptor UnsupportedCollectionDependency = new(

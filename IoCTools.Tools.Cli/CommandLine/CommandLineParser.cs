@@ -165,6 +165,24 @@ internal static class CommandLineParser
         return ParseResult<ConfigAuditCommandOptions>.Ok(new ConfigAuditCommandOptions(common, settings));
     }
 
+    internal static ParseResult<EvidenceCommandOptions> ParseEvidence(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<EvidenceCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<EvidenceCommandOptions>.Fail("--project is required.");
+
+        var common = BuildCommon(projectValues[^1], map);
+        var typeName = map.TryGetValue("type", out var typeValues) ? typeValues[^1] : null;
+        var settings = map.TryGetValue("settings", out var settingsValues) ? NormalizePath(settingsValues[^1]) : null;
+        var baseline = map.TryGetValue("baseline", out var baselineValues) ? NormalizePath(baselineValues[^1]) : null;
+        var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
+
+        return ParseResult<EvidenceCommandOptions>.Ok(
+            new EvidenceCommandOptions(common, typeName, settings, baseline, output));
+    }
+
     internal static ParseResult<SuppressCommandOptions> ParseSuppress(string[] args)
     {
         if (!TryCollectOptions(args, out var map, out var error))
@@ -418,6 +436,13 @@ internal sealed record CompareCommandOptions(CommonOptions Common, string Output
 internal sealed record ProfileCommandOptions(CommonOptions Common, string? TypeName);
 
 internal sealed record ConfigAuditCommandOptions(CommonOptions Common, string? SettingsPath);
+
+internal sealed record EvidenceCommandOptions(
+    CommonOptions Common,
+    string? TypeName,
+    string? SettingsPath,
+    string? BaselineDirectory,
+    string? OutputDirectory);
 
 internal sealed record SuppressCommandOptions(
     CommonOptions Common,

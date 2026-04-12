@@ -45,7 +45,7 @@ internal static class DiagnosticsRunner
                     var lifetimes = CollectLifetimesFromCompilation(compilation, implicitLifetime);
                     BaseLifetimeConsistencyValidator.Validate(context, compilation, lifetimes, implicitLifetime);
                     // IOC086: Manual registration suggestions
-                    ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes, autoConfigOptions);
+                    ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes, diagnosticConfig, autoConfigOptions);
                 }
                 return;
             }
@@ -74,7 +74,7 @@ internal static class DiagnosticsRunner
 
             // IOC050/IOC051: manual registrations overlapping IoCTools
             if (diagnosticConfig.DiagnosticsEnabled)
-                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, autoConfigOptions);
+                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, diagnosticConfig, autoConfigOptions);
 
             var validatedClasses = new HashSet<string>(StringComparer.Ordinal);
             foreach (var serviceInfo in services)
@@ -99,7 +99,7 @@ internal static class DiagnosticsRunner
 
             // IOC050/IOC051: manual registrations overlapping IoCTools (runs after lifetimes map is built)
             if (diagnosticConfig.DiagnosticsEnabled)
-                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, autoConfigOptions);
+                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, diagnosticConfig, autoConfigOptions);
 
             var allServiceSymbols = services.Select(s => s.ClassSymbol).ToList();
             DiagnosticRules.ValidateCircularDependenciesComplete(context, allServiceSymbols, allRegisteredServices,
@@ -252,7 +252,7 @@ internal static class DiagnosticsRunner
                     var lifetimes = CollectLifetimesFromCompilation(compilation, implicitLifetimeLocal);
                     BaseLifetimeConsistencyValidator.Validate(context, compilation, lifetimes, implicitLifetimeLocal);
                     // IOC086: Manual registration suggestions
-                    ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes, autoConfigOptions);
+                    ManualRegistrationValidator.ValidateAllTrees(context, compilation, lifetimes, diagnosticConfig, autoConfigOptions);
                 }
 
                 // IOC068: Suggest opt-in opportunities on types with DI-like constructors
@@ -435,7 +435,7 @@ internal static class DiagnosticsRunner
 
             // IOC050/IOC051 + options duplication (cross-assembly scenario)
             if (diagnosticConfig.DiagnosticsEnabled)
-                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, autoConfigOptions);
+                ManualRegistrationValidator.ValidateAllTrees(context, compilation, serviceLifetimes, diagnosticConfig, autoConfigOptions);
 
             // TDIAG-01 through TDIAG-05: Test fixture analysis
             if (diagnosticConfig.DiagnosticsEnabled)

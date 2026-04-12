@@ -76,16 +76,18 @@ public partial class UserService : IUserService
 
 ### `[Inject]`
 
-Last-resort marker for fields that must exist (custom naming, mutability).
+Compatibility-only escape hatch for legacy fields that must physically exist.
 
 ```csharp
 [Inject]
 private readonly IMeter _meter; // Field genuinely reused across methods
 ```
 
-**When to use:** Only when a field must be manually written (custom naming, mutable state, lazy caching).
+**When to use:** Never in new code. Only keep `[Inject]` when you are preserving existing legacy shape that cannot yet move to `[DependsOn]`.
 
-**Diagnostic:** [IOC035](diagnostics.md#ioc035) warns when `[Inject]` matches the default `[DependsOn]` pattern.
+**Migration target:** `[DependsOn<T>]`
+
+**Diagnostic:** [IOC035](diagnostics.md#ioc035) warns when `[Inject]` matches the default `[DependsOn]` pattern and explicitly tells you not to introduce new `[Inject]` usage.
 
 ---
 
@@ -149,20 +151,20 @@ public partial class EmailService : IEmailService
 
 ### `[InjectConfiguration(string key, ...)]`
 
-Last resort for configuration fields requiring manual control.
+Compatibility-only escape hatch for legacy configuration fields requiring manual control.
 
 ```csharp
 [InjectConfiguration("Database:ConnectionString", Required = true)]
 private readonly string _connectionString;
 ```
 
-**When to use:** Only when you need a mutable field (lazy caching with `??=`, instrumentation).
+**When to use:** Never in new code. Prefer `[DependsOnConfiguration<T>]` or `[DependsOnOptions<T>]`. Keep `InjectConfiguration` only while migrating legacy code that cannot move immediately.
 
 **See also:** [IOC043](diagnostics.md#ioc043) (prefer DependsOnConfiguration)
 
 ---
 
-### `[InjectConfigurationOptions]` / `[DependsOnOptions]`
+### `[DependsOnOptions]`
 
 Wires strongly-typed options classes once and reuses them.
 
@@ -175,6 +177,8 @@ public partial class BillingService : IBillingService
 ```
 
 **Generates:** `IOptionsMonitor<T>` wiring behind the scenes.
+
+**Preferred over:** `InjectConfiguration` for strongly typed options in new code.
 
 ---
 

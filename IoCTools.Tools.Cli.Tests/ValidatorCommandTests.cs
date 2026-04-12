@@ -13,6 +13,7 @@ using Xunit;
 /// Tests for the validator CLI commands: ValidatorInspector discovery,
 /// ValidatorPrinter formatting, composition graph building, and lifetime tracing.
 /// </summary>
+[Collection("CLI Execution")]
 public sealed class ValidatorCommandTests
 {
     #region Helper Methods
@@ -290,6 +291,37 @@ namespace TestApp
         output.Should().Contain("\"validator\"");
         output.Should().Contain("\"children\"");
         output.Should().Contain("OrderValidator");
+        output.Should().Contain("\"resolved\"");
+        output.Should().Contain("\"method\"");
+        output.Should().Contain("\"isDirect\"");
+        output.Should().Contain("\"lifetime\"");
+    }
+
+    [Fact]
+    public void WriteWhy_JsonMode_EmitsStructuredExplanation()
+    {
+        // Arrange
+        var child = new ValidatorInfo("TestApp.AddressValidator", "Address", "Scoped",
+            Array.Empty<CompositionEdgeInfo>());
+        var parent = new ValidatorInfo("TestApp.OrderValidator", "Order", "Singleton",
+            new[] { new CompositionEdgeInfo("AddressValidator", "SetValidator", false) });
+        var validators = new[] { parent, child };
+
+        // Act
+        var output = CaptureConsoleOutput(() =>
+        {
+            var ctx = CreateJsonOutput();
+            ValidatorPrinter.WriteWhy("OrderValidator", validators, ctx);
+        });
+
+        // Assert
+        output.Should().Contain("\"validator\"");
+        output.Should().Contain("\"lifetime\"");
+        output.Should().Contain("\"reason\"");
+        output.Should().Contain("\"steps\"");
+        output.Should().Contain("\"kind\"");
+        output.Should().Contain("\"target\"");
+        output.Should().Contain("\"method\"");
     }
 
     #endregion

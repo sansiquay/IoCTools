@@ -38,6 +38,8 @@ public partial class ReportService : IReportService
         var diagnostic = diagnostics[0];
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostic.GetMessage().Should().Contain("DependsOn");
+        diagnostic.GetMessage().Should().Contain("never use [Inject] in new code");
+        diagnostic.Descriptor.Description.ToString().Should().Contain("compatibility-only");
     }
 
     [Fact]

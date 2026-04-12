@@ -13,6 +13,14 @@
 - **97+ diagnostics** – Build-time validation catches missing lifetimes, circular dependencies, lifetime mismatches, FluentValidation anti-patterns, and more
 - **Zero reflection** – Everything happens at compile time; generated code is plain C# you can inspect
 
+## Authoring Posture
+
+- Never use `[Inject]` in new code.
+- Never use `InjectConfiguration` in new code.
+- Use `[DependsOn<T>]` for service dependencies.
+- Use `[DependsOnConfiguration<T>]` or `[DependsOnOptions<T>]` for configuration dependencies.
+- `[Inject]` and `InjectConfiguration` remain supported in `1.5.0` for compatibility-only migration scenarios.
+
 ## Installation
 
 ```bash
@@ -33,7 +41,8 @@ Or directly in your project file:
 
 - [Test fixture generation](docs/testing.md) — Auto-generate Mock fields, CreateSut(), and setup helpers with `[Cover<T>]`
 - [typeof() diagnostics](docs/diagnostics.md#ioc090) — Build-time validation for manual DI registrations (IOC090-IOC094)
-- [CLI enhancements](docs/cli-reference.md) — JSON output, verbose mode, color-coded diagnostics, and config-audit
+- [Evidence-first CLI](docs/cli-reference.md) — `evidence`, stable artifact fingerprints/deltas, stronger `validator-graph --json`, structured `suppress --json`, and better review packets
+- [Authoring guidance](docs/attributes.md) — `[DependsOn]` / `[DependsOnConfiguration]` are the normal path; `[Inject]` / `InjectConfiguration` are compatibility-only
 - [Improved diagnostics](docs/diagnostics.md) — Enhanced messages with CreateScope() suggestions and inheritance paths
 - [FluentValidation support](docs/diagnostics.md#fluentvalidation-diagnostics) — Source generator for validator DI, composition graphs, and anti-pattern detection (IOC100-IOC102)
 
@@ -108,8 +117,11 @@ dotnet tool install --global --add-source ./artifacts IoCTools.Tools.Cli
 | `graph --project <csproj> [--type ...] [--format json\|puml\|mermaid]`   | Emits a service graph in JSON/PlantUML/Mermaid                                                                     |
 | `why --project <csproj> --type ... --dependency Fully.Qualified.Type`    | Shows which generated field matches a dependency                                                                    |
 | `doctor --project <csproj> [--fixable-only]`                             | Runs generator and prints diagnostics; `--fixable-only` filters to warnings/infos                                   |
+| `evidence --project <csproj> [--type ...] [--settings ...]`              | Emits one correlated evidence bundle across services, diagnostics, configuration, validators, profile, hints, and fingerprinted artifacts |
 | `config-audit --project <csproj> [--settings appsettings.json]`          | Lists required config bindings and reports missing keys                                                             |
-| `suppress --project <csproj> <diagnostic-id>`                            | Generates `.editorconfig` diagnostic suppression recipe                                                             |
+| `suppress --project <csproj> [--codes IOC035,IOC092] [--json]`           | Generates `.editorconfig` suppression recipes plus structured rule metadata                                         |
+| `validators --project <csproj> [--filter ...]`                           | Lists discovered FluentValidation validators                                                                        |
+| `validator-graph --project <csproj> [--why ValidatorName] [--json]`      | Shows validator composition tree or structured lifetime explanation                                                 |
 
 [Full CLI reference](docs/cli-reference.md)
 
@@ -170,7 +182,7 @@ Generated code creates the constructor, binds configuration, and registers every
 
 Complete attribute reference: [docs/attributes.md](docs/attributes.md)
 
-Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[RegisterAs<T>]`, `[ConditionalService]`, `[InjectConfiguration]`
+Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[DependsOnConfiguration<T>]`, `[DependsOnOptions<T>]`, `[RegisterAs<T>]`, `[ConditionalService]`
 
 ## Diagnostics Reference
 

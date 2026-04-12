@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.MSBuild;
 internal sealed class ProjectContext : IAsyncDisposable
 {
     private static bool _msbuildRegistered;
+    private static string? _resolvedDotNetHostPath;
     private readonly MSBuildWorkspace _workspace;
 
     private ProjectContext(MSBuildWorkspace workspace,
@@ -49,7 +50,7 @@ internal sealed class ProjectContext : IAsyncDisposable
         if (NeedsRestore(projectPath))
             await RestoreProjectAsync(projectPath, cancellationToken);
 
-        RegisterMsBuild();
+        RegisterMsBuild(projectPath);
 
         var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -118,11 +119,114 @@ internal sealed class ProjectContext : IAsyncDisposable
         }
     }
 
-    private static void RegisterMsBuild()
+    private static void RegisterMsBuild(string projectPath)
     {
         if (_msbuildRegistered) return;
-        MSBuildLocator.RegisterDefaults();
+
+        var dotNetHostPath = ResolveDotNetHostPath();
+        var dotNetRoot = Path.GetDirectoryName(dotNetHostPath)
+                         ?? throw new InvalidOperationException($"Unable to determine DOTNET_ROOT from '{dotNetHostPath}'.");
+        var sdkPath = ResolveSdkPath(dotNetHostPath, projectPath);
+
+        Environment.SetEnvironmentVariable("DOTNET_HOST_PATH", dotNetHostPath);
+        Environment.SetEnvironmentVariable("DOTNET_ROOT", dotNetRoot);
+        Environment.SetEnvironmentVariable("MSBuildSDKsPath", Path.Combine(sdkPath, "Sdks"));
+
+        var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        if (!pathEntries.Contains(dotNetRoot, StringComparer.Ordinal))
+            Environment.SetEnvironmentVariable("PATH", $"{dotNetRoot}{Path.PathSeparator}{currentPath}");
+
+        MSBuildLocator.RegisterMSBuildPath(sdkPath);
         _msbuildRegistered = true;
+    }
+
+    private static string ResolveDotNetHostPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_resolvedDotNetHostPath) && File.Exists(_resolvedDotNetHostPath))
+            return _resolvedDotNetHostPath;
+
+        var candidates = new List<string?>();
+        candidates.Add(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH"));
+        candidates.Add(Environment.ProcessPath);
+
+        var dotNetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+        if (!string.IsNullOrWhiteSpace(dotNetRoot))
+            candidates.Add(Path.Combine(dotNetRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
+
+        foreach (var candidate in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(candidate) || !File.Exists(candidate)) continue;
+            if (!string.Equals(Path.GetFileNameWithoutExtension(candidate), "dotnet", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            _resolvedDotNetHostPath = candidate;
+            return candidate;
+        }
+
+        _resolvedDotNetHostPath = "dotnet";
+        return _resolvedDotNetHostPath;
+    }
+
+    private static string ResolveSdkPath(string dotNetHostPath,
+        string projectPath)
+    {
+        var workingDirectory = Path.GetDirectoryName(projectPath) ?? Directory.GetCurrentDirectory();
+        var sdkVersion = RunDotNet(dotNetHostPath, "--version", workingDirectory).Trim();
+        if (sdkVersion.Length == 0)
+            throw new InvalidOperationException($"Unable to determine .NET SDK version using '{dotNetHostPath} --version'.");
+
+        var dotNetRoot = Path.GetDirectoryName(dotNetHostPath)
+                         ?? throw new InvalidOperationException($"Unable to determine DOTNET_ROOT from '{dotNetHostPath}'.");
+        var sdkPath = Path.Combine(dotNetRoot, "sdk", sdkVersion);
+        if (!Directory.Exists(sdkPath))
+            throw new InvalidOperationException($"Resolved SDK path '{sdkPath}' does not exist.");
+
+        return sdkPath;
+    }
+
+    private static string RunDotNet(string dotNetHostPath,
+        string arguments,
+        string workingDirectory)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = dotNetHostPath,
+            Arguments = arguments,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = workingDirectory
+        };
+
+        var dotNetRoot = Path.GetDirectoryName(dotNetHostPath);
+        if (!string.IsNullOrWhiteSpace(dotNetRoot))
+        {
+            psi.Environment["DOTNET_HOST_PATH"] = dotNetHostPath;
+            psi.Environment["DOTNET_ROOT"] = dotNetRoot;
+
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            psi.Environment["PATH"] = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Contains(dotNetRoot, StringComparer.Ordinal)
+                ? currentPath
+                : $"{dotNetRoot}{Path.PathSeparator}{currentPath}";
+        }
+
+        using var process = Process.Start(psi)
+                            ?? throw new InvalidOperationException($"Unable to start '{dotNetHostPath} {arguments}'.");
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            var details = string.Join(" ", new[] { stdout.Trim(), stderr.Trim() }.Where(text => text.Length > 0));
+            throw new InvalidOperationException(
+                $"'{dotNetHostPath} {arguments}' failed with exit code {process.ExitCode}. {details}");
+        }
+
+        return stdout;
     }
 
     private static async Task RestoreProjectAsync(string projectPath,
@@ -132,9 +236,11 @@ internal sealed class ProjectContext : IAsyncDisposable
             throw new ArgumentException("Project path is required for restore.", nameof(projectPath));
 
         var projectDirectory = Path.GetDirectoryName(projectPath)!;
+        var dotNetHostPath = ResolveDotNetHostPath();
+        var dotNetRoot = Path.GetDirectoryName(dotNetHostPath);
         var psi = new ProcessStartInfo
         {
-            FileName = "dotnet",
+            FileName = dotNetHostPath,
             Arguments = $"restore \"{projectPath}\" --nologo",
             RedirectStandardError = true,
             RedirectStandardOutput = true,
@@ -142,6 +248,18 @@ internal sealed class ProjectContext : IAsyncDisposable
             CreateNoWindow = true,
             WorkingDirectory = projectDirectory
         };
+
+        if (!string.IsNullOrWhiteSpace(dotNetRoot))
+        {
+            psi.Environment["DOTNET_HOST_PATH"] = dotNetHostPath;
+            psi.Environment["DOTNET_ROOT"] = dotNetRoot;
+
+            var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            psi.Environment["PATH"] = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Contains(dotNetRoot, StringComparer.Ordinal)
+                ? currentPath
+                : $"{dotNetRoot}{Path.PathSeparator}{currentPath}";
+        }
 
         using var process = Process.Start(psi)!;
         var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);

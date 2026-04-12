@@ -13,9 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - IoCTools.Testing package with `[Cover<T>]` attribute for auto-generated test fixtures (Mock<T> fields, CreateSut(), setup helpers)
 - Test fixture analyzer diagnostics (TDIAG-01 through TDIAG-05) suggesting fixture usage
 - CLI improvements: `--json` output mode, `--verbose` debugging, color-coded severity output
+- CLI `evidence` command for correlated project/type/service review packets
+- CLI evidence artifact fingerprints and structured baseline compare deltas for machine-readable review receipts
 - CLI wildcard filtering and fuzzy suggestions for type names
 - CLI `config-audit` command for detecting missing configuration keys
-- CLI `suppress` command for generating .editorconfig diagnostic suppression recipes
+- CLI `suppress` command for generating .editorconfig diagnostic suppression recipes with structured JSON metadata
 - FluentValidation source generator support (IoCTools.FluentValidation) with validator discovery, composition graphs, and anti-pattern diagnostics (IOC100-IOC102)
 - CLI `validators` and `validator-graph` commands for inspecting FluentValidation validators
 - FluentValidation-aware test fixture helpers (`SetupValidationSuccess`/`SetupValidationFailure`)
@@ -25,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - IOC015 now shows full inheritance path (A -> B -> C format) for lifetime mismatches
 - All 94+ diagnostics now have HelpLinkUri pointing to docs/diagnostics.md#iocXXX
 - Diagnostic messages reference individual lifetime attributes ([Scoped], [Singleton], [Transient])
+- `validator-graph --json` and `validator-graph --why --json` now emit structured machine-readable contracts
+- `[Inject]` and `InjectConfiguration` are now documented as compatibility-only in `1.5.0`; new code guidance points to `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`
+- `IoCTools.Tools.Cli` packages now include a NuGet readme, and analyzer-style packages include matching placeholder `lib` assets to satisfy NuGet packaging expectations
 
 ### Fixed
 - CS8603 null reference warnings in sample code

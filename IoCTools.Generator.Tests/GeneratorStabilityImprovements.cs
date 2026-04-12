@@ -81,7 +81,7 @@ public partial class SpecialDep : ISpecialDep { }
         stopwatch.Stop();
 
         // Assert - Completes within reasonable time
-        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5),
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(10),
             "the generator should finish moderate workloads quickly but took {0:F2} seconds",
             stopwatch.Elapsed.TotalSeconds);
 

@@ -527,6 +527,8 @@ public class NonPartialConfigService // Missing 'partial' keyword
         diagnostic.Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostic.GetMessage().Should().Contain("NonPartialConfigService");
         diagnostic.GetMessage().Should().Contain("partial");
+        diagnostic.Descriptor.Description.ToString().Should().Contain("[DependsOnConfiguration]");
+        diagnostic.Descriptor.Description.ToString().Should().Contain("compatibility-only");
     }
 
     [Fact]

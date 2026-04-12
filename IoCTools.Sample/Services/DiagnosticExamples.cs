@@ -443,17 +443,17 @@ public partial class ScopedService : IScopedInterface
 /// <summary>
 ///     Open generic interface - triggers IOC094 when registered via typeof()
 ///     </summary>
-public interface ITypeOfRepository
+public interface ITypeOfRepository<T>
 {
-    Task GetByIdAsync(int id);
+    Task<T?> GetByIdAsync(int id);
 }
 
 /// <summary>
 ///     Open generic implementation - triggers IOC094 when registered via typeof()
 ///     </summary>
-public class TypeOfRepository : ITypeOfRepository
+public class TypeOfRepository<T> : ITypeOfRepository<T>
 {
-    public Task GetByIdAsync(int id) => Task.FromResult($"Item {id}");
+    public Task<T?> GetByIdAsync(int id) => Task.FromResult<T?>(default);
 }
 
 // ============================================

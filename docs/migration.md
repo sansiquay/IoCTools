@@ -96,12 +96,14 @@ public partial class EmailService
 
 ### Common Migration Patterns
 
+For `1.5.0`, treat `[Inject]` and `InjectConfiguration` as temporary migration bridges only. Retcon new code directly to `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+
 | Manual DI | IoCTools |
 |-----------|----------|
 | `services.AddScoped<T, Impl>()` | `[Scoped] public partial class Impl : T` |
 | `services.AddSingleton<T>()` | `[Singleton] public partial class T` |
 | `IOptionsMonitor<T>` | `[DependsOnConfiguration<T>]` |
-| `IConfiguration["key"]` | `[InjectConfiguration("key")]` |
+| `IConfiguration["key"]` | `[DependsOnConfiguration<string>("key")]` |
 | Manual constructor | `[DependsOn<T1, T2>]` |
 
 ---
@@ -275,8 +277,9 @@ services.AddScoped<Func<IUserService>>(sp => () => sp.GetRequiredService<IUserSe
 - [ ] Add IoCTools packages to all service projects
 - [ ] Add `partial` modifier to service classes
 - [ ] Add lifetime attributes (`[Scoped]`, `[Singleton]`, `[Transient]`)
-- [ ] Replace manual constructors with `[DependsOn<>]` or `[Inject]`
+- [ ] Replace manual constructors with `[DependsOn<>]`
 - [ ] Replace `IOptions<T>` with `[DependsOnConfiguration<>]`
+- [ ] Remove new `[Inject]` / `InjectConfiguration` usage from migrated code
 - [ ] Remove manual service registrations from startup
 - [ ] Add `AddYourAssemblyRegisteredServices()` call
 - [ ] Build and verify no IOC001/IOC002 diagnostics

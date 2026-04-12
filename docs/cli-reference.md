@@ -2,6 +2,8 @@
 
 The `ioc-tools` command-line tool interrogates your project with the real IoCTools generator, showing exactly what the build produced without spelunking through `obj/`.
 
+For `1.5.0`, use the CLI to audit and migrate toward `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `[Inject]` and `InjectConfiguration` remain supported for compatibility, and `evidence` will call them out when present.
+
 ## Installation
 
 ```bash
@@ -193,15 +195,41 @@ ioc-tools config-audit --project MyProject.csproj --settings appsettings.json
 
 ---
 
+### `evidence`
+
+Builds one correlated review packet across registrations, diagnostics, configuration, validators, profile data, and migration hints.
+
+```bash
+ioc-tools evidence --project MyProject.csproj --type MyNamespace.UserService --settings appsettings.json --json
+```
+
+**Options:**
+- `--type <typename>` — Narrow type-specific evidence sections
+- `--settings <path>` — Validate configuration evidence against a settings file
+- `--baseline <dir>` — Include compare output when a baseline exists
+- `--output <dir>` — Use deterministic artifact directory for generated snapshots
+
+**Output:** Compact text review packet by default, or a stable JSON bundle with `project`, `services`, `typeEvidence`, `diagnostics`, `configuration`, `validators`, `artifacts`, and `migrationHints`.
+
+**Artifact evidence:** `artifacts.generatedArtifacts[*]` includes stable `artifactId`, on-disk `path`, `fingerprint`, and `sizeBytes`. When `--baseline` is supplied, `artifacts.compare.deltas[*]` includes `status` (`added`, `removed`, `changed`, `unchanged`) plus baseline/current paths and fingerprints.
+
+---
+
 ### `suppress`
 
 Generates `.editorconfig` recipes for suppressing diagnostics.
 
 ```bash
-ioc-tools suppress --project MyProject.csproj --diagnostic IOC035
+ioc-tools suppress --project MyProject.csproj --codes IOC035,IOC092 --json
 ```
 
-**Output:** `.editorconfig` entries for the specified diagnostics.
+**Options:**
+- `--severity <warning,info,error>` — Include rules by default severity
+- `--codes <IOC035,IOC092>` — Include explicit diagnostic ids
+- `--live` — Restrict output to currently firing diagnostics
+- `--output <path>` — Append generated rules to an existing `.editorconfig`
+
+**Output:** `.editorconfig` entries plus structured rule metadata in JSON mode (`selectionReason`, `isErrorByDefault`, `riskNote`, `suppressedSeverity`).
 
 ### `validators`
 
@@ -261,6 +289,8 @@ ioc-tools validator-graph --project MyProject.csproj --why OrderValidator
 MyApp.OrderValidator is Scoped because:
   - composes MyApp.AddressValidator [Scoped] via SetValidator (matching lifetime)
 ```
+
+**JSON mode:** `validator-graph --json` emits structured composition trees, and `validator-graph --why --json` emits a structured explanation object with `reason` and `steps`.
 
 ---
 

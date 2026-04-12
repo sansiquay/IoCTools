@@ -81,7 +81,7 @@ internal static class DiagnosticCatalog
             new("IOC031", "RegisterAs specifies non-interface type", "IoCTools.Registration", "Error"),
             new("IOC032", "RegisterAs attribute is redundant", "IoCTools.Registration", "Warning"),
             new("IOC034", "RegisterAsAll already registers every interface", "IoCTools.Registration", "Warning"),
-            new("IOC035", "Inject field can be simplified to DependsOn", "IoCTools.Registration", "Warning"),
+            new("IOC035", "Inject field should use DependsOn", "IoCTools.Registration", "Warning"),
             new("IOC036", "Multiple lifetime attributes declared", "IoCTools.Registration", "Warning"),
             new("IOC037", "SkipRegistration override other registration attributes", "IoCTools.Registration", "Warning"),
             new("IOC038", "SkipRegistration for interfaces has no effect in RegisterAsAll(DirectOnly)", "IoCTools.Registration", "Warning"),

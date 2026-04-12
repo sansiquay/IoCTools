@@ -94,12 +94,12 @@ internal static partial class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor InjectFieldPreferDependsOn = new(
         "IOC035",
-        "Inject field can be simplified to DependsOn",
-        "Field '{0}' in class '{1}' uses [Inject] but matches the default DependsOn naming for dependency '{2}'. Prefer [DependsOn<{2}>] unless you require a custom field name or mutability.",
+        "Inject field should use DependsOn",
+        "Field '{0}' in class '{1}' uses [Inject] but matches the default DependsOn naming for dependency '{2}'. [Inject] is compatibility-only; never use [Inject] in new code. Prefer [DependsOn<{2}>] unless you are preserving existing legacy shape.",
         "IoCTools.Registration",
         DiagnosticSeverity.Warning,
         true,
-        "Replace the [Inject] field with a [DependsOn] attribute so the generator can produce constructor parameters and backing fields automatically. Keep [Inject] only when a custom field name or non-readonly behavior is required.",
+        "Replace the [Inject] field with a [DependsOn] attribute so the generator can produce constructor parameters and backing fields automatically. [Inject] remains supported for compatibility-only migration scenarios; do not introduce new [Inject] fields.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc035");
 
     public static readonly DiagnosticDescriptor MultipleLifetimeAttributes = new(

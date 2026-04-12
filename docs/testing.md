@@ -9,9 +9,11 @@ IoCTools.Testing generates test fixture base classes that provide:
 - **Mock fields** — `Mock<T>` for all constructor dependencies
 - **Factory method** — `CreateSut()` to construct the system under test
 - **Setup helpers** — Typed methods for configuring mocks: `SetupUserRepository(Action<Mock<IUserRepository>>)`
-- **Configuration helpers** — For services using `[InjectConfiguration]`
+- **Configuration helpers** — For services using `[DependsOnConfiguration]` or compatibility-only `InjectConfiguration`
 
 No more manual `new Mock<T>()` declarations or `new Service(mock.Object, ...)` constructors.
+
+Authoring rule for `1.5.0`: never introduce new `[Inject]` or `InjectConfiguration` usage in services just to satisfy testing. Prefer `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
 
 ## Installation
 
@@ -151,17 +153,16 @@ For services with base class dependencies, the fixture includes **all** dependen
 ```csharp
 // Base class
 [Scoped]
+[DependsOn<IAppConfiguration, ILogger<RepositoryBase>>]
 public partial class RepositoryBase
 {
-    [Inject] protected readonly IAppConfiguration _configuration;
-    [Inject] protected readonly ILogger<RepositoryBase> _logger;
 }
 
 // Derived service
 [Scoped]
+[DependsOn<ISampleCacheService>]
 public partial class UserRepository : RepositoryBase, IUserRepository
 {
-    [Inject] private readonly ISampleCacheService _cache;
 }
 
 // Test fixture
@@ -191,14 +192,14 @@ public partial class UserRepositoryTests
 
 ### Configuration Injection
 
-For services using `[InjectConfiguration]`, a configuration helper is generated:
+For services using `[DependsOnConfiguration]`, a configuration helper is generated:
 
 ```csharp
 [Scoped]
-[InjectConfiguration("Database:ConnectionString", Required = true)]
+[DependsOn<ILogger<DatabaseService>>]
+[DependsOnConfiguration<string>("Database:ConnectionString", Required = true)]
 public partial class DatabaseService : IDatabaseService
 {
-    [Inject] private readonly ILogger<DatabaseService> _logger;
 }
 ```
 
@@ -267,7 +268,7 @@ IoCTools.Testing includes analyzer diagnostics to suggest fixture usage:
 The service in `[Cover<T>]` must:
 
 1. **Be `partial`** — Required for constructor generation
-2. **Have service intent** — Lifetime attribute, `[Inject]` fields, or `[DependsOn]` attributes
+2. **Have service intent** — Lifetime attribute, `[DependsOn]` attributes, or existing compatibility markers already present in the service
 
 If requirements aren't met, [TDIAG-04](diagnostics.md#tdiag-04) is raised.
 
@@ -393,7 +394,7 @@ public partial class OrderHandlerTests
 ### Requirements
 
 - Test project must reference FluentValidation (helpers are only generated when FluentValidation is in compilation references)
-- Service under test must have an `IValidator<T>` constructor parameter (via `[DependsOn]` or `[Inject]`)
+- Service under test must have an `IValidator<T>` constructor parameter (prefer `[DependsOn]`; existing `[Inject]` remains compatible)
 - Both `Validate()` and `ValidateAsync()` are mocked together — no need to set up each separately
 
 ---

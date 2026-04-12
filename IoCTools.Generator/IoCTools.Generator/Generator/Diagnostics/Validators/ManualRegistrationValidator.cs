@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using IoCTools.Generator.Models;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -12,6 +14,7 @@ internal static class ManualRegistrationValidator
     internal static void ValidateAllTrees(SourceProductionContext context,
         Compilation compilation,
         Dictionary<string, string> serviceLifetimes,
+        DiagnosticConfiguration diagnosticConfig,
         HashSet<string>? autoConfigOptionTypes = null)
     {
         autoConfigOptionTypes ??= new HashSet<string>(StringComparer.Ordinal);
@@ -45,7 +48,7 @@ internal static class ManualRegistrationValidator
                         if (autoConfigOptionTypes.Contains(optName))
                         {
                             var diag = Diagnostic.Create(
-                                DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools,
+                                ApplyManualSeverity(DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools, diagnosticConfig),
                                 invocation.GetLocation(),
                                 optName);
                             context.ReportDiagnostic(diag);
@@ -63,7 +66,7 @@ internal static class ManualRegistrationValidator
                         if (autoConfigOptionTypes.Contains(optName))
                         {
                             var diag = Diagnostic.Create(
-                                DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools,
+                                ApplyManualSeverity(DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools, diagnosticConfig),
                                 invocation.GetLocation(),
                                 optName);
                             context.ReportDiagnostic(diag);
@@ -119,7 +122,7 @@ internal static class ManualRegistrationValidator
                         var openGenericText = args[0].Expression is TypeOfExpressionSyntax toe
                             ? toe.Type.ToString() : "unknown";
                         var diag = Diagnostic.Create(
-                            DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes,
+                            ApplyManualSeverity(DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes, diagnosticConfig),
                             invocation.GetLocation(),
                             openGenericText);
                         context.ReportDiagnostic(diag);
@@ -156,9 +159,11 @@ internal static class ManualRegistrationValidator
                 if (iocLifetime == null)
                 {
                     var diag = Diagnostic.Create(
-                        isTypeOfRegistration
-                            ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
-                            : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
+                        ApplyManualSeverity(
+                            isTypeOfRegistration
+                                ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
+                                : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
+                            diagnosticConfig),
                         invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
                     context.ReportDiagnostic(diag);
                     continue;
@@ -167,18 +172,22 @@ internal static class ManualRegistrationValidator
                 if (iocLifetime == lifetime)
                 {
                     var diag = Diagnostic.Create(
-                        isTypeOfRegistration
-                            ? DiagnosticDescriptors.TypeOfRegistrationDuplicatesIoCTools
-                            : DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools,
+                        ApplyManualSeverity(
+                            isTypeOfRegistration
+                                ? DiagnosticDescriptors.TypeOfRegistrationDuplicatesIoCTools
+                                : DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools,
+                            diagnosticConfig),
                         invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
                     context.ReportDiagnostic(diag);
                 }
                 else
                 {
                     var diag = Diagnostic.Create(
-                        isTypeOfRegistration
-                            ? DiagnosticDescriptors.TypeOfRegistrationLifetimeMismatch
-                            : DiagnosticDescriptors.ManualRegistrationLifetimeMismatch,
+                        ApplyManualSeverity(
+                            isTypeOfRegistration
+                                ? DiagnosticDescriptors.TypeOfRegistrationLifetimeMismatch
+                                : DiagnosticDescriptors.ManualRegistrationLifetimeMismatch,
+                            diagnosticConfig),
                         invocation.GetLocation(), serviceTypeName, lifetime, iocLifetime);
                     context.ReportDiagnostic(diag);
                 }
@@ -213,6 +222,14 @@ internal static class ManualRegistrationValidator
                 return false;
             return typeOfExpr.Type is GenericNameSyntax generic
                 && generic.TypeArgumentList.Arguments.Any(a => a is OmittedTypeArgumentSyntax);
+        }
+
+        static DiagnosticDescriptor ApplyManualSeverity(DiagnosticDescriptor baseDescriptor,
+            DiagnosticConfiguration diagnosticConfig)
+        {
+            return diagnosticConfig.ManualImplementationSeverityConfigured
+                ? DiagnosticUtilities.CreateDynamicDescriptor(baseDescriptor, diagnosticConfig.ManualImplementationSeverity)
+                : baseDescriptor;
         }
     }
 }

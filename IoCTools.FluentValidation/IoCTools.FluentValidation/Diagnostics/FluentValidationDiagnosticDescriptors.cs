@@ -19,7 +19,7 @@ internal static class FluentValidationDiagnosticDescriptors
     public static readonly DiagnosticDescriptor ValidatorDirectInstantiation = new DiagnosticDescriptor(
         "IOC100",
         "Validator directly instantiates DI-managed child validator",
-        "{0} is directly instantiated but has DI dependencies that won't be resolved. {1}",
+        "{0} is directly instantiated but has DI dependencies that won't be resolved. {1}.",
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,

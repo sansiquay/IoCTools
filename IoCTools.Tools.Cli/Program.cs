@@ -40,6 +40,7 @@ public static class Program
                 "compare" => await RunCompareAsync(remaining, cts.Token),
                 "profile" => await RunProfileAsync(remaining, cts.Token),
                 "config-audit" => await RunConfigAuditAsync(remaining, cts.Token),
+                "evidence" => await RunEvidenceAsync(remaining, cts.Token),
                 "suppress" => await RunSuppressAsync(remaining, cts.Token),
                 "validators" => await RunValidatorsAsync(remaining, cts.Token),
                 "validator-graph" => await RunValidatorGraphAsync(remaining, cts.Token),
@@ -447,6 +448,28 @@ public static class Program
         var reports = await inspector.GetFieldReportsAsync(null, Array.Empty<string>(), token);
         ConfigAuditPrinter.Write(reports, options.SettingsPath, output);
         output.ReportTiming("Command completed");
+        return 0;
+    }
+
+    private static async Task<int> RunEvidenceAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseEvidence(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        var output = OutputContext.Create(options.Common.Json, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
+
+        var bundle = await EvidencePrinter.BuildAsync(context, options, token);
+        if (options.TypeName != null && bundle.typeEvidence == null)
+            return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
+
+        EvidencePrinter.Write(bundle, output);
+        output.ReportTiming("evidence command completed");
         return 0;
     }
 

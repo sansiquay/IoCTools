@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <OutputType>Exe</OutputType>
+        <IsTestProject>false</IsTestProject>
         <UserSecretsId>dotnet-IoCTools.Sample23-9C46F370-098A-49FE-B264-6E7434A9C3AD</UserSecretsId>
         <LangVersion>default</LangVersion>
 
@@ -21,6 +22,7 @@
         <IoCToolsLifetimeValidationSeverity>Warning</IoCToolsLifetimeValidationSeverity>
 
         <!-- Configure educational diagnostic example severities to Warning for non-blocking builds -->
+        <IoCToolsManualSeverity>Warning</IoCToolsManualSeverity>
         <IoCToolsConditionalServiceValidationSeverity>Warning</IoCToolsConditionalServiceValidationSeverity>
         <IoCToolsPartialClassValidationSeverity>Warning</IoCToolsPartialClassValidationSeverity>
         <IoCToolsBackgroundServiceValidationSeverity>Warning</IoCToolsBackgroundServiceValidationSeverity>
@@ -33,7 +35,7 @@
         <!-- To see diagnostic examples in action, build the project and check build output -->
 
         <!-- Suppress educational IoCTools warnings that intentionally light up in the sample app -->
-        <NoWarn>$(NoWarn);IOC001;IOC002;IOC006;IOC008;IOC009;IOC013;IOC032;IOC033;IOC034;IOC035;IOC039;IOC040</NoWarn>
+        <NoWarn>$(NoWarn);IOC001;IOC002;IOC006;IOC008;IOC009;IOC013;IOC032;IOC033;IOC034;IOC035;IOC039;IOC040;IOC092</NoWarn>
 
         <!-- Enable generated file output for debugging (commented by default) -->
         <!-- Uncomment these to view generated files in the 'generated' folder during development -->

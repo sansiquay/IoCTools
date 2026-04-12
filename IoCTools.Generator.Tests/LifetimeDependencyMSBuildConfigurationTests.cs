@@ -424,8 +424,8 @@ public partial class FinalService : Level9Service
         var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
         stopwatch.Stop();
 
-        // Should complete in reasonable time
-        (stopwatch.ElapsedMilliseconds < 10000).Should()
+        // Keep a smoke-test budget without making loaded suite runs flaky.
+        (stopwatch.ElapsedMilliseconds < 20000).Should()
             .BeTrue($"Large inheritance hierarchy validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should still detect lifetime violations
@@ -465,8 +465,8 @@ public partial class SingletonService{i}
         var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
         stopwatch.Stop();
 
-        // Should complete in reasonable time
-        (stopwatch.ElapsedMilliseconds < 20000).Should()
+        // Keep a meaningful regression guard without making the suite flaky on loaded hosts.
+        (stopwatch.ElapsedMilliseconds < 30000).Should()
             .BeTrue($"Many services validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should detect all violations

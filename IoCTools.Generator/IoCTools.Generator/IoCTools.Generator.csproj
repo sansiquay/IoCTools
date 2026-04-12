@@ -17,10 +17,10 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-        <Version>1.4.0</Version>
-        <PackageVersion>1.4.0</PackageVersion>
-        <AssemblyVersion>1.4.0.0</AssemblyVersion>
-        <FileVersion>1.4.0.0</FileVersion>
+        <Version>1.5.0</Version>
+        <PackageVersion>1.5.0</PackageVersion>
+        <AssemblyVersion>1.5.0.0</AssemblyVersion>
+        <FileVersion>1.5.0.0</FileVersion>
         <Title>IoC Tools Generator Package</Title>
         <Description>Advanced .NET source generator that automates dependency injection configuration and service registration. Features comprehensive diagnostic validation, inheritance support, and zero-runtime overhead.</Description>
         <Copyright>MIT</Copyright>
@@ -29,7 +29,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.4.0: Fix NuGet packaging — suppress Roslyn transitive dependencies from leaking into consuming projects, remove unused Workspaces reference, add DevelopmentDependency/SuppressDependenciesWhenPacking.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.5.0: add evidence-oriented CLI support, strengthen machine-readable inspection contracts, and make Inject/InjectConfiguration compatibility-only guidance explicit.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

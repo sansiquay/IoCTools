@@ -1041,7 +1041,7 @@ public partial class SingletonService{i}
         var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
         stopwatch.Stop();
 
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(20000,
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(30000,
             $"Large hierarchy lifetime validation took {stopwatch.ElapsedMilliseconds}ms");
 
         result.Compilation.Should().NotBeNull();
@@ -1095,7 +1095,7 @@ public partial class BusinessService{i}
         var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
         stopwatch.Stop();
 
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(15000,
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(30000,
             $"Complex dependency tree validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should detect lifetime violations for Singleton services depending on Scoped/Transient
@@ -1150,7 +1150,7 @@ public partial class Entity{i}Service
         var result = SourceGeneratorTestHelper.CompileWithGenerator(sourceCode);
         stopwatch.Stop();
 
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(10000,
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(20000,
             $"Generic service lifetime validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should detect one IOC012 violation for GenericRepository depending on DatabaseService

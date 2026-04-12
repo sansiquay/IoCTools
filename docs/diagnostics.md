@@ -2,6 +2,8 @@
 
 Quick reference for all IoCTools diagnostic messages with remediation guidance.
 
+Authoring posture for `1.5.0`: never introduce new `[Inject]` or `InjectConfiguration` usage. When diagnostics mention them, treat them as compatibility-only patterns to migrate away from.
+
 ## Diagnostic Categories
 
 - [Dependency Diagnostics](#dependency-diagnostics) - IOC001-IOC002, IOC006-IOC009, IOC039-IOC055, IOC061-IOC062, IOC076, IOC078-IOC079
@@ -164,7 +166,7 @@ Diagnostics related to service dependencies, dependency sets, and dependency hyg
 
 **Cause:** A dependency type is a primitive, value type, or string, which should use configuration injection instead.
 
-**Fix:** Use `[DependsOnConfiguration<T>]` or `[InjectConfiguration]` for configuration values.
+**Fix:** Use `[DependsOnConfiguration<T>]` or `[DependsOnOptions<T>]` for configuration values.
 
 ---
 
@@ -648,7 +650,7 @@ Diagnostics related to service registration patterns and attributes.
 
 **Cause:** An `[Inject]` field matches the default naming for `[DependsOn]`, making it unnecessarily verbose.
 
-**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]` unless a custom field name or mutability is required.
+**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]`. `[Inject]` is compatibility-only in `1.5.0`; never introduce it in new code.
 
 **Related:** [IOC007](#ioc007) (DependsOn conflicts with Inject)
 
@@ -1054,7 +1056,7 @@ Diagnostics related to code structure, partial class requirements, and attribute
 
 **Cause:** A manually declared field has the same name as an IoCTools-generated dependency field.
 
-**Fix:** Remove the manual field and rely on `[DependsOn]`/`[DependsOnConfiguration]`, or use `[Inject]` with a custom name.
+**Fix:** Remove the manual field and rely on `[DependsOn]`/`[DependsOnConfiguration]`. Do not add new `[Inject]` fields as a workaround.
 
 **Related:** [IOC078](#ioc078) (MemberNames collision)
 
@@ -1165,7 +1167,7 @@ public partial class UserServiceTests // Added Cover<T> and partial
 
 **Cause:** Service referenced in `[Cover<T>]` has no generated constructor (not partial, no service intent).
 
-**Fix:** Mark the service class as `partial` and add a lifetime attribute (`[Scoped]`, `[Singleton]`, `[Transient]`), `[Inject]` fields, or `[DependsOn]` attributes.
+**Fix:** Mark the service class as `partial` and add a lifetime attribute (`[Scoped]`, `[Singleton]`, `[Transient]`) plus `[DependsOn]` attributes for constructor intent. Do not introduce new `[Inject]` fields for this.
 
 **Example:**
 ```csharp
@@ -1177,9 +1179,9 @@ public class UserService // Not partial
 
 // After:
 [Scoped] // Add lifetime attribute
+[DependsOn<IUserRepository>]
 public partial class UserService // Make partial
 {
-    [Inject] private readonly IUserRepository _userRepository;
     // Constructor auto-generated
 }
 ```
@@ -1225,7 +1227,7 @@ Diagnostics for FluentValidation validator composition, lifetime management, and
 
 **Cause:** A validator directly instantiates a DI-managed child validator using `new`, bypassing dependency injection. The child validator's own dependencies won't be resolved.
 
-**Fix:** Inject the child validator via `[Inject]` field and use `OnConstructed()` partial method to wire it with `SetValidator()`.
+**Fix:** Inject the child validator via `[DependsOn<AddressValidator>]` and use `OnConstructed()` partial method to wire it with `SetValidator()`.
 
 **Example:**
 ```csharp
@@ -1242,10 +1244,9 @@ public partial class OrderValidator : AbstractValidator<Order>
 
 // After (injected via constructor):
 [Scoped]
+[DependsOn<AddressValidator>]
 public partial class OrderValidator : AbstractValidator<Order>
 {
-    [Inject] private readonly AddressValidator _addressValidator;
-
     partial void OnConstructed()
     {
         RuleFor(o => o.Address)
@@ -1270,16 +1271,16 @@ public partial class OrderValidator : AbstractValidator<Order>
 ```csharp
 // Before (Singleton captures Scoped child):
 [Singleton]
+[DependsOn<AddressValidator>]
 public partial class OrderValidator : AbstractValidator<Order>
 {
-    [Inject] private readonly AddressValidator _addressValidator; // IOC101 if AddressValidator is Scoped
 }
 
 // After (matching lifetimes):
 [Scoped]
+[DependsOn<AddressValidator>]
 public partial class OrderValidator : AbstractValidator<Order>
 {
-    [Inject] private readonly AddressValidator _addressValidator;
 }
 ```
 
@@ -1291,7 +1292,7 @@ public partial class OrderValidator : AbstractValidator<Order>
 
 **Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
 
-**Cause:** A validator class extends `AbstractValidator<T>` and has IoCTools attributes (`[Scoped]`, `[Inject]`, `[DependsOn]`, etc.) but is not marked `partial`. Constructor generation requires the `partial` modifier.
+**Cause:** A validator class extends `AbstractValidator<T>` and has IoCTools attributes (`[Scoped]`, `[DependsOn]`, compatibility-only `[Inject]`, etc.) but is not marked `partial`. Constructor generation requires the `partial` modifier.
 
 **Fix:** Add the `partial` modifier to the validator class declaration.
 
@@ -1299,16 +1300,16 @@ public partial class OrderValidator : AbstractValidator<Order>
 ```csharp
 // Before (missing partial):
 [Scoped]
+[DependsOn<IOrderRepository>]
 public class OrderValidator : AbstractValidator<Order> // IOC102
 {
-    [Inject] private readonly IOrderRepository _repo;
 }
 
 // After (added partial):
 [Scoped]
+[DependsOn<IOrderRepository>]
 public partial class OrderValidator : AbstractValidator<Order>
 {
-    [Inject] private readonly IOrderRepository _repo;
 }
 ```
 

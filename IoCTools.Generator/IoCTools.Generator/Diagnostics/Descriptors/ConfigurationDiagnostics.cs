@@ -19,7 +19,7 @@ internal static partial class DiagnosticDescriptors
         "IoCTools.Configuration",
         DiagnosticSeverity.Warning,
         true,
-        "Use a supported configuration type: primitives (string, int, bool, double), POCOs with parameterless constructors, or collections (List<T>, Dictionary<string, T>). Example: [InjectConfiguration(\"MySection\")] private readonly MyOptions _options; where MyOptions has a parameterless constructor.",
+        "Use a supported configuration type: primitives (string, int, bool, double), POCOs with parameterless constructors, or collections (List<T>, Dictionary<string, T>). Prefer [DependsOnConfiguration<MyOptions>(\"MySection\")] for new code; InjectConfiguration remains compatibility-only.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc017");
 
     public static readonly DiagnosticDescriptor ConfigurationOnNonPartialClass = new(
@@ -29,7 +29,7 @@ internal static partial class DiagnosticDescriptors
         "IoCTools.Configuration",
         DiagnosticSeverity.Error,
         true,
-        "Add 'partial' modifier to the class declaration: 'public partial class {0}' to enable configuration injection constructor generation. Example: 'public partial class {0} {{ [InjectConfiguration(\"Section\")] private readonly MyOptions _options; }}'",
+        "Add 'partial' modifier to the class declaration to preserve compatibility, then migrate new code to [DependsOnConfiguration] or [DependsOnOptions]. [InjectConfiguration] remains compatibility-only in 1.5.0.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc018");
 
     public static readonly DiagnosticDescriptor ConfigurationOnStaticField = new(
@@ -39,7 +39,7 @@ internal static partial class DiagnosticDescriptors
         "IoCTools.Configuration",
         DiagnosticSeverity.Warning,
         true,
-        "Remove [InjectConfiguration] from static fields. Configuration injection only supports instance fields. Example: Change 'static readonly MyOptions _options' to 'private readonly MyOptions _options' and add [InjectConfiguration].",
+        "Remove [InjectConfiguration] from static fields. Configuration injection only supports instance members, and new code should use [DependsOnConfiguration] or [DependsOnOptions] instead of InjectConfiguration.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc019");
 
     public static readonly DiagnosticDescriptor ConfigurationOverlap = new(

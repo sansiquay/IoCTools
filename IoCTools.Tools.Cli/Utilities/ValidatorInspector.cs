@@ -308,6 +308,23 @@ internal static class ValidatorInspector
     /// </summary>
     public static string TraceLifetime(string validatorName, IReadOnlyList<ValidatorInfo> validators)
     {
+        var explanation = TraceLifetimeExplanation(validatorName, validators);
+        if (explanation.reason == "not-found")
+            return $"Validator '{validatorName}' not found.";
+
+        if (explanation.reason == "no-lifetime")
+            return $"{explanation.validator} has no lifetime attribute.";
+
+        if (explanation.steps.Count == 0)
+            return $"{explanation.validator} is {explanation.lifetime} (set directly via [{explanation.lifetime}] attribute).";
+
+        return $"{explanation.validator} is {explanation.lifetime} because:\n" +
+               string.Join("\n", explanation.steps.Select(FormatStep));
+    }
+
+    public static ValidatorLifetimeExplanation TraceLifetimeExplanation(string validatorName,
+        IReadOnlyList<ValidatorInfo> validators)
+    {
         var byName = validators.ToDictionary(v => v.FullName, StringComparer.Ordinal);
         var shortNameMap = validators.ToDictionary(
             v => v.FullName.Split('.').Last(),
@@ -328,26 +345,28 @@ internal static class ValidatorInspector
         }
 
         if (target == null)
-            return $"Validator '{validatorName}' not found.";
+            return new ValidatorLifetimeExplanation(validatorName, null, "not-found", Array.Empty<ValidatorLifetimeStep>());
 
         if (target.Lifetime == null)
-            return $"{target.FullName} has no lifetime attribute.";
+            return new ValidatorLifetimeExplanation(target.FullName, null, "no-lifetime",
+                Array.Empty<ValidatorLifetimeStep>());
 
         // Check if any composed child has a dependency that forces the lifetime
-        var reasons = new List<string>();
+        var reasons = new List<ValidatorLifetimeStep>();
         TraceLifetimeReasons(target, byName, shortNameMap, reasons, new HashSet<string>(StringComparer.Ordinal));
 
-        if (reasons.Count == 0)
-            return $"{target.FullName} is {target.Lifetime} (set directly via [{target.Lifetime}] attribute).";
-
-        return $"{target.FullName} is {target.Lifetime} because:\n" + string.Join("\n", reasons.Select(r => "  - " + r));
+        return new ValidatorLifetimeExplanation(
+            target.FullName,
+            target.Lifetime,
+            reasons.Count == 0 ? "attribute" : "composition",
+            reasons);
     }
 
     private static void TraceLifetimeReasons(
         ValidatorInfo validator,
         Dictionary<string, ValidatorInfo> byName,
         Dictionary<string, string> shortNameMap,
-        List<string> reasons,
+        List<ValidatorLifetimeStep> reasons,
         HashSet<string> visited)
     {
         if (!visited.Add(validator.FullName)) return;
@@ -359,13 +378,22 @@ internal static class ValidatorInspector
             {
                 if (child.Lifetime != null && child.Lifetime != validator.Lifetime)
                 {
-                    reasons.Add($"composes {child.FullName} [{child.Lifetime}] via {edge.CompositionMethod}" +
-                                (edge.IsDirect ? " (direct instantiation)" : " (injected)"));
+                    reasons.Add(new ValidatorLifetimeStep(
+                        "composes",
+                        child.FullName,
+                        edge.CompositionMethod,
+                        edge.IsDirect,
+                        child.Lifetime));
                 }
 
                 if (child.Lifetime == "Scoped" && validator.Lifetime == "Scoped")
                 {
-                    reasons.Add($"composes {child.FullName} [{child.Lifetime}] via {edge.CompositionMethod} (matching lifetime)");
+                    reasons.Add(new ValidatorLifetimeStep(
+                        "matching-lifetime",
+                        child.FullName,
+                        edge.CompositionMethod,
+                        edge.IsDirect,
+                        child.Lifetime));
                 }
 
                 TraceLifetimeReasons(child, byName, shortNameMap, reasons, visited);
@@ -373,6 +401,13 @@ internal static class ValidatorInspector
         }
 
         visited.Remove(validator.FullName);
+    }
+
+    private static string FormatStep(ValidatorLifetimeStep step)
+    {
+        var instantiation = step.isDirect ? "direct instantiation" : "injected";
+        var lifetime = step.lifetime == null ? string.Empty : $" [{step.lifetime}]";
+        return $"  - {step.kind} {step.target}{lifetime} via {step.method} ({instantiation})";
     }
 }
 
@@ -430,3 +465,16 @@ internal sealed class ValidatorChildNode
     public CompositionEdgeInfo Edge { get; }
     public ValidatorTreeNode? Resolved { get; }
 }
+
+internal sealed record ValidatorLifetimeExplanation(
+    string validator,
+    string? lifetime,
+    string reason,
+    IReadOnlyList<ValidatorLifetimeStep> steps);
+
+internal sealed record ValidatorLifetimeStep(
+    string kind,
+    string target,
+    string method,
+    bool isDirect,
+    string? lifetime);
