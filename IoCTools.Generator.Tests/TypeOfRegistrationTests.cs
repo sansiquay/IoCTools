@@ -394,6 +394,49 @@ public static class Program
         warning.Should().BeEmpty();
     }
 
+    [Fact]
+    public void OpenGeneric_TypeOf_ForSkippedInterface_EmitsIOC094_NotIOC091()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Generic;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+public interface ILookup<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll(RegistrationMode.All)]
+[SkipRegistration<ILookup<T>>]
+public partial class Repository<T> : IRepository<T>, ILookup<T> where T : class
+{
+    public IEnumerable<T> GetAll() => new List<T>();
+}
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(ILookup<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+
+        info.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
+    }
+
     #endregion
 
     #region ServiceDescriptor factory methods

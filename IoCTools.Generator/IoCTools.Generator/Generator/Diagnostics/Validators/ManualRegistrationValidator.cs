@@ -261,7 +261,8 @@ internal static class ManualRegistrationValidator
                     return registrationMode is not "Exclusionary";
 
                 if (ImplementsOpenGenericService(implementationDefinition, serviceDefinition))
-                    return registrationMode is not "DirectOnly";
+                    return registrationMode is not "DirectOnly" &&
+                           !IsOpenGenericServiceSkippedByIoCTools(implementationDefinition, serviceDefinition);
             }
 
             foreach (var registerAsAttribute in implementationDefinition.GetAttributes()
@@ -281,6 +282,20 @@ internal static class ManualRegistrationValidator
         static bool ImplementsOpenGenericService(INamedTypeSymbol implementationSymbol, INamedTypeSymbol serviceSymbol)
         {
             return implementationSymbol.AllInterfaces.Any(@interface => OpenGenericSymbolsMatch(@interface, serviceSymbol));
+        }
+
+        static bool IsOpenGenericServiceSkippedByIoCTools(INamedTypeSymbol implementationSymbol,
+            INamedTypeSymbol serviceSymbol)
+        {
+            var skippedInterfaceDisplays = new HashSet<string>(implementationSymbol.GetAttributes()
+                .Where(AttributeTypeChecker.IsGenericSkipRegistrationAttribute)
+                .SelectMany(attribute => attribute.AttributeClass?.TypeArguments ?? default)
+                .OfType<INamedTypeSymbol>()
+                .Select(typeArgument => typeArgument.ToDisplayString()), StringComparer.Ordinal);
+
+            return implementationSymbol.AllInterfaces.Any(@interface =>
+                OpenGenericSymbolsMatch(@interface, serviceSymbol) &&
+                skippedInterfaceDisplays.Contains(@interface.ToDisplayString()));
         }
 
         static bool RegisterAsCoversOpenGenericService(AttributeData registerAsAttribute, INamedTypeSymbol serviceSymbol)
