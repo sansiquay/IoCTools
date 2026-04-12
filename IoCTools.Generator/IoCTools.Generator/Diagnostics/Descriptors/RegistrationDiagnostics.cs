@@ -275,11 +275,11 @@ internal static partial class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor OpenGenericTypeOfCouldUseAttributes = new(
         "IOC094",
         "Open generic typeof() could use IoCTools attributes",
-        "'{0}' is registered as an open generic via typeof(). IoCTools does not yet support open generic registration. Consider using closed generic registrations with IoCTools attributes.",
+        "'{0}' is registered as an open generic via typeof(). Consider expressing this registration through IoCTools attributes when the implementation carries IoCTools intent.",
         "IoCTools.Registration",
         DiagnosticSeverity.Info,
         true,
-        "Open generic registrations (typeof(IRepository<>)) are not yet supported by IoCTools. This is informational only.",
+        "Open generic typeof() registrations remain informational when they are valid manual registrations but are not yet expressed through IoCTools intent.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(

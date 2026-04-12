@@ -355,6 +355,11 @@ internal class Program
         services.AddScoped<IDataValidator, SelectiveDataService>();
         // Note: IDataLogger and IDataCacheService intentionally skipped
 
+        // Open generic repository pattern from MultiInterfaceExamples.cs
+        services.AddScoped(typeof(Repository<>));
+        services.AddScoped(typeof(IMultiRepository<>), typeof(Repository<>));
+        services.AddScoped(typeof(IMultiQueryable<>), typeof(Repository<>));
+
         // Generic services from GenericServiceExamples.cs
         services.AddScoped(typeof(GenericRepository<>));
         services.AddScoped(typeof(Services.IRepository<>), typeof(GenericRepository<>));
@@ -1872,22 +1877,30 @@ internal class Program
         Console.WriteLine();
     }
 
-    private static Task TestRepositoryPattern(IServiceProvider services)
+    private static async Task TestRepositoryPattern(IServiceProvider services)
     {
         Console.WriteLine("--- Testing Generic Repository Pattern ---");
 
-        // NOTE: Generic repository pattern temporarily commented out due to open generic registration issue
-        // var userRepo = services.GetService<IMultiRepository<User>>();
-        // var userQueryable = services.GetService<IMultiQueryable<User>>();
+        var userRepo = services.GetService<IMultiRepository<User>>();
+        var userQueryable = services.GetService<IMultiQueryable<User>>();
 
         Console.WriteLine("Generic Repository<User>:");
-        Console.WriteLine("  IMultiRepository<User>: Temporarily disabled (open generic registration issue)");
-        Console.WriteLine("  IMultiQueryable<User>: Temporarily disabled (open generic registration issue)");
+        Console.WriteLine($"  IMultiRepository<User>: {userRepo != null}");
+        Console.WriteLine($"  IMultiQueryable<User>: {userQueryable != null}");
 
-        Console.WriteLine(
-            "✅ Generic repository pattern: Temporarily disabled - pending open generic registration support");
+        if (userRepo != null && userQueryable != null)
+        {
+            var user = new User(101, "Open Generic User", "open-generic@example.com");
+            await userRepo.SaveAsync(user);
+            var retrievedUser = await userQueryable.FirstOrDefaultAsync(candidate => candidate.Id == user.Id);
+            Console.WriteLine($"✅ Generic repository pattern: Retrieved '{retrievedUser?.Name ?? "null"}'");
+        }
+        else
+        {
+            Console.WriteLine("❌ Generic repository pattern: Open generic registrations were not resolved");
+        }
+
         Console.WriteLine();
-        return Task.CompletedTask;
     }
 
     private static async Task TestPerformanceService(IServiceProvider services)

@@ -339,13 +339,12 @@ public interface IMultiQueryable<T>
     Task<T> FirstOrDefaultAsync(Func<T, bool> predicate);
 }
 
-// Example 7: Generic repository with multiple interfaces (commented out due to DI container limitations)
-// Note: Open generic types with RegisterAsAll require special handling not yet implemented
-// // [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+[Scoped]
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+[DependsOn<ILogger<Repository<T>>>]
 public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, IDisposable where T : class
 {
     private readonly ConcurrentDictionary<int, T> _entities = new();
-    [Inject] private readonly ILogger<Repository<T>> _logger;
     private bool _disposed;
 
     public void Dispose()

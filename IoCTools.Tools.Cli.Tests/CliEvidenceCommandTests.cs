@@ -20,6 +20,10 @@ public sealed class CliEvidenceCommandTests
         TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "RegistrationProject",
             "RegistrationProject.csproj");
 
+    private static string OpenGenericProjectPath =>
+        TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "TestProjects", "OpenGenericProject",
+            "OpenGenericProject.csproj");
+
     private static string GeneratorStubDirectory =>
         TestPaths.ResolveRepoPath("IoCTools.Tools.Cli.Tests", "GeneratorStubs");
 
@@ -151,6 +155,32 @@ public sealed class CliEvidenceCommandTests
         result.Stdout.Should().Contain("Type Evidence");
         result.Stdout.Should().Contain("Diagnostics");
         result.Stdout.Should().Contain("Configuration");
+    }
+
+    [Fact]
+    public async Task Evidence_JsonMode_Includes_OpenGeneric_Registration()
+    {
+        var result = await CliTestHost.RunAsync(
+            "evidence",
+            "--project", OpenGenericProjectPath,
+            "--json");
+
+        result.ExitCode.Should().Be(0);
+
+        using var payload = JsonDocument.Parse(result.Stdout);
+        var registrations = payload.RootElement
+            .GetProperty("services")
+            .GetProperty("registrations")
+            .EnumerateArray()
+            .ToArray();
+
+        var openGenericRegistration = registrations.Single(registration =>
+            registration.GetProperty("serviceType").GetString()!.Contains("IOpenGenericRepository<>",
+                StringComparison.Ordinal));
+
+        openGenericRegistration.GetProperty("implementationType").GetString()
+            .Should().Contain("OpenGenericRepository<>");
+        openGenericRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
     }
 
     [Fact]

@@ -226,16 +226,20 @@ public static class Program
     #region IOC094 - Open generic typeof()
 
     [Fact]
-    public void OpenGeneric_TypeOf_EmitsIOC094()
+    public void OpenGeneric_TypeOf_WithRegisterAsAll_SameLifetime_EmitsIOC091()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Test;
 
-public interface IRepository {}
-public class Repository : IRepository {}
+public interface IRepository<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
 
 public static class Program
 {
@@ -248,9 +252,78 @@ public static class Program
 ";
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
-        var diags = result.GetDiagnosticsByCode("IOC094");
-        diags.Should().ContainSingle()
+        var duplicates = result.GetDiagnosticsByCode("IOC091");
+        var openGenericInfo = result.GetDiagnosticsByCode("IOC094");
+
+        duplicates.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
+        openGenericInfo.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenGeneric_TypeOf_WithRegisterAsAll_LifetimeMismatch_EmitsIOC092()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(typeof(IRepository<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+        var openGenericInfo = result.GetDiagnosticsByCode("IOC094");
+
+        mismatch.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Error);
+        openGenericInfo.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenGeneric_TypeOf_WithoutIoCToolsIntent_EmitsIOC094()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+public class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().ContainSingle()
             .Which.Severity.Should().Be(DiagnosticSeverity.Info);
+        warning.Should().BeEmpty();
     }
 
     #endregion

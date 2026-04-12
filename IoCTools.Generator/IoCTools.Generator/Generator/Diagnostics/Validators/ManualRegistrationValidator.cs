@@ -100,6 +100,7 @@ internal static class ManualRegistrationValidator
                 INamedTypeSymbol? svcNamed = null;
                 INamedTypeSymbol? implNamed = null;
                 bool isTypeOfRegistration = false;
+                bool isOpenGenericTypeOfRegistration = false;
 
                 if (typeArgsSymbol.Length > 0)
                 {
@@ -116,19 +117,6 @@ internal static class ManualRegistrationValidator
                     var args = invocation.ArgumentList.Arguments;
                     if (args.Count < 1) continue;
 
-                    // Check for open generics first (IOC094, D-04)
-                    if (IsOpenGenericTypeOf(args[0]) || (args.Count >= 2 && IsOpenGenericTypeOf(args[1])))
-                    {
-                        var openGenericText = args[0].Expression is TypeOfExpressionSyntax toe
-                            ? toe.Type.ToString() : "unknown";
-                        var diag = Diagnostic.Create(
-                            ApplyManualSeverity(DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes, diagnosticConfig),
-                            invocation.GetLocation(),
-                            openGenericText);
-                        context.ReportDiagnostic(diag);
-                        continue;
-                    }
-
                     var svcType = ExtractTypeFromTypeOf(args[0], semanticModel);
                     var implType = args.Count >= 2
                         ? ExtractTypeFromTypeOf(args[1], semanticModel)
@@ -139,6 +127,8 @@ internal static class ManualRegistrationValidator
                     svcNamed = svcType;
                     implNamed = implType;
                     isTypeOfRegistration = true;
+                    isOpenGenericTypeOfRegistration =
+                        IsOpenGenericTypeOf(args[0]) || (args.Count >= 2 && IsOpenGenericTypeOf(args[1]));
                     // Fall through to the shared diagnostic emission logic below
                 }
 
@@ -160,11 +150,16 @@ internal static class ManualRegistrationValidator
                 {
                     var diag = Diagnostic.Create(
                         ApplyManualSeverity(
-                            isTypeOfRegistration
+                            isTypeOfRegistration && isOpenGenericTypeOfRegistration
+                                ? DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes
+                                : isTypeOfRegistration
                                 ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
                                 : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
                             diagnosticConfig),
-                        invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
+                        invocation.GetLocation(),
+                        isTypeOfRegistration && isOpenGenericTypeOfRegistration
+                            ? new object[] { serviceTypeName }
+                            : new object[] { serviceTypeName, lifetime, implTypeName });
                     context.ReportDiagnostic(diag);
                     continue;
                 }

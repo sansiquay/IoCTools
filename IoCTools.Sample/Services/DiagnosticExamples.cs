@@ -383,7 +383,7 @@ public static class TypeOfRegistrationExamples
         // IOC092: typeof() lifetime mismatch (ScopedService is [Scoped] by IoCTools)
         services.AddTransient(typeof(IScopedInterface), typeof(ScopedService));
 
-        // IOC094: Open generic registration - informational only
+        // IOC094: Open generic registration without IoCTools intent - informational only
         services.AddScoped(typeof(ITypeOfRepository<>), typeof(TypeOfRepository<>));
     }
 }
@@ -441,7 +441,7 @@ public partial class ScopedService : IScopedInterface
 }
 
 /// <summary>
-///     Open generic interface - triggers IOC094 when registered via typeof()
+///     Open generic interface - triggers IOC094 when registered via typeof() without IoCTools intent
 ///     </summary>
 public interface ITypeOfRepository<T>
 {
@@ -449,7 +449,7 @@ public interface ITypeOfRepository<T>
 }
 
 /// <summary>
-///     Open generic implementation - triggers IOC094 when registered via typeof()
+///     Open generic implementation - triggers IOC094 when registered via typeof() without IoCTools intent
 ///     </summary>
 public class TypeOfRepository<T> : ITypeOfRepository<T>
 {
