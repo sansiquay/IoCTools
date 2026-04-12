@@ -8,7 +8,7 @@ Migrating to IoCTools from manual DI registration or other dependency injection 
 
 ```bash
 dotnet add package IoCTools.Abstractions
-dotnet add package IoCTools.Generator --prerelease
+dotnet add package IoCTools.Generator
 ```
 
 ### Step 2: Annotate services
@@ -96,7 +96,7 @@ public partial class EmailService
 
 ### Common Migration Patterns
 
-For `1.5.0`, treat `[Inject]` and `InjectConfiguration` as temporary migration bridges only. Retcon new code directly to `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+For `1.5.1`, treat `[Inject]` and `InjectConfiguration` as temporary migration bridges only. Retcon new code directly to `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
 
 | Manual DI | IoCTools |
 |-----------|----------|
@@ -105,6 +105,7 @@ For `1.5.0`, treat `[Inject]` and `InjectConfiguration` as temporary migration b
 | `IOptionsMonitor<T>` | `[DependsOnConfiguration<T>]` |
 | `IConfiguration["key"]` | `[DependsOnConfiguration<string>("key")]` |
 | Manual constructor | `[DependsOn<T1, T2>]` |
+| `services.AddScoped(typeof(IRepository<>), typeof(Repository<>))` | `[Scoped] [RegisterAsAll] public partial class Repository<T> : IRepository<T> where T : class` |
 
 ---
 

@@ -193,7 +193,7 @@ IoCTools uses incremental generation for fast builds:
 
 | IoCTools Version | .NET SDK | Roslyn Version |
 |------------------|----------|----------------|
-| 1.5.0 | .NET SDK 9.0.100+ | Microsoft.CodeAnalysis 4.5.0 |
+| 1.5.1 | .NET SDK 9.0.100+ | Microsoft.CodeAnalysis 4.13.0 |
 
 **Minimum:** .NET SDK 6.0.100+ (for tooling)
 

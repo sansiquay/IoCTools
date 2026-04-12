@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-04-12
+
+### Added
+- first real public `1.5.x` release across `IoCTools.Abstractions`, `IoCTools.Generator`, `IoCTools.Tools.Cli`, `IoCTools.Testing`, and `IoCTools.FluentValidation`
+- official support for the common open-generic attribute path that corresponds to `typeof(IFoo<>), typeof(Foo<>)`
+- IOC095 warning for open-generic `InstanceSharing.Shared` requests that must fall back to separate registrations in `Microsoft.Extensions.DependencyInjection`
+- tag-driven release workflow that packs and publishes all five package artifacts coherently
+
+### Changed
+- generator analysis failures now surface `IOC093` instead of silently degrading output
+- README, CLI docs, attribute docs, diagnostics docs, migration docs, and sample messaging now describe the real `1.5.1` public release posture
+- `[Inject]` and `InjectConfiguration` guidance is explicitly compatibility-only in `1.5.1`; new code should use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`
+
+### Fixed
+- invalid open-generic implementation factory aliases are no longer emitted; IoCTools now falls back to valid direct open-generic registrations
+- package metadata, repository links, and release automation are aligned for the public `1.5.1` line
+
 ## [1.5.0] - 2026-03-21
 
 ### Added
@@ -39,5 +56,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 5 new typeof() diagnostics (IOC090-IOC094)
 - 5 new test fixture diagnostics (TDIAG-01 through TDIAG-05)
 
-[Unreleased]: https://github.com/yourusername/IoCTools/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/yourusername/IoCTools/compare/v1.4.0...v1.5.0
+[Unreleased]: https://github.com/nathan-p-lane/IoCTools/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/nathan-p-lane/IoCTools/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/nathan-p-lane/IoCTools/compare/v1.4.0...v1.5.0

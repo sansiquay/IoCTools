@@ -249,7 +249,7 @@ internal static class DependencySetSuggestionValidator
         {
             if (!AttributeTypeChecker.IsRegisterAsAttribute(attribute))
                 continue;
-            foreach (var arg in attribute.AttributeClass.TypeArguments)
+            foreach (var arg in attribute.AttributeClass?.TypeArguments ?? ImmutableArray<ITypeSymbol>.Empty)
             {
                 if (arg is INamedTypeSymbol named && named.TypeKind == TypeKind.Interface)
                     yield return named;

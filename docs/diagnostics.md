@@ -2,14 +2,14 @@
 
 Quick reference for all IoCTools diagnostic messages with remediation guidance.
 
-Authoring posture for `1.5.0`: never introduce new `[Inject]` or `InjectConfiguration` usage. When diagnostics mention them, treat them as compatibility-only patterns to migrate away from.
+Authoring posture for `1.5.1`: never introduce new `[Inject]` or `InjectConfiguration` usage. When diagnostics mention them, treat them as compatibility-only patterns to migrate away from.
 
 ## Diagnostic Categories
 
 - [Dependency Diagnostics](#dependency-diagnostics) - IOC001-IOC002, IOC006-IOC009, IOC039-IOC055, IOC061-IOC062, IOC076, IOC078-IOC079
 - [Lifetime Diagnostics](#lifetime-diagnostics) - IOC012-IOC015, IOC033, IOC059-IOC060, IOC072, IOC075, IOC084, IOC087
 - [Configuration Diagnostics](#configuration-diagnostics) - IOC016-IOC019, IOC043-IOC046, IOC056-IOC057, IOC079, IOC088-IOC089
-- [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094
+- [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC095
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
 - [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
@@ -650,7 +650,7 @@ Diagnostics related to service registration patterns and attributes.
 
 **Cause:** An `[Inject]` field matches the default naming for `[DependsOn]`, making it unnecessarily verbose.
 
-**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]`. `[Inject]` is compatibility-only in `1.5.0`; never introduce it in new code.
+**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]`. `[Inject]` is compatibility-only in `1.5.1`; never introduce it in new code.
 
 **Related:** [IOC007](#ioc007) (DependsOn conflicts with Inject)
 
@@ -916,6 +916,27 @@ services.AddScoped(typeof(IRepository<>), typeof(Repository<>)); // IOC094
 [Scoped]
 [RegisterAsAll]
 public partial class Repository<T> : IRepository<T> where T : class { }
+```
+
+---
+
+### IOC095
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.Registration
+
+**Cause:** An open generic requests `InstanceSharing.Shared` for interface aliases, but `Microsoft.Extensions.DependencyInjection` does not support open generic implementation factories.
+
+**Fix:** Use `InstanceSharing.Separate` for open generic interface aliases, or wire the shared behavior manually in a container that supports open generic factory aliases. IoCTools falls back to separate registrations so the generated code remains valid.
+
+**Example:**
+```csharp
+[Scoped]
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)] // IOC095
+public partial class Repository<T> : IRepository<T>, ILookup<T> where T : class { }
+
+// Generated registrations fall back to direct open generic mappings:
+services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+services.AddScoped(typeof(ILookup<>), typeof(Repository<>));
 ```
 
 ---

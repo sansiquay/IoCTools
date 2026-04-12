@@ -2,6 +2,8 @@ namespace Test;
 
 using IoCTools.Generator.Tests;
 
+using Microsoft.Extensions.DependencyInjection;
+
 /// <summary>
 ///     RUNTIME VALIDATION TESTS FOR INSTANCE SHARING
 ///     These tests validate the ACTUAL RUNTIME BEHAVIOR of instance sharing in IoCTools,
@@ -492,7 +494,7 @@ public partial class StringDataService : IRepository<string>, IValidator<string>
     }
 
     [Fact]
-    public void OpenGenericSharedInstances_GeneratesCorrectFactoryPattern()
+    public void OpenGenericSharedInstances_FallBackToDirectRegistrations()
     {
         // Arrange
         var source = @"
@@ -501,6 +503,7 @@ using IoCTools.Abstractions.Enumerations;
 
 namespace Test;
 
+public sealed class User { }
 public interface IRepository<T> { }
 public interface IValidator<T> { }
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
@@ -513,22 +516,35 @@ public partial class GenericDataService<T> : IRepository<T>, IValidator<T>
 
         // Assert
         result.HasErrors.Should().BeFalse();
+        result.GetDiagnosticsByCode("IOC095").Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Warning);
 
         var registrationSource = result.GetRequiredServiceRegistrationSource();
 
-        // DEBUG: Print the actual generated code
-        Console.WriteLine("=== GENERATED REGISTRATION CODE ===");
-        Console.WriteLine(registrationSource.Content);
-        Console.WriteLine("=== END GENERATED CODE ===");
-
-        // Verify open generic shared instance pattern uses typeof syntax
+        // DOCUMENTED BEHAVIOR: Microsoft.Extensions.DependencyInjection does not support
+        // open generic interface registrations through implementation factories.
+        // IoCTools therefore falls back to direct open generic registrations here.
         registrationSource.Content.Should().Contain("services.AddScoped(typeof(global::Test.GenericDataService<>));");
         registrationSource.Content.Should()
             .Contain(
-                "services.AddScoped(typeof(global::Test.IRepository<>), provider => provider.GetRequiredService(typeof(global::Test.GenericDataService<>)));");
+                "services.AddScoped(typeof(global::Test.IRepository<>), typeof(global::Test.GenericDataService<>));");
         registrationSource.Content.Should()
             .Contain(
-                "services.AddScoped(typeof(global::Test.IValidator<>), provider => provider.GetRequiredService(typeof(global::Test.GenericDataService<>)));");
+                "services.AddScoped(typeof(global::Test.IValidator<>), typeof(global::Test.GenericDataService<>));");
+        registrationSource.Content.Should().NotContain("provider => provider.GetRequiredService");
+
+        var runtimeContext = SourceGeneratorTestHelper.CreateRuntimeContext(result);
+        var serviceProvider = SourceGeneratorTestHelper.BuildServiceProvider(runtimeContext);
+        using var scope = serviceProvider.CreateScope();
+
+        var userType = runtimeContext.Assembly.GetType("Test.User")!;
+        var repositoryType = runtimeContext.Assembly.GetType("Test.IRepository`1")!.MakeGenericType(userType);
+        var validatorType = runtimeContext.Assembly.GetType("Test.IValidator`1")!.MakeGenericType(userType);
+
+        var repository = scope.ServiceProvider.GetRequiredService(repositoryType);
+        var validator = scope.ServiceProvider.GetRequiredService(validatorType);
+
+        repository.Should().NotBeSameAs(validator);
     }
 
     #endregion

@@ -340,7 +340,7 @@ public interface IMultiQueryable<T>
 }
 
 [Scoped]
-[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Separate)]
 public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, IDisposable where T : class
 {
     private readonly ConcurrentDictionary<int, T> _entities = new();

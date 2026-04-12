@@ -197,9 +197,9 @@ public partial class MyService : IUserService, INotificationService { }
 [Singleton] // Explicit non-default lifetime
 [RegisterAs<IUserService, INotificationService>(InstanceSharing.Shared)]
 public partial class SharedService : IUserService, INotificationService { }
-// Generates: services.AddScoped<SharedService>();
-//           services.AddScoped<IUserService>(sp => sp.GetRequiredService<SharedService>());
-//           services.AddScoped<INotificationService>(sp => sp.GetRequiredService<SharedService>());
+// Generates: services.AddSingleton<SharedService>();
+//           services.AddSingleton<IUserService>(sp => sp.GetRequiredService<SharedService>());
+//           services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<SharedService>());
 ```
 
 **Modes:**
@@ -237,6 +237,16 @@ public partial class ConcreteOnly { }
 - `All`: Register all interfaces (default)
 - `Exclusionary`: Register all except `[SkipRegistration<>]` targets
 - `DirectOnly`: Register concrete type only, skip interfaces
+
+**Open generics:** The common `1.5.1` path is supported:
+
+```csharp
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
+```
+
+If you request `InstanceSharing.Shared` for open-generic interface aliases, IoCTools reports [IOC095](diagnostics.md#ioc095) and falls back to separate registrations because `Microsoft.Extensions.DependencyInjection` does not support open-generic implementation factories.
 
 ---
 

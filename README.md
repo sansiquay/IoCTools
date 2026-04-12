@@ -10,7 +10,7 @@
 - **Self-describing services** – `[Scoped]`, `[DependsOn<T>]`, `[RegisterAs<…>]`, and `[ConditionalService]` live on the class, so intent never leaves the type
 - **Dependency sets** – Implement `IDependencySet` to reuse dependency bundles across services
 - **Inheritance-aware** – Derived services inherit base class lifetime; diagnostics validate across the full chain
-- **97+ diagnostics** – Build-time validation catches missing lifetimes, circular dependencies, lifetime mismatches, FluentValidation anti-patterns, and more
+- **100+ diagnostics** – Build-time validation catches missing lifetimes, circular dependencies, lifetime mismatches, open-generic edge cases, and FluentValidation anti-patterns
 - **Zero reflection** – Everything happens at compile time; generated code is plain C# you can inspect
 
 ## Authoring Posture
@@ -19,13 +19,13 @@
 - Never use `InjectConfiguration` in new code.
 - Use `[DependsOn<T>]` for service dependencies.
 - Use `[DependsOnConfiguration<T>]` or `[DependsOnOptions<T>]` for configuration dependencies.
-- `[Inject]` and `InjectConfiguration` remain supported in `1.5.0` for compatibility-only migration scenarios.
+- `[Inject]` and `InjectConfiguration` remain supported in `1.5.1` for compatibility-only migration scenarios.
 
 ## Installation
 
 ```bash
 dotnet add package IoCTools.Abstractions
-dotnet add package IoCTools.Generator --prerelease
+dotnet add package IoCTools.Generator
 ```
 
 Or directly in your project file:
@@ -37,14 +37,14 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.5.0
+## What's New in v1.5.1
 
-- [Test fixture generation](docs/testing.md) — Auto-generate Mock fields, CreateSut(), and setup helpers with `[Cover<T>]`
-- [typeof() diagnostics](docs/diagnostics.md#ioc090) — Build-time validation for manual DI registrations (IOC090-IOC094)
+- First real public `1.5.x` release across `IoCTools.Abstractions`, `IoCTools.Generator`, `IoCTools.Tools.Cli`, `IoCTools.Testing`, and `IoCTools.FluentValidation`
 - [Evidence-first CLI](docs/cli-reference.md) — `evidence`, stable artifact fingerprints/deltas, stronger `validator-graph --json`, structured `suppress --json`, and better review packets
+- [Open-generic support](docs/attributes.md#registerasallregistrationmode-mode-instancesharing-mode) — the common `typeof(IFoo<>), typeof(Foo<>)` path is now a supported attribute story
+- [Improved diagnostics](docs/diagnostics.md) — `IOC093` surfaces generator analysis failures instead of degrading silently, and `IOC095` explains open-generic shared-instance fallback
 - [Authoring guidance](docs/attributes.md) — `[DependsOn]` / `[DependsOnConfiguration]` are the normal path; `[Inject]` / `InjectConfiguration` are compatibility-only
-- [Improved diagnostics](docs/diagnostics.md) — Enhanced messages with CreateScope() suggestions and inheritance paths
-- [FluentValidation support](docs/diagnostics.md#fluentvalidation-diagnostics) — Source generator for validator DI, composition graphs, and anti-pattern detection (IOC100-IOC102)
+- [Test fixture generation](docs/testing.md) and [FluentValidation support](docs/diagnostics.md#fluentvalidation-diagnostics) ship on the same public `1.5.1` line
 
 ## Getting Started in Three Steps
 
@@ -72,6 +72,18 @@ Or directly in your project file:
    var builder = WebApplication.CreateBuilder(args);
    builder.Services.AddYourAssemblyRegisteredServices(builder.Configuration);
    ```
+
+## Common Open-Generic Pattern
+
+```csharp
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class
+{
+}
+```
+
+That common open-generic path is supported in `1.5.1`. If you ask for `InstanceSharing.Shared` across open-generic interface aliases, IoCTools warns with `IOC095` and falls back to valid direct registrations because `Microsoft.Extensions.DependencyInjection` does not support open-generic factory aliases.
 
 ## Platform Support
 
@@ -186,7 +198,7 @@ Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[De
 
 ## Diagnostics Reference
 
-IoCTools provides 94+ diagnostics (IOC001-IOC094, TDIAG-01 through TDIAG-05). See [complete reference](docs/diagnostics.md).
+IoCTools provides core diagnostics through `IOC095`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100` through `IOC102`). See [complete reference](docs/diagnostics.md).
 
 ### Error-Severity Diagnostics
 

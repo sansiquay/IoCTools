@@ -13,7 +13,7 @@ IoCTools.Testing generates test fixture base classes that provide:
 
 No more manual `new Mock<T>()` declarations or `new Service(mock.Object, ...)` constructors.
 
-Authoring rule for `1.5.0`: never introduce new `[Inject]` or `InjectConfiguration` usage in services just to satisfy testing. Prefer `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+Authoring rule for `1.5.1`: never introduce new `[Inject]` or `InjectConfiguration` usage in services just to satisfy testing. Prefer `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
 
 ## Installation
 
@@ -27,7 +27,7 @@ Or in your test project `.csproj`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="IoCTools.Testing" Version="1.5.0" />
+  <PackageReference Include="IoCTools.Testing" Version="1.5.1" />
 </ItemGroup>
 ```
 

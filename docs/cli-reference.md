@@ -2,7 +2,7 @@
 
 The `ioc-tools` command-line tool interrogates your project with the real IoCTools generator, showing exactly what the build produced without spelunking through `obj/`.
 
-For `1.5.0`, use the CLI to audit and migrate toward `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `[Inject]` and `InjectConfiguration` remain supported for compatibility, and `evidence` will call them out when present.
+For `1.5.1`, use the CLI to audit and migrate toward `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `[Inject]` and `InjectConfiguration` remain supported for compatibility, and `evidence` will call them out when present.
 
 ## Installation
 

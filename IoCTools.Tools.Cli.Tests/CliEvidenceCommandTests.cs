@@ -174,14 +174,41 @@ public sealed class CliEvidenceCommandTests
             .EnumerateArray()
             .ToArray();
 
-        var openGenericRegistration = registrations.Single(registration =>
-            registration.GetProperty("serviceType").GetString()!.Contains("IOpenGenericLookup<>",
-                StringComparison.Ordinal));
+        var lookupRegistration = GetRegistration(
+            registrations,
+            "OpenGenericProject.Services.IOpenGenericLookup<>");
+        var repositoryRegistration = GetRegistration(
+            registrations,
+            "OpenGenericProject.Services.IOpenGenericRepository<>");
+        var concreteRegistration = GetRegistration(
+            registrations,
+            "OpenGenericProject.Services.OpenGenericRepository<>");
 
-        openGenericRegistration.GetProperty("implementationType").GetString()
+        lookupRegistration.GetProperty("implementationType").GetString()
             .Should().Contain("OpenGenericRepository<>");
-        openGenericRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
-        openGenericRegistration.GetProperty("usesFactory").GetBoolean().Should().BeTrue();
+        lookupRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
+        lookupRegistration.GetProperty("usesFactory").GetBoolean().Should().BeFalse();
+
+        repositoryRegistration.GetProperty("implementationType").GetString()
+            .Should().Contain("OpenGenericRepository<>");
+        repositoryRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
+        repositoryRegistration.GetProperty("usesFactory").GetBoolean().Should().BeFalse();
+
+        concreteRegistration.GetProperty("implementationType").GetString()
+            .Should().Contain("OpenGenericRepository<>");
+        concreteRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
+        concreteRegistration.GetProperty("usesFactory").GetBoolean().Should().BeFalse();
+
+        static JsonElement GetRegistration(JsonElement[] registrations, string serviceType)
+        {
+            return registrations.Single(registration =>
+                Normalize(registration.GetProperty("serviceType").GetString()) == serviceType);
+        }
+
+        static string Normalize(string? value)
+        {
+            return value?.Replace("global::", string.Empty, StringComparison.Ordinal) ?? string.Empty;
+        }
     }
 
     [Fact]

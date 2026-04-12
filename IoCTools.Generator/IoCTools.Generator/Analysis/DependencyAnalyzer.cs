@@ -232,7 +232,7 @@ internal static class DependencyAnalyzer
                 ResolveDependencyOrderingAndSeparation(collectionContext!);
 
             return new InheritanceHierarchyDependencies(uniqueDependencies, finalBaseDependencies,
-                finalDerivedDependencies, collectionContext.AllDependencies,
+                finalDerivedDependencies, collectionContext!.AllDependencies,
                 collectionContext.AllDependenciesWithExternalFlag);
         }
         else

@@ -15,7 +15,7 @@ Control analyzer severity per diagnostic category:
   <!-- Missing implementation diagnostics (IOC001, IOC002) -->
   <IoCToolsNoImplementationSeverity>Error</IoCToolsNoImplementationSeverity>
 
-  <!-- Manual registration diagnostics (IOC081-IOC086, IOC090-IOC094) -->
+  <!-- Manual registration diagnostics (IOC081-IOC086, IOC090-IOC095) -->
   <IoCToolsManualSeverity>Warning</IoCToolsManualSeverity>
 
   <!-- Lifetime validation diagnostics (IOC012, IOC013, IOC015, IOC087) -->
@@ -148,7 +148,7 @@ public static class GeneratorOptions
 | MSBuild Property | Affects Diagnostics | Default |
 |------------------|-------------------|---------|
 | `IoCToolsNoImplementationSeverity` | IOC001, IOC002 | Error |
-| `IoCToolsManualSeverity` | IOC081-IOC086, IOC090-IOC094 | Info |
+| `IoCToolsManualSeverity` | IOC081-IOC086, IOC090-IOC095 | Info |
 | `IoCToolsLifetimeValidationSeverity` | IOC012, IOC013, IOC015, IOC087 | Error |
 
 [See all diagnostics](diagnostics.md)
@@ -174,6 +174,6 @@ The IoCTools generator targets `netstandard2.0` for broad compatibility. This co
 
 ## Related
 
-- [Diagnostics Reference](diagnostics.md) — All 94+ diagnostics with fix guidance
+- [Diagnostics Reference](diagnostics.md) — Core diagnostics through `IOC095`, plus testing and FluentValidation guidance
 - [Platform Constraints](platform-constraints.md) — netstandard2.0 limitations and workarounds
 - [Attribute Reference](attributes.md) — Complete attribute documentation

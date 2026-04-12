@@ -43,7 +43,7 @@ internal static class TypeDisplayUtilities
 
     // Mirrors ConstructorGenerator.Namespaces.RemoveNamespacesAndDots behavior
     public static string WithoutNamespaces(ITypeSymbol typeSymbol,
-        IEnumerable<string> namespacesToStrip,
+        IEnumerable<string>? namespacesToStrip,
         bool includeNullable = true)
     {
         if (typeSymbol == null) return "object";
@@ -68,7 +68,7 @@ internal static class TypeDisplayUtilities
 
     // Mirrors ServiceRegistrationGenerator.Rendering.RemoveNamespacesAndDots behavior
     public static string WithoutNamespaces(ISymbol serviceType,
-        IEnumerable<string> uniqueNamespaces,
+        IEnumerable<string>? uniqueNamespaces,
         bool forServiceRegistration)
     {
         if (serviceType == null) throw new ArgumentNullException(nameof(serviceType));

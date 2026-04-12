@@ -360,6 +360,86 @@ public static class Program
     }
 
     [Fact]
+    public void OpenGeneric_TypeOf_WithClosedServiceAndOpenImplementation_DoesNotEmitOpenGenericDiagnostics()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public sealed class User { }
+
+public interface IRepository<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(IRepository<User>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().BeEmpty();
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
+        warning.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenGeneric_TypeOf_WithOpenServiceAndClosedImplementation_DoesNotEmitOpenGenericDiagnostics()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public sealed class User { }
+
+public interface IRepository<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<User>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().BeEmpty();
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
+        warning.Should().BeEmpty();
+    }
+
+    [Fact]
     public void OpenGeneric_TypeOf_WithRegisterAsAllDirectOnly_EmitsIOC094()
     {
         var source = @"
@@ -424,6 +504,42 @@ public static class Program
 
         info.Should().ContainSingle()
             .Which.Severity.Should().Be(DiagnosticSeverity.Info);
+        warning.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenGeneric_TypeOf_ForBaseClassMappingWithoutAttributeEquivalent_DoesNotEmitIOC094()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public abstract class RepositoryBase<T> where T : class { }
+
+[Scoped]
+public partial class Repository<T> : RepositoryBase<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(RepositoryBase<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().BeEmpty();
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
         warning.Should().BeEmpty();
     }
 

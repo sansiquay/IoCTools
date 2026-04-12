@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 internal static class DiagnosticUtilities
 {
-    private delegate bool TryGetValueDelegate(string key, out string value);
+    private delegate bool TryGetValueDelegate(string key, out string? value);
 
     public static DiagnosticConfiguration GetDiagnosticConfiguration(GeneratorExecutionContext context)
         => ParseConfiguration(context.AnalyzerConfigOptions.GlobalOptions.TryGetValue);
@@ -30,12 +30,13 @@ internal static class DiagnosticUtilities
     {
         var config = new DiagnosticConfiguration();
 
-        if (tryGetValue("build_property.IoCToolsNoImplementationSeverity", out var noImplSeverity))
-            config.NoImplementationSeverity = ParseDiagnosticSeverity(noImplSeverity);
+        if (tryGetValue("build_property.IoCToolsNoImplementationSeverity", out var noImplSeverity) &&
+            !string.IsNullOrWhiteSpace(noImplSeverity))
+            config.NoImplementationSeverity = ParseDiagnosticSeverity(noImplSeverity!);
         if (tryGetValue("build_property.IoCToolsManualSeverity", out var manualSeverity) &&
             !string.IsNullOrWhiteSpace(manualSeverity))
         {
-            config.ManualImplementationSeverity = ParseDiagnosticSeverity(manualSeverity);
+            config.ManualImplementationSeverity = ParseDiagnosticSeverity(manualSeverity!);
             config.ManualImplementationSeverityConfigured = true;
         }
         if (tryGetValue("build_property.IoCToolsDisableDiagnostics", out var disableStr) &&
@@ -43,30 +44,35 @@ internal static class DiagnosticUtilities
             config.DiagnosticsEnabled = !disable;
         if (tryGetValue("build_property.IoCToolsLifetimeValidationSeverity", out var lifetimeSeverity) &&
             !string.IsNullOrWhiteSpace(lifetimeSeverity))
-            config.LifetimeValidationSeverity = ParseDiagnosticSeverity(lifetimeSeverity);
+            config.LifetimeValidationSeverity = ParseDiagnosticSeverity(lifetimeSeverity!);
         if (tryGetValue("build_property.IoCToolsDisableLifetimeValidation", out var disableLifetimeStr) &&
             bool.TryParse(disableLifetimeStr, out var disableLifetime))
             config.LifetimeValidationEnabled = !disableLifetime;
 
         // Parse IoCToolsIgnoredTypePatterns for cross-assembly interface matching
-        if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns))
-            config.CompiledIgnoredPatterns = CompileIgnoredTypePatterns(ignoredPatterns);
+        if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns) &&
+            !string.IsNullOrWhiteSpace(ignoredPatterns))
+            config.CompiledIgnoredPatterns = CompileIgnoredTypePatterns(ignoredPatterns!);
 
         // Parse IoCToolsFrameworkBaseTypes for custom framework base type exclusions
-        if (tryGetValue("build_property.IoCToolsFrameworkBaseTypes", out var frameworkTypes))
-            config.FrameworkBaseTypes = ParseFrameworkBaseTypes(frameworkTypes);
+        if (tryGetValue("build_property.IoCToolsFrameworkBaseTypes", out var frameworkTypes) &&
+            !string.IsNullOrWhiteSpace(frameworkTypes))
+            config.FrameworkBaseTypes = ParseFrameworkBaseTypes(frameworkTypes!);
 
         // Parse IoCToolsExcludedNamespacePrefixes for cross-assembly scanning exclusions
-        if (tryGetValue("build_property.IoCToolsExcludedNamespacePrefixes", out var excludedPrefixes))
-            config.ExcludedNamespacePrefixes = ParseExcludedNamespacePrefixes(excludedPrefixes);
+        if (tryGetValue("build_property.IoCToolsExcludedNamespacePrefixes", out var excludedPrefixes) &&
+            !string.IsNullOrWhiteSpace(excludedPrefixes))
+            config.ExcludedNamespacePrefixes = ParseExcludedNamespacePrefixes(excludedPrefixes!);
 
         // Parse IoCToolsConfigurationSuffixes for configuration type name processing
-        if (tryGetValue("build_property.IoCToolsConfigurationSuffixes", out var configSuffixes))
-            config.ConfigurationSuffixes = ParseConfigurationSuffixes(configSuffixes);
+        if (tryGetValue("build_property.IoCToolsConfigurationSuffixes", out var configSuffixes) &&
+            !string.IsNullOrWhiteSpace(configSuffixes))
+            config.ConfigurationSuffixes = ParseConfigurationSuffixes(configSuffixes!);
 
         // Parse IoCToolsSectionNameSuffixes for section name inference
-        if (tryGetValue("build_property.IoCToolsSectionNameSuffixes", out var sectionSuffixes))
-            config.SectionNameSuffixes = ParseSectionNameSuffixes(sectionSuffixes);
+        if (tryGetValue("build_property.IoCToolsSectionNameSuffixes", out var sectionSuffixes) &&
+            !string.IsNullOrWhiteSpace(sectionSuffixes))
+            config.SectionNameSuffixes = ParseSectionNameSuffixes(sectionSuffixes!);
 
         return config;
     }

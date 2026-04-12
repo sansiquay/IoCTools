@@ -103,6 +103,7 @@ internal static class DiagnosticCatalog
             new("IOC091", "typeof() registration duplicates IoCTools registration", "IoCTools.Registration", "Warning"),
             new("IOC092", "typeof() registration lifetime differs from IoCTools", "IoCTools.Registration", "Error"),
             new("IOC094", "Open generic typeof() registration could use IoCTools attributes", "IoCTools.Registration", "Info"),
+            new("IOC095", "Open generic shared aliases fall back to separate registrations", "IoCTools.Registration", "Warning"),
 
             // IoCTools.Structural
             new("IOC010", "Background service with non-Singleton lifetime (deprecated)", "IoCTools.Structural", "Warning"),

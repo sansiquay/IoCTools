@@ -30,6 +30,7 @@ internal static class RedundantConfigurationValidator
         ValidateConflictingLifetimeAttributes(context, classDeclaration, classSymbol);
         ValidateSkipRegistrationOverridesIntent(context, classDeclaration, classSymbol);
         ValidateSkipRegistrationIneffectiveMode(context, classDeclaration, classSymbol);
+        ValidateOpenGenericSharedInstanceLimitation(context, classDeclaration, classSymbol);
     }
 
     private static void ValidateRegisterAsMatchesImplementedInterfaces(SourceProductionContext context,
@@ -546,6 +547,146 @@ internal static class RedundantConfigurationValidator
         if (isHostedService) reasons.Add("BackgroundService inheritance");
         if (!reasons.Any() && isPartialWithInterfaces) reasons.Add("partial interface type");
         return reasons;
+    }
+
+    private static void ValidateOpenGenericSharedInstanceLimitation(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol)
+    {
+        if (classSymbol.TypeParameters.Length == 0) return;
+
+        foreach (var registerAsAllAttribute in classSymbol.GetAttributes().Where(IsRegisterAsAllAttribute))
+        {
+            var registrationMode = AttributeParser.GetRegistrationMode(registerAsAllAttribute);
+            if (registrationMode == "DirectOnly") continue;
+            if (GetRegisterAsAllInstanceSharing(registerAsAllAttribute, classSymbol) != "Shared") continue;
+            if (!WouldRegisterOpenGenericInterfaces(context, classSymbol)) continue;
+
+            ReportOpenGenericSharedFallback(context, classDeclaration, classSymbol, registerAsAllAttribute);
+        }
+
+        foreach (var registerAsAttribute in GetRegisterAsAttributes(classSymbol))
+        {
+            if (GetRegisterAsInstanceSharing(registerAsAttribute) != "Shared") continue;
+            if (!RegisterAsDeclaresInterfaces(registerAsAttribute)) continue;
+
+            ReportOpenGenericSharedFallback(context, classDeclaration, classSymbol, registerAsAttribute);
+        }
+    }
+
+    private static void ReportOpenGenericSharedFallback(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        AttributeData attribute)
+    {
+        var location = attribute.ApplicationSyntaxReference?.GetSyntax()?.GetLocation() ??
+                       classDeclaration.GetLocation();
+        var diagnostic = Diagnostic.Create(
+            DiagnosticDescriptors.OpenGenericSharedInstanceFallsBackToSeparate,
+            location,
+            classSymbol.Name);
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private static bool WouldRegisterOpenGenericInterfaces(SourceProductionContext context,
+        INamedTypeSymbol classSymbol)
+    {
+        var skippedInterfaces = new HashSet<string>(classSymbol.GetAttributes()
+            .Where(AttributeTypeChecker.IsGenericSkipRegistrationAttribute)
+            .SelectMany(attribute => attribute.AttributeClass?.TypeArguments ?? ImmutableArray<ITypeSymbol>.Empty)
+            .OfType<INamedTypeSymbol>()
+            .Select(typeArgument => typeArgument.ToDisplayString()), StringComparer.Ordinal);
+
+        return RegistrationSelector.GetInterfacesForRegistration(classSymbol, context.ReportDiagnostic)
+            .Any(@interface =>
+                @interface.TypeParameters.Length > 0 &&
+                !skippedInterfaces.Contains(@interface.ToDisplayString()));
+    }
+
+    private static bool RegisterAsDeclaresInterfaces(AttributeData registerAsAttribute)
+    {
+        return (registerAsAttribute.AttributeClass?.TypeArguments ?? ImmutableArray<ITypeSymbol>.Empty)
+            .OfType<INamedTypeSymbol>()
+            .Any(typeSymbol => typeSymbol.TypeKind == TypeKind.Interface);
+    }
+
+    private static string GetRegisterAsAllInstanceSharing(AttributeData registerAsAllAttribute,
+        INamedTypeSymbol classSymbol)
+    {
+        var sharingArg = registerAsAllAttribute.NamedArguments
+            .FirstOrDefault(arg => arg.Key == "InstanceSharing" || arg.Key == "instanceSharing");
+        if (sharingArg.Key != null)
+        {
+            var namedSharing = ParseInstanceSharingValue(sharingArg.Value.Value, sharingArg.Value.ToString());
+            if (namedSharing != null) return namedSharing;
+        }
+
+        if (registerAsAllAttribute.ConstructorArguments.Length > 1)
+        {
+            var explicitSharing = ParseInstanceSharingValue(
+                registerAsAllAttribute.ConstructorArguments[1].Value,
+                registerAsAllAttribute.ConstructorArguments[1].ToString());
+            if (explicitSharing != null) return explicitSharing;
+        }
+
+        var lifetime = ServiceDiscovery.GetServiceLifetimeFromAttributes(classSymbol, "Scoped");
+        return lifetime == "Singleton" ? "Shared" : "Separate";
+    }
+
+    private static string GetRegisterAsInstanceSharing(AttributeData registerAsAttribute)
+    {
+        var sharingArg = registerAsAttribute.NamedArguments
+            .FirstOrDefault(arg => arg.Key == "InstanceSharing" || arg.Key == "instanceSharing");
+        if (sharingArg.Key != null)
+        {
+            var namedSharing = ParseInstanceSharingValue(sharingArg.Value.Value, sharingArg.Value.ToString());
+            if (namedSharing != null) return namedSharing;
+        }
+
+        if (registerAsAttribute.ConstructorArguments.Length > 0)
+        {
+            var explicitSharing = ParseInstanceSharingValue(
+                registerAsAttribute.ConstructorArguments[0].Value,
+                registerAsAttribute.ConstructorArguments[0].ToString());
+            if (explicitSharing != null) return explicitSharing;
+        }
+
+        return "Separate";
+    }
+
+    private static string? ParseInstanceSharingValue(object? rawValue,
+        string? rawText)
+    {
+        if (rawValue is int intValue)
+            return intValue switch { 0 => "Separate", 1 => "Shared", _ => null };
+
+        if (TryParseInstanceSharingText(rawValue?.ToString(), out var parsedFromValue))
+            return parsedFromValue;
+
+        return TryParseInstanceSharingText(rawText, out var parsedFromText) ? parsedFromText : null;
+    }
+
+    private static bool TryParseInstanceSharingText(string? text,
+        out string parsed)
+    {
+        parsed = string.Empty;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+
+        if (text.Contains("InstanceSharing.Shared", StringComparison.Ordinal) ||
+            string.Equals(text, "Shared", StringComparison.Ordinal))
+        {
+            parsed = "Shared";
+            return true;
+        }
+
+        if (text.Contains("InstanceSharing.Separate", StringComparison.Ordinal) ||
+            string.Equals(text, "Separate", StringComparison.Ordinal))
+        {
+            parsed = "Separate";
+            return true;
+        }
+
+        return false;
     }
 
     private static List<AttributeData> GetRegisterAsAttributes(INamedTypeSymbol classSymbol)

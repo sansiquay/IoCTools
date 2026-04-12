@@ -44,15 +44,15 @@ internal static class ManualConstructorMixingValidator
             .Where(ctor => !ctor.DeclaringSyntaxReferences.Any(
                 syntaxRef =>
                 {
-                    var filePath = syntaxRef.GetSyntax()?.SyntaxTree.FilePath;
-                    if (string.IsNullOrEmpty(filePath)) return false;
+                    if (syntaxRef.GetSyntax()?.SyntaxTree.FilePath is not { Length: > 0 } generatedFilePath)
+                        return false;
 
                     // Check for IoCTools-specific generated constructor files first
-                    if (filePath.EndsWith(GeneratedConstructorFileSuffix, StringComparison.OrdinalIgnoreCase))
+                    if (generatedFilePath.EndsWith(GeneratedConstructorFileSuffix, StringComparison.OrdinalIgnoreCase))
                         return true;
 
                     // Also exclude any .g.cs file (general generated code convention)
-                    return filePath.EndsWith(GeneratedCodeFileExtension, StringComparison.OrdinalIgnoreCase);
+                    return generatedFilePath.EndsWith(GeneratedCodeFileExtension, StringComparison.OrdinalIgnoreCase);
                 }))
             .ToList();
 

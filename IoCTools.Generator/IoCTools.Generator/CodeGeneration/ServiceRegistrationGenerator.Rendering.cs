@@ -47,8 +47,15 @@ internal static partial class ServiceRegistrationGenerator
             return registrationCode.ToString();
         }
 
+        // Microsoft.Extensions.DependencyInjection does not allow open generic service descriptors
+        // that use implementation factories. Fall back to direct open generic registrations instead.
+        var openGenericAliasFactoryUnsupported =
+            service.ClassSymbol.TypeParameters.Length > 0 &&
+            !SymbolEqualityComparer.Default.Equals(service.ClassSymbol, service.InterfaceSymbol);
+
         var needsFactoryPattern =
-            service.UseSharedInstance || (service.HasConfigurationInjection && !isConditionalService);
+            !openGenericAliasFactoryUnsupported &&
+            (service.UseSharedInstance || (service.HasConfigurationInjection && !isConditionalService));
 
         if (needsFactoryPattern)
         {

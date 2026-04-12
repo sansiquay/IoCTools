@@ -282,6 +282,16 @@ internal static partial class DiagnosticDescriptors
         "The common open-generic registration path is supported in IoCTools 1.5.1. Prefer IoCTools attributes over manual typeof() registrations so diagnostics and generated registrations stay aligned.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 
+    public static readonly DiagnosticDescriptor OpenGenericSharedInstanceFallsBackToSeparate = new(
+        "IOC095",
+        "Open generic shared aliases fall back to separate registrations",
+        "Class '{0}' requests InstanceSharing.Shared for open generic interface registrations, but Microsoft.Extensions.DependencyInjection does not support open generic implementation factories. IoCTools will register those interfaces separately.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Warning,
+        true,
+        "Use InstanceSharing.Separate for open generic interface aliases, or wire the shared behavior manually in a container that supports open generic factory aliases.",
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc095");
+
     public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
         "IOC063",
         "RegisterAs attribute is redundant on derived class",

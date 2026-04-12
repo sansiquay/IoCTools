@@ -177,7 +177,7 @@ public partial class MixedGenericService<T> where T : class
     }
 
     [Fact]
-    public void Generics_OpenGenericSharedMultiInterface_UsesFactoryRegistrations()
+    public void Generics_OpenGenericSharedMultiInterface_FallsBackToDirectRegistrations()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -214,9 +214,10 @@ public partial class Repository<T> : IRepository<T>, ILookup<T> where T : class
 
         registrationText.Should().Contain("services.AddScoped(typeof(global::Test.Repository<>));");
         registrationText.Should().Contain(
-            "services.AddScoped(typeof(global::Test.IRepository<>), provider => provider.GetRequiredService(typeof(global::Test.Repository<>)));");
+            "services.AddScoped(typeof(global::Test.IRepository<>), typeof(global::Test.Repository<>));");
         registrationText.Should().Contain(
-            "services.AddScoped(typeof(global::Test.ILookup<>), provider => provider.GetRequiredService(typeof(global::Test.Repository<>)));");
+            "services.AddScoped(typeof(global::Test.ILookup<>), typeof(global::Test.Repository<>));");
+        registrationText.Should().NotContain("provider => provider.GetRequiredService");
     }
 
     [Fact]

@@ -9,7 +9,7 @@ If you're comfortable with dependency injection in .NET, here's the fastest path
 1. **Install packages:**
 ```bash
 dotnet add package IoCTools.Abstractions
-dotnet add package IoCTools.Generator --prerelease
+dotnet add package IoCTools.Generator
 ```
 
 2. **Add attributes to your service:**
@@ -32,7 +32,7 @@ builder.Services.AddYourAssemblyRegisteredServices(builder.Configuration);
 
 That's it — IoCTools generates the constructor and registration.
 
-For `1.5.0`, the authoring rule is explicit: never use `[Inject]` or `InjectConfiguration` in new code. Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+For `1.5.1`, the authoring rule is explicit: never use `[Inject]` or `InjectConfiguration` in new code. Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
 
 [Learn more about lifetimes](#lifetimes) | [Attribute reference](attributes.md)
 
@@ -201,7 +201,7 @@ When you build your project, IoCTools:
 3. **Validates** lifetime compatibility, missing implementations, circular dependencies
 4. **Generates** constructors with proper dependency ordering
 5. **Emits** registration extension methods (`AddYourAssemblyRegisteredServices()`)
-6. **Reports** diagnostics for any issues (94+ diagnostic rules)
+6. **Reports** diagnostics for any issues (core rules through `IOC095`, plus testing and FluentValidation diagnostics)
 
 Everything happens at compile time — zero runtime reflection or scanning.
 
@@ -371,7 +371,7 @@ Violations trigger **IOC012** (Singleton->Scoped), **IOC013** (Singleton->Transi
 ## Next Steps
 
 - [Attribute Reference](attributes.md) — Complete reference for all IoCTools attributes
-- [Diagnostics Reference](diagnostics.md) — All 94+ diagnostics with fix guidance
+- [Diagnostics Reference](diagnostics.md) — Core diagnostics through `IOC095`, plus testing and FluentValidation guidance
 - [Configuration](configuration.md) — MSBuild properties and advanced configuration
 - [Testing Guide](testing.md) — Auto-generated test fixtures with IoCTools.Testing
 - [CLI Reference](cli-reference.md) — Debugging and inspection tools

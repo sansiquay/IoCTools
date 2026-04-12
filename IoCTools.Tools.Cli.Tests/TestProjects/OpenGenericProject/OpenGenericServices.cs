@@ -14,7 +14,7 @@ public interface IOpenGenericLookup<T> where T : class
 }
 
 [Scoped]
-[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Separate)]
 public partial class OpenGenericRepository<T> : IOpenGenericRepository<T>, IOpenGenericLookup<T> where T : class
 {
     public T? GetById(int id) => default;

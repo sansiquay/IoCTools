@@ -35,7 +35,7 @@ internal static partial class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor InheritanceChainLifetimeValidation = new(
         "IOC015",
         "Service lifetime mismatch in inheritance chain",
-        "Service lifetime mismatch in inheritance chain: '{0}' ({1}) inherits from dependencies with {2} lifetime. Inheritance path: {3}",
+        "Service lifetime mismatch in inheritance chain: '{0}' ({1}) inherits from dependencies with {2} lifetime. Inheritance path: {3}.",
         "IoCTools.Lifetime",
         DiagnosticSeverity.Error,
         true,
