@@ -327,6 +327,39 @@ public static class Program
     }
 
     [Fact]
+    public void OpenGeneric_TypeOf_InvalidManualMapping_DoesNotEmitIOC094()
+    {
+        var source = @"
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+public class Repository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().BeEmpty();
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
+        warning.Should().BeEmpty();
+    }
+
+    [Fact]
     public void OpenGeneric_TypeOf_WithRegisterAsAllDirectOnly_EmitsIOC094()
     {
         var source = @"

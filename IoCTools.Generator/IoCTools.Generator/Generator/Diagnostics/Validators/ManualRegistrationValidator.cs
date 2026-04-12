@@ -136,8 +136,14 @@ internal static class ManualRegistrationValidator
                 var implTypeName = Normalize(implNamed.ToDisplayString());
                 var serviceLookupName = Normalize(svcNamed.OriginalDefinition.ToDisplayString());
                 var implementationLookupName = Normalize(implNamed.OriginalDefinition.ToDisplayString());
+                var openGenericMappingValid = !isOpenGenericTypeOfRegistration ||
+                                              IsValidOpenGenericTypeOfMapping(svcNamed, implNamed);
                 var openGenericMappingCoveredByIoCTools = !isOpenGenericTypeOfRegistration ||
-                                                          IsOpenGenericMappingCoveredByIoCTools(svcNamed, implNamed);
+                                                          (openGenericMappingValid &&
+                                                           IsOpenGenericMappingCoveredByIoCTools(svcNamed, implNamed));
+
+                if (isTypeOfRegistration && isOpenGenericTypeOfRegistration && !openGenericMappingValid)
+                    continue;
 
                 if (isTypeOfRegistration && isOpenGenericTypeOfRegistration && !openGenericMappingCoveredByIoCTools)
                 {
@@ -243,6 +249,16 @@ internal static class ManualRegistrationValidator
                 .Any(generic => generic.TypeArgumentList.Arguments.Any(a => a is OmittedTypeArgumentSyntax));
         }
 
+        static bool IsValidOpenGenericTypeOfMapping(INamedTypeSymbol serviceSymbol, INamedTypeSymbol implementationSymbol)
+        {
+            var serviceDefinition = serviceSymbol.OriginalDefinition;
+            var implementationDefinition = implementationSymbol.OriginalDefinition;
+
+            return OpenGenericSymbolsMatch(serviceDefinition, implementationDefinition) ||
+                   ImplementsOpenGenericService(implementationDefinition, serviceDefinition) ||
+                   InheritsOpenGenericService(implementationDefinition, serviceDefinition);
+        }
+
         static bool IsOpenGenericMappingCoveredByIoCTools(INamedTypeSymbol serviceSymbol, INamedTypeSymbol implementationSymbol)
         {
             var serviceDefinition = serviceSymbol.OriginalDefinition;
@@ -282,6 +298,20 @@ internal static class ManualRegistrationValidator
         static bool ImplementsOpenGenericService(INamedTypeSymbol implementationSymbol, INamedTypeSymbol serviceSymbol)
         {
             return implementationSymbol.AllInterfaces.Any(@interface => OpenGenericSymbolsMatch(@interface, serviceSymbol));
+        }
+
+        static bool InheritsOpenGenericService(INamedTypeSymbol implementationSymbol, INamedTypeSymbol serviceSymbol)
+        {
+            var baseType = implementationSymbol.BaseType;
+            while (baseType != null)
+            {
+                if (OpenGenericSymbolsMatch(baseType, serviceSymbol))
+                    return true;
+
+                baseType = baseType.BaseType;
+            }
+
+            return false;
         }
 
         static bool IsOpenGenericServiceSkippedByIoCTools(INamedTypeSymbol implementationSymbol,
