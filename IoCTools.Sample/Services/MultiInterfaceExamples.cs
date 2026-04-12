@@ -341,7 +341,6 @@ public interface IMultiQueryable<T>
 
 [Scoped]
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
-[DependsOn<ILogger<Repository<T>>>]
 public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, IDisposable where T : class
 {
     private readonly ConcurrentDictionary<int, T> _entities = new();
@@ -351,7 +350,6 @@ public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, ID
     {
         if (!_disposed)
         {
-            _logger.LogInformation("Disposing {EntityType} repository", typeof(T).Name);
             _entities.Clear();
             _disposed = true;
         }
@@ -373,14 +371,12 @@ public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, ID
 
     public async Task<T> GetByIdAsync(int id)
     {
-        _logger.LogInformation("Getting {EntityType} with ID {Id}", typeof(T).Name, id);
         await Task.Delay(5);
         return _entities.GetValueOrDefault(id)!;
     }
 
     public async Task<T> SaveAsync(T entity)
     {
-        _logger.LogInformation("Saving {EntityType}", typeof(T).Name);
         await Task.Delay(5);
         // In a real implementation, you'd extract the ID from the entity
         var id = _entities.Count + 1;
@@ -390,7 +386,6 @@ public partial class Repository<T> : IMultiRepository<T>, IMultiQueryable<T>, ID
 
     public async Task DeleteAsync(int id)
     {
-        _logger.LogInformation("Deleting {EntityType} with ID {Id}", typeof(T).Name, id);
         await Task.Delay(5);
         _entities.TryRemove(id, out _);
     }
