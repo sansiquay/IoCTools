@@ -326,6 +326,74 @@ public static class Program
         warning.Should().BeEmpty();
     }
 
+    [Fact]
+    public void OpenGeneric_TypeOf_WithRegisterAsAllDirectOnly_EmitsIOC094()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+
+[Scoped]
+[RegisterAsAll(RegistrationMode.DirectOnly)]
+public partial class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var duplicate = result.GetDiagnosticsByCode("IOC091");
+        var mismatch = result.GetDiagnosticsByCode("IOC092");
+
+        info.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
+        duplicate.Should().BeEmpty();
+        mismatch.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void OpenGeneric_TypeOf_WithQualifiedGlobalSyntax_EmitsIOC094()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Test;
+
+public interface IRepository<T> where T : class { }
+public class Repository<T> : IRepository<T> where T : class { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped(typeof(global::Test.IRepository<>), typeof(global::Test.Repository<>));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        var info = result.GetDiagnosticsByCode("IOC094");
+        var warning = result.GetDiagnosticsByCode("IOC090");
+
+        info.Should().ContainSingle()
+            .Which.Severity.Should().Be(DiagnosticSeverity.Info);
+        warning.Should().BeEmpty();
+    }
+
     #endregion
 
     #region ServiceDescriptor factory methods

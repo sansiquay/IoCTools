@@ -190,19 +190,72 @@ internal static partial class ServiceRegistrationGenerator
             .FirstOrDefault(arg => arg.Key == "InstanceSharing" || arg.Key == "instanceSharing");
         if (sharingArg.Key != null)
         {
-            var sharingValue = sharingArg.Value.Value?.ToString();
-            if (sharingValue is "Separate" or "Shared") return sharingValue;
+            var namedSharing = ParseInstanceSharingValue(sharingArg.Value.Value, sharingArg.Value.ToString());
+            if (namedSharing != null) return namedSharing;
         }
 
         if (registerAsAllAttribute.ConstructorArguments.Length > 1)
         {
-            var ctor = registerAsAllAttribute.ConstructorArguments[1].Value;
-            var explicitSharing = ctor switch { 0 => "Separate", 1 => "Shared", _ => null };
+            var explicitSharing = ParseInstanceSharingValue(
+                registerAsAllAttribute.ConstructorArguments[1].Value,
+                registerAsAllAttribute.ConstructorArguments[1].ToString());
             if (explicitSharing != null) return explicitSharing;
         }
 
         if (lifetime == "Singleton") return "Shared";
         return GetExpectedInstanceSharingDefault(ExtractRegistrationMode(registerAsAllAttribute));
+    }
+
+    private static string? ParseInstanceSharingValue(object? rawValue,
+        string? rawText)
+    {
+        if (rawValue is int intValue)
+            return intValue switch { 0 => "Separate", 1 => "Shared", _ => null };
+
+        if (TryParseInstanceSharingText(rawValue?.ToString(), out var parsedFromValue))
+            return parsedFromValue;
+
+        return TryParseInstanceSharingText(rawText, out var parsedFromText) ? parsedFromText : null;
+    }
+
+    private static bool TryParseInstanceSharingText(string? text,
+        out string? value)
+    {
+        if (text is "Separate" or "Shared")
+        {
+            value = text;
+            return true;
+        }
+
+        if (text?.EndsWith(".Separate", StringComparison.Ordinal) == true)
+        {
+            value = "Separate";
+            return true;
+        }
+
+        if (text?.EndsWith(".Shared", StringComparison.Ordinal) == true)
+        {
+            value = "Shared";
+            return true;
+        }
+
+        if (int.TryParse(text, out var parsed))
+        {
+            value = parsed switch { 0 => "Separate", 1 => "Shared", _ => null };
+            return value != null;
+        }
+
+        var digits = text == null
+            ? string.Empty
+            : new string(text.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out parsed))
+        {
+            value = parsed switch { 0 => "Separate", 1 => "Shared", _ => null };
+            return value != null;
+        }
+
+        value = null;
+        return false;
     }
 
     private static string GetExpectedInstanceSharingDefault(string registrationMode)

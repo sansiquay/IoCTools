@@ -5,14 +5,21 @@ namespace OpenGenericProject.Services;
 
 public interface IOpenGenericRepository<T> where T : class
 {
-    T Create();
+    T? GetById(int id);
+}
+
+public interface IOpenGenericLookup<T> where T : class
+{
+    IEnumerable<T> GetAll();
 }
 
 [Scoped]
-[RegisterAsAll]
-public partial class OpenGenericRepository<T> : IOpenGenericRepository<T> where T : class, new()
+[RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
+public partial class OpenGenericRepository<T> : IOpenGenericRepository<T>, IOpenGenericLookup<T> where T : class
 {
-    public T Create() => new();
+    public T? GetById(int id) => default;
+
+    public IEnumerable<T> GetAll() => Array.Empty<T>();
 }
 
 public sealed class AuditRecord

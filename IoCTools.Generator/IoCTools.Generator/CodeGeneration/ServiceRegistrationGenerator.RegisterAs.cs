@@ -124,14 +124,15 @@ internal static partial class ServiceRegistrationGenerator
             .FirstOrDefault(arg => arg.Key == "InstanceSharing" || arg.Key == "instanceSharing");
         if (sharingArg.Key != null)
         {
-            var sharingValue = sharingArg.Value.Value?.ToString();
-            if (sharingValue is "Separate" or "Shared") return sharingValue;
+            var namedSharing = ParseInstanceSharingValue(sharingArg.Value.Value, sharingArg.Value.ToString());
+            if (namedSharing != null) return namedSharing;
         }
 
         if (registerAsAttribute.ConstructorArguments.Length > 0)
         {
-            var ctor = registerAsAttribute.ConstructorArguments[0].Value;
-            var explicitSharing = ctor switch { 0 => "Separate", 1 => "Shared", _ => null };
+            var explicitSharing = ParseInstanceSharingValue(
+                registerAsAttribute.ConstructorArguments[0].Value,
+                registerAsAttribute.ConstructorArguments[0].ToString());
             if (explicitSharing != null) return explicitSharing;
         }
 

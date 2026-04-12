@@ -79,7 +79,9 @@ internal static class RegistrationSummaryBuilder
         {
             serviceType = TryExtractTypeFromArgument(invocation.ArgumentList.Arguments.FirstOrDefault());
             implementationType =
-                TryExtractTypeFromArgument(invocation.ArgumentList.Arguments.Skip(1).FirstOrDefault()) ?? serviceType;
+                TryExtractTypeFromArgument(invocation.ArgumentList.Arguments.Skip(1).FirstOrDefault()) ??
+                TryExtractFactoryType(invocation.ArgumentList.Arguments) ??
+                serviceType;
         }
 
         serviceType ??= implementationType;
@@ -149,10 +151,19 @@ internal static class RegistrationSummaryBuilder
 
     private static string? ExtractTypeFromFactoryInvocation(InvocationExpressionSyntax? invocation)
     {
-        if (invocation?.Expression is MemberAccessExpressionSyntax member && member.Name is GenericNameSyntax generic &&
+        if (invocation?.Expression is not MemberAccessExpressionSyntax member)
+            return null;
+
+        if (member.Name is GenericNameSyntax generic &&
             generic.Identifier.Text.Contains("GetRequiredService", StringComparison.Ordinal))
             return generic.TypeArgumentList.Arguments.FirstOrDefault()?.ToString();
-        return null;
+
+        if (!GetMethodName(member.Name).Contains("GetRequiredService", StringComparison.Ordinal))
+            return null;
+
+        return invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression is TypeOfExpressionSyntax typeOfExpr
+            ? typeOfExpr.Type.ToString()
+            : null;
     }
 
     private static string? TryExtractTypeFromArgument(ArgumentSyntax? argument)

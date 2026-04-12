@@ -134,15 +134,37 @@ internal static class ManualRegistrationValidator
 
                 var serviceTypeName = Normalize(svcNamed.ToDisplayString());
                 var implTypeName = Normalize(implNamed.ToDisplayString());
+                var serviceLookupName = Normalize(svcNamed.OriginalDefinition.ToDisplayString());
+                var implementationLookupName = Normalize(implNamed.OriginalDefinition.ToDisplayString());
+                var openGenericMappingCoveredByIoCTools = !isOpenGenericTypeOfRegistration ||
+                                                          IsOpenGenericMappingCoveredByIoCTools(svcNamed, implNamed);
+
+                if (isTypeOfRegistration && isOpenGenericTypeOfRegistration && !openGenericMappingCoveredByIoCTools)
+                {
+                    var diag = Diagnostic.Create(
+                        ApplyManualSeverity(DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes, diagnosticConfig),
+                        invocation.GetLocation(),
+                        serviceTypeName);
+                    context.ReportDiagnostic(diag);
+                    continue;
+                }
 
                 var iocLifetime = GetLifetimeIfAttributed(implNamed) ?? GetLifetimeIfAttributed(svcNamed);
+                if (iocLifetime == null && isOpenGenericTypeOfRegistration)
+                    iocLifetime = GetLifetimeIfAttributed(implNamed.OriginalDefinition) ??
+                                  GetLifetimeIfAttributed(svcNamed.OriginalDefinition);
 
                 if (iocLifetime == null)
                 {
-                    if (serviceLifetimes.TryGetValue(serviceTypeName, out var mappedLifetime))
+                    if (serviceLifetimes.TryGetValue(
+                            isOpenGenericTypeOfRegistration ? serviceLookupName : serviceTypeName,
+                            out var mappedLifetime))
                         iocLifetime = mappedLifetime;
-                    else if (implTypeName != serviceTypeName &&
-                             serviceLifetimes.TryGetValue(implTypeName, out var implMappedLifetime))
+                    else if ((isOpenGenericTypeOfRegistration ? implementationLookupName : implTypeName) !=
+                             (isOpenGenericTypeOfRegistration ? serviceLookupName : serviceTypeName) &&
+                             serviceLifetimes.TryGetValue(
+                                 isOpenGenericTypeOfRegistration ? implementationLookupName : implTypeName,
+                                 out var implMappedLifetime))
                         iocLifetime = implMappedLifetime;
                 }
 
@@ -215,8 +237,82 @@ internal static class ManualRegistrationValidator
         {
             if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
                 return false;
-            return typeOfExpr.Type is GenericNameSyntax generic
-                && generic.TypeArgumentList.Arguments.Any(a => a is OmittedTypeArgumentSyntax);
+            return typeOfExpr.Type
+                .DescendantNodesAndSelf()
+                .OfType<GenericNameSyntax>()
+                .Any(generic => generic.TypeArgumentList.Arguments.Any(a => a is OmittedTypeArgumentSyntax));
+        }
+
+        static bool IsOpenGenericMappingCoveredByIoCTools(INamedTypeSymbol serviceSymbol, INamedTypeSymbol implementationSymbol)
+        {
+            var serviceDefinition = serviceSymbol.OriginalDefinition;
+            var implementationDefinition = implementationSymbol.OriginalDefinition;
+
+            if (implementationDefinition.GetAttributes().Any(AttributeTypeChecker.IsNonGenericSkipRegistrationAttribute))
+                return false;
+
+            var registerAsAllAttribute = implementationDefinition.GetAttributes()
+                .FirstOrDefault(attr => AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
+
+            if (registerAsAllAttribute != null)
+            {
+                var registrationMode = AttributeParser.GetRegistrationMode(registerAsAllAttribute);
+                if (OpenGenericSymbolsMatch(serviceDefinition, implementationDefinition))
+                    return registrationMode is not "Exclusionary";
+
+                if (ImplementsOpenGenericService(implementationDefinition, serviceDefinition))
+                    return registrationMode is not "DirectOnly";
+            }
+
+            foreach (var registerAsAttribute in implementationDefinition.GetAttributes()
+                         .Where(AttributeTypeChecker.IsRegisterAsAttribute))
+            {
+                if (OpenGenericSymbolsMatch(serviceDefinition, implementationDefinition))
+                    return false;
+
+                if (RegisterAsCoversOpenGenericService(registerAsAttribute, serviceDefinition))
+                    return true;
+            }
+
+            return OpenGenericSymbolsMatch(serviceDefinition, implementationDefinition) &&
+                   GetLifetimeIfAttributed(implementationDefinition) != null;
+        }
+
+        static bool ImplementsOpenGenericService(INamedTypeSymbol implementationSymbol, INamedTypeSymbol serviceSymbol)
+        {
+            return implementationSymbol.AllInterfaces.Any(@interface => OpenGenericSymbolsMatch(@interface, serviceSymbol));
+        }
+
+        static bool RegisterAsCoversOpenGenericService(AttributeData registerAsAttribute, INamedTypeSymbol serviceSymbol)
+        {
+            var typeArguments = registerAsAttribute.AttributeClass?.TypeArguments ?? default;
+            return !typeArguments.IsDefaultOrEmpty && typeArguments.Any(typeArgument =>
+                typeArgument is INamedTypeSymbol namedType && OpenGenericSymbolsMatch(namedType, serviceSymbol));
+        }
+
+        static bool OpenGenericSymbolsMatch(INamedTypeSymbol left, INamedTypeSymbol right)
+        {
+            return string.Equals(GetOpenGenericSymbolKey(left), GetOpenGenericSymbolKey(right), StringComparison.Ordinal);
+        }
+
+        static string GetOpenGenericSymbolKey(INamedTypeSymbol symbol)
+        {
+            var definition = symbol.OriginalDefinition;
+            var containingTypes = new Stack<string>();
+            var currentContainingType = definition.ContainingType;
+
+            while (currentContainingType != null)
+            {
+                containingTypes.Push(currentContainingType.MetadataName);
+                currentContainingType = currentContainingType.ContainingType;
+            }
+
+            var namespaceName = definition.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            var containingTypePath = containingTypes.Count == 0
+                ? string.Empty
+                : string.Join("+", containingTypes) + "+";
+
+            return namespaceName + "|" + containingTypePath + definition.MetadataName;
         }
 
         static DiagnosticDescriptor ApplyManualSeverity(DiagnosticDescriptor baseDescriptor,

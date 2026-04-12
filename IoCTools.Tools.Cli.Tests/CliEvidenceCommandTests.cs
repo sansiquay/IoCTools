@@ -160,6 +160,33 @@ public sealed class CliEvidenceCommandTests
     [Fact]
     public async Task Evidence_JsonMode_Includes_OpenGeneric_Registration()
     {
+        var stubDirectory = TestPaths.CreateTempDirectory();
+        var stubPath = Path.Combine(stubDirectory, "ServiceRegistrations_OpenGenericProject.g.cs");
+        await File.WriteAllTextAsync(
+            stubPath,
+            """
+            #nullable enable
+            namespace OpenGenericProject.Extensions.Generated;
+
+            using Microsoft.Extensions.DependencyInjection;
+            using OpenGenericProject.Services;
+
+            public static partial class GeneratedServiceCollectionExtensions
+            {
+                public static IServiceCollection AddOpenGenericProjectRegisteredServices(this IServiceCollection services)
+                {
+                     services.AddScoped(typeof(global::OpenGenericProject.Services.OpenGenericRepository<>));
+                     services.AddScoped(typeof(global::OpenGenericProject.Services.IOpenGenericRepository<>), provider => provider.GetRequiredService(typeof(global::OpenGenericProject.Services.OpenGenericRepository<>)));
+                     services.AddScoped(typeof(global::OpenGenericProject.Services.IOpenGenericLookup<>), provider => provider.GetRequiredService(typeof(global::OpenGenericProject.Services.OpenGenericRepository<>)));
+                     AddOpenGenericProjectFluentValidationServices(services);
+                     return services;
+                }
+
+                static partial void AddOpenGenericProjectFluentValidationServices(IServiceCollection services);
+            }
+            """);
+
+        using var scope = new EnvironmentVariableScope("IOC_TOOLS_GENERATOR_STUB", stubDirectory);
         var result = await CliTestHost.RunAsync(
             "evidence",
             "--project", OpenGenericProjectPath,
@@ -175,12 +202,13 @@ public sealed class CliEvidenceCommandTests
             .ToArray();
 
         var openGenericRegistration = registrations.Single(registration =>
-            registration.GetProperty("serviceType").GetString()!.Contains("IOpenGenericRepository<>",
+            registration.GetProperty("serviceType").GetString()!.Contains("IOpenGenericLookup<>",
                 StringComparison.Ordinal));
 
         openGenericRegistration.GetProperty("implementationType").GetString()
             .Should().Contain("OpenGenericRepository<>");
         openGenericRegistration.GetProperty("lifetime").GetString().Should().Be("Scoped");
+        openGenericRegistration.GetProperty("usesFactory").GetBoolean().Should().BeTrue();
     }
 
     [Fact]

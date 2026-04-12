@@ -357,8 +357,8 @@ internal class Program
 
         // Open generic repository pattern from MultiInterfaceExamples.cs
         services.AddScoped(typeof(Repository<>));
-        services.AddScoped(typeof(IMultiRepository<>), typeof(Repository<>));
-        services.AddScoped(typeof(IMultiQueryable<>), typeof(Repository<>));
+        services.AddScoped(typeof(IMultiRepository<>), provider => provider.GetRequiredService(typeof(Repository<>)));
+        services.AddScoped(typeof(IMultiQueryable<>), provider => provider.GetRequiredService(typeof(Repository<>)));
 
         // Generic services from GenericServiceExamples.cs
         services.AddScoped(typeof(GenericRepository<>));
@@ -1893,7 +1893,15 @@ internal class Program
             var user = new User(101, "Open Generic User", "open-generic@example.com");
             await userRepo.SaveAsync(user);
             var retrievedUser = await userQueryable.FirstOrDefaultAsync(candidate => candidate.Id == user.Id);
-            Console.WriteLine($"✅ Generic repository pattern: Retrieved '{retrievedUser?.Name ?? "null"}'");
+
+            if (retrievedUser?.Id == user.Id)
+            {
+                Console.WriteLine($"✅ Generic repository pattern: Retrieved '{retrievedUser.Name}'");
+            }
+            else
+            {
+                Console.WriteLine("❌ Generic repository pattern: Services resolved, but the saved user was not retrieved");
+            }
         }
         else
         {
