@@ -5,6 +5,8 @@ using System.Linq;
 
 using Intent;
 
+using IoCTools.Generator.Generator;
+
 using Utilities;
 
 internal static class RedundantConfigurationValidator
@@ -37,7 +39,9 @@ internal static class RedundantConfigurationValidator
         var registerAsAttributes = GetRegisterAsAttributes(classSymbol);
         if (registerAsAttributes.Count == 0) return;
 
-        var implementedInterfaces = InterfaceDiscovery.GetAllInterfacesForService(classSymbol);
+        var implementedInterfaces = RegistrationSelector.GetInterfacesForRegistration(
+            classSymbol,
+            context.ReportDiagnostic);
         if (implementedInterfaces.Count == 0) return;
 
         var declaredInterfaceSet = new HashSet<INamedTypeSymbol>(implementedInterfaces, SymbolEqualityComparer.Default);

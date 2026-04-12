@@ -10,7 +10,7 @@ Authoring posture for `1.5.0`: never introduce new `[Inject]` or `InjectConfigur
 - [Lifetime Diagnostics](#lifetime-diagnostics) - IOC012-IOC015, IOC033, IOC059-IOC060, IOC072, IOC075, IOC084, IOC087
 - [Configuration Diagnostics](#configuration-diagnostics) - IOC016-IOC019, IOC043-IOC046, IOC056-IOC057, IOC079, IOC088-IOC089
 - [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094
-- [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080
+- [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
 - [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
 
@@ -1047,6 +1047,18 @@ Diagnostics related to code structure, partial class requirements, and attribute
 **Cause:** A class has a manual constructor with injectable parameters but no IoCTools attributes.
 
 **Fix:** Add a lifetime attribute and `[DependsOn<T>]` to opt into IoCTools generator support.
+
+---
+
+### IOC093
+
+**Severity:** [!Error](#) | **Category:** IoCTools.Structural
+
+**Cause:** IoCTools could not fully analyze a service type or constructor input and skipped the affected generation path to avoid emitting incomplete output.
+
+**Fix:** Resolve the underlying symbol or semantic-model issue, or report a bug if the source is valid. This diagnostic is emitted when generator analysis fails instead of silently degrading.
+
+**Related:** [IOC092](#ioc092) (manual registration mismatch), [IOC094](#ioc094) (open generic typeof() registration)
 
 ---
 
