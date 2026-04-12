@@ -123,6 +123,16 @@ internal static partial class DiagnosticDescriptors
         "Classes with DI-like constructors can opt into IoCTools by adding a lifetime attribute and [DependsOn<T>] to enable generator support and diagnostics.",
         "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc068");
 
+    public static readonly DiagnosticDescriptor ServiceAnalysisFailure = new(
+        "IOC093",
+        "IoCTools could not analyze service shape",
+        "IoCTools could not fully analyze '{0}' because '{1}' failed. Generation was skipped for the affected output to avoid incomplete registrations or constructors.",
+        "IoCTools.Structural",
+        DiagnosticSeverity.Error,
+        true,
+        "This indicates generator analysis failed for a specific type. Fix the underlying syntax/model issue or report a bug if the code is valid.",
+        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc093");
+
     public static readonly DiagnosticDescriptor ServiceClassMustBePartial = new(
         "IOC080",
         "Service class must be partial",

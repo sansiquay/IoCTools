@@ -2,6 +2,8 @@ namespace IoCTools.Generator.Generator;
 
 using CodeGeneration;
 
+using IoCTools.Generator.Diagnostics;
+
 using Intent;
 
 using Utilities;
@@ -21,10 +23,31 @@ internal static class RegistrationSelector
         SourceProductionContext context) => ServiceRegistrationGenerator.GetRegisterAsRegistrationsWithSourceContext(
         classSymbol, registerAsAttribute, lifetime, context);
 
+    internal static IReadOnlyList<INamedTypeSymbol> GetInterfacesForRegistration(
+        INamedTypeSymbol classSymbol,
+        Action<Diagnostic> reportDiagnostic,
+        Func<INamedTypeSymbol, IEnumerable<INamedTypeSymbol>>? interfaceProvider = null)
+    {
+        try
+        {
+            return InterfaceDiscovery.GetAllInterfacesForService(classSymbol, interfaceProvider);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or NullReferenceException or ArgumentException)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.ServiceAnalysisFailure,
+                classSymbol?.Locations.FirstOrDefault() ?? Location.None,
+                classSymbol?.Name ?? "<unknown>",
+                nameof(InterfaceDiscovery)));
+            return Array.Empty<INamedTypeSymbol>();
+        }
+    }
+
     internal static IEnumerable<ServiceRegistration> GetDefaultRegistrations(
         INamedTypeSymbol classSymbol,
         string lifetime,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        Action<Diagnostic>? reportDiagnostic = null)
     {
         if (DependencySetUtilities.IsDependencySet(classSymbol)) return Enumerable.Empty<ServiceRegistration>();
 
@@ -42,7 +65,7 @@ internal static class RegistrationSelector
         results.Add(new ServiceRegistration(classSymbol, classSymbol, lifetime, false, hasConfigInjection));
 
         // Interface registrations using utility discovery
-        var interfaces = InterfaceDiscovery.GetAllInterfacesForService(classSymbol);
+        var interfaces = GetInterfacesForRegistration(classSymbol, reportDiagnostic ?? context.ReportDiagnostic);
         foreach (var @interface in interfaces)
             results.Add(new ServiceRegistration(classSymbol, @interface, lifetime, false, hasConfigInjection));
 
@@ -122,7 +145,7 @@ internal static class RegistrationSelector
 
                 if (lifetime != "BackgroundService")
                 {
-                    var allInterfaces = InterfaceDiscovery.GetAllInterfacesForService(classSymbol);
+                    var allInterfaces = GetInterfacesForRegistration(classSymbol, context.ReportDiagnostic);
                     foreach (var interfaceSymbol in allInterfaces)
                         results.Add(new ConditionalServiceRegistration(classSymbol, interfaceSymbol,
                             lifetime, condition, useSharedInstance, hasConfigInjection));
@@ -245,7 +268,7 @@ internal static class RegistrationSelector
 
                         if (lifetime != "BackgroundService")
                         {
-                            var allInterfaces = InterfaceDiscovery.GetAllInterfacesForService(classSymbol);
+                            var allInterfaces = GetInterfacesForRegistration(classSymbol, context.ReportDiagnostic);
                             foreach (var interfaceSymbol in allInterfaces)
                                 serviceRegistrations.Add(new ConditionalServiceRegistration(classSymbol,
                                     interfaceSymbol,
@@ -305,7 +328,7 @@ internal static class RegistrationSelector
                     // Default behavior when no RegisterAs attributes are present: concrete + all interfaces
                     serviceRegistrations.Add(new ServiceRegistration(classSymbol, classSymbol, lifetimeValue, false,
                         hasConfig));
-                    var interfaces = InterfaceDiscovery.GetAllInterfacesForService(classSymbol);
+                    var interfaces = GetInterfacesForRegistration(classSymbol, context.ReportDiagnostic);
                     foreach (var @interface in interfaces)
                         serviceRegistrations.Add(new ServiceRegistration(classSymbol, @interface, lifetimeValue,
                             false, hasConfig));

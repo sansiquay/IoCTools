@@ -2,6 +2,8 @@ namespace IoCTools.Generator.CodeGeneration;
 
 using System.Text;
 
+using IoCTools.Generator.Diagnostics;
+
 using Microsoft.CodeAnalysis.CSharp;
 
 internal static partial class ConstructorGenerator
@@ -15,13 +17,7 @@ internal static partial class ConstructorGenerator
         SourceProductionContext context)
     {
         return GenerateInheritanceAwareConstructorCodeCore(classDeclaration, hierarchyDependencies, semanticModel,
-            (descriptor,
-                location,
-                args) =>
-            {
-                var diagnostic = Diagnostic.Create(descriptor, location, args);
-                context.ReportDiagnostic(diagnostic);
-            });
+            context.ReportDiagnostic);
     }
 
     /// <summary>
@@ -33,13 +29,7 @@ internal static partial class ConstructorGenerator
         GeneratorExecutionContext context)
     {
         return GenerateInheritanceAwareConstructorCodeCore(classDeclaration, hierarchyDependencies, semanticModel,
-            (descriptor,
-                location,
-                args) =>
-            {
-                var diagnostic = Diagnostic.Create(descriptor, location, args);
-                context.ReportDiagnostic(diagnostic);
-            });
+            context.ReportDiagnostic);
     }
 
     /// <summary>
@@ -48,7 +38,7 @@ internal static partial class ConstructorGenerator
     private static string GenerateInheritanceAwareConstructorCodeCore(TypeDeclarationSyntax classDeclaration,
         InheritanceHierarchyDependencies hierarchyDependencies,
         SemanticModel semanticModel,
-        Action<DiagnosticDescriptor, Location, object[]> reportDiagnostic)
+        Action<Diagnostic> reportDiagnostic)
     {
         try
         {
@@ -69,21 +59,11 @@ internal static partial class ConstructorGenerator
                 return "";
             }
 
+            var classSymbol = ResolveDeclaredClassSymbol(classDeclaration, semanticModel, reportDiagnostic);
+            if (classSymbol == null)
+                return "";
+
             var uniqueNamespaces = new HashSet<string>();
-
-            // Get the class symbol first as it's needed for configuration dependencies
-            INamedTypeSymbol? classSymbol = null;
-            try
-            {
-                classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration);
-            }
-            catch (ArgumentException)
-            {
-                // ClassDeclaration is not from this semantic model's syntax tree
-                // This should not happen in normal operation, but add defensive handling
-                classSymbol = null;
-            }
-
 
             if (hierarchyDependencies.AllDependencies != null)
                 foreach (var (serviceType, _, _) in hierarchyDependencies.AllDependencies)
@@ -516,6 +496,26 @@ internal static partial class ConstructorGenerator
         INamedTypeSymbol? currentClassSymbol)
     {
         return BaseConstructorCallBuilder.Build(baseClass, parametersWithNames, semanticModel, currentClassSymbol);
+    }
+
+    internal static INamedTypeSymbol? ResolveDeclaredClassSymbol(
+        TypeDeclarationSyntax classDeclaration,
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic)
+    {
+        try
+        {
+            return semanticModel.GetDeclaredSymbol(classDeclaration);
+        }
+        catch (ArgumentException)
+        {
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.ServiceAnalysisFailure,
+                classDeclaration.Identifier.GetLocation(),
+                classDeclaration.Identifier.Text,
+                nameof(ConstructorGenerator)));
+            return null;
+        }
     }
 
     private static bool ShouldGenerateField(
