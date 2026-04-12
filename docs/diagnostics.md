@@ -903,19 +903,19 @@ services.AddSingleton(typeof(IUserService), typeof(UserService)); // IOC092
 
 **Severity:** [!Info](#) | **Category:** IoCTools.Registration
 
-**Cause:** An open generic is registered via `typeof()` (e.g., `typeof(IRepository<>)`).
+**Cause:** An open generic is registered via `typeof()` even though the common mapping can be expressed through IoCTools attributes on the generic implementation.
 
-**Fix:** This is informational only. IoCTools does not yet support open generic registration. Consider using closed generic registrations with IoCTools attributes.
+**Fix:** The common open-generic path is supported in IoCTools `1.5.1`. Prefer expressing the registration through IoCTools attributes on the generic implementation so generated registrations and diagnostics stay aligned. If the manual mapping is intentionally outside current IoCTools intent, this diagnostic remains informational.
 
 **Example:**
 ```csharp
-// Informational - open generics not yet supported:
+// Informational - prefer expressing the mapping through IoCTools intent:
 services.AddScoped(typeof(IRepository<>), typeof(Repository<>)); // IOC094
 
-// Workaround: Use closed generics with IoCTools attributes:
+// Preferred:
 [Scoped]
-[RegisterAs<IRepository<User>>]
-public partial class UserRepository : IRepository<User> { }
+[RegisterAsAll]
+public partial class Repository<T> : IRepository<T> where T : class { }
 ```
 
 ---
