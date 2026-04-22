@@ -551,6 +551,12 @@ internal static class DiagnosticRules
         DiagnosticConfiguration diagnosticConfig) =>
         ProfileIsGenericValidator.Validate(context, compilation, diagnosticConfig);
 
+    // IOC097: Profile missing IAutoDepsProfile marker (compilation-level, defensive)
+    public static void ValidateProfileMarker(SourceProductionContext context,
+        Compilation compilation,
+        DiagnosticConfiguration diagnosticConfig) =>
+        ProfileMarkerValidator.Validate(context, compilation, diagnosticConfig);
+
     // IOC080: Validate that classes with code-generating attributes are marked as partial
     public static void ValidateMissingPartialKeyword(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

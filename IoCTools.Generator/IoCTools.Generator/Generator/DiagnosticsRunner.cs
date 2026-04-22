@@ -464,6 +464,9 @@ internal static class DiagnosticsRunner
 
         // IOC104: Generic profile rejection
         DiagnosticRules.ValidateProfileIsGeneric(context, compilation, diagnosticConfig);
+
+        // IOC097: Profile missing IAutoDepsProfile marker (defensive check)
+        DiagnosticRules.ValidateProfileMarker(context, compilation, diagnosticConfig);
     }
 
     private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
