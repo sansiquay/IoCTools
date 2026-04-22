@@ -45,6 +45,7 @@ public static class Program
                 "suppress" => await RunSuppressAsync(remaining, cts.Token),
                 "validators" => await RunValidatorsAsync(remaining, cts.Token),
                 "validator-graph" => await RunValidatorGraphAsync(remaining, cts.Token),
+                "migrate-inject" => await RunMigrateInjectAsync(remaining, cts.Token),
                 "help" => UsagePrinter.ExitWithUsage(),
                 _ => UsagePrinter.ExitUnknown(command)
             };
@@ -591,6 +592,16 @@ public static class Program
         ValidatorPrinter.WriteList(validators, options.Filter, output);
         output.ReportTiming("validators command completed");
         return 0;
+    }
+
+    private static async Task<int> RunMigrateInjectAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseMigrateInject(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        return await MigrateInjectRunner.RunAsync(parse.Value!, token);
     }
 
     private static async Task<int> RunValidatorGraphAsync(string[] args,

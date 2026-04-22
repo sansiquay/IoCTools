@@ -301,6 +301,29 @@ internal static class CommandLineParser
         return ParseResult<ValidatorsCommandOptions>.Ok(new ValidatorsCommandOptions(common, filter));
     }
 
+    internal static ParseResult<MigrateInjectCommandOptions> ParseMigrateInject(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<MigrateInjectCommandOptions>.Fail(error);
+
+        // --path accepts a .csproj directly; if the user passed --project we honor it as an alias.
+        string? pathValue = null;
+        if (map.TryGetValue("path", out var pathValues))
+            pathValue = pathValues[^1];
+        else if (map.TryGetValue("project", out var projectValues))
+            pathValue = projectValues[^1];
+
+        var dryRun = map.ContainsKey("dry-run");
+        var configuration = map.TryGetValue("configuration", out var configValues) ? configValues[^1] : "Debug";
+        var framework = map.TryGetValue("framework", out var frameworkValues) ? frameworkValues[^1] : null;
+        var verbose = map.ContainsKey("verbose");
+
+        var normalizedPath = pathValue != null ? NormalizePath(pathValue) : null;
+
+        return ParseResult<MigrateInjectCommandOptions>.Ok(
+            new MigrateInjectCommandOptions(normalizedPath, dryRun, configuration, framework, verbose));
+    }
+
     internal static ParseResult<ValidatorGraphCommandOptions> ParseValidatorGraph(string[] args)
     {
         if (!TryCollectOptions(args, out var map, out var error))
@@ -388,6 +411,8 @@ internal static class CommandLineParser
             "--filter" => "filter",
             "--why" => "why",
             "--matches" => "matches",
+            "--path" => "path",
+            "--dry-run" => "dry-run",
             _ => key
         };
     }
@@ -404,7 +429,7 @@ internal static class CommandLineParser
     }
 
     private static bool IsFlag(string key) =>
-        key is "fixable-only" or "source" or "json" or "verbose" or "live" or "matches";
+        key is "fixable-only" or "source" or "json" or "verbose" or "live" or "matches" or "dry-run";
 
     private static bool TryCollectValue(
         ref int index,
@@ -535,3 +560,10 @@ internal sealed record ProfilesCommandOptions(
 internal sealed record ValidatorsCommandOptions(CommonOptions Common, string? Filter);
 
 internal sealed record ValidatorGraphCommandOptions(CommonOptions Common, string? WhyValidator);
+
+internal sealed record MigrateInjectCommandOptions(
+    string? Path,
+    bool DryRun,
+    string Configuration,
+    string? Framework,
+    bool Verbose);

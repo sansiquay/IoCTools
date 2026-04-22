@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    No reference to IoCTools.Abstractions at all. The migrate-inject command treats this
+    as pre-1.6 (the Abstractions carrying DependsOn of T are not available) and emits the
+    notice that the Delete entirely branch is disabled. All [Inject] fields still convert
+    to DependsOn of T stubs; our inline stubs mirror the 1.5.x surface enough for the
+    rewriter output to be valid C# in this fixture.
+  -->
+
+</Project>
