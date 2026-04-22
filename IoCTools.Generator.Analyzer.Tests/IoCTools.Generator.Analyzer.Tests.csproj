@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\IoCTools.Generator.Analyzer\IoCTools.Generator.Analyzer.csproj" />
+        <ProjectReference Include="..\IoCTools.Abstractions\IoCTools.Abstractions.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <!--
+            Pin Microsoft.CodeAnalysis.* to match the analyzer project's 4.13.0. The
+            Microsoft.CodeAnalysis.*.Testing.* packages (1.1.2) pull in Roslyn 1.0.1
+            transitively, which conflicts with the analyzer assembly at load time.
+            Explicit higher-version PackageReferences win NuGet's floor-version
+            resolution and unify the graph on 4.13.0.
+        -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.13.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.13.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.13.0" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit" Version="1.1.2" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing.XUnit" Version="1.1.2" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+        <PackageReference Include="xunit" Version="2.9.2" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+        <PackageReference Include="FluentAssertions" Version="6.12.2" />
+    </ItemGroup>
+</Project>
