@@ -61,6 +61,20 @@ internal static class ConstructorEmitter
 
             if (!string.IsNullOrEmpty(constructorCode))
             {
+                // IoCToolsAutoDepsReport=true prepends a human-readable auto-deps summary
+                // comment to the top of the generated constructor file. The resolver is
+                // re-invoked (cheap; same compilation + options) so the reporter can see
+                // attribution metadata that isn't stored on the hierarchy model.
+                if (IsReportEnabled(autoDepsOptions))
+                {
+                    var resolved = IoCTools.Generator.Shared.AutoDepsResolver.ResolveForServiceWithSymbols(
+                        serviceInfo.SemanticModel.Compilation, serviceInfo.ClassSymbol, autoDepsOptions);
+
+                    var suppressed = AutoDepsReporter.CollectSuppressedDescriptions(serviceInfo.ClassSymbol);
+                    var report = AutoDepsReporter.BuildReport(serviceInfo.ClassSymbol, resolved, suppressed);
+                    constructorCode = report + constructorCode;
+                }
+
                 var canonicalKey = serviceInfo.ClassSymbol.ToDisplayString();
                 var sanitizedTypeName = FileNameUtilities.Sanitize(canonicalKey);
                 var fileName = $"{sanitizedTypeName}_Constructor.g.cs";
@@ -74,6 +88,14 @@ internal static class ConstructorEmitter
             GeneratorDiagnostics.Report(context, "IOC995", "Constructor generation error",
                 $"Failed to generate constructor for {typeName}: {ex}");
         }
+    }
+
+    private static bool IsReportEnabled(ImmutableDictionary<string, string> options)
+    {
+        if (options is null) return false;
+        if (!options.TryGetValue("build_property.IoCToolsAutoDepsReport", out var raw))
+            return false;
+        return bool.TryParse(raw, out var parsed) && parsed;
     }
 
     private static string GenerateInheritanceAwareConstructorCodeWithContext(
