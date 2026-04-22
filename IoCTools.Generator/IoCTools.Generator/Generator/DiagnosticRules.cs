@@ -538,6 +538,13 @@ internal static class DiagnosticRules
         INamedTypeSymbol classSymbol) =>
         InjectUsageValidator.ValidatePreferDependsOn(context, classDeclaration, classSymbol);
 
+    // IOC095: Inject deprecation (fires on every [Inject] field)
+    public static void ValidateInjectDeprecation(SourceProductionContext context,
+        TypeDeclarationSyntax classDeclaration,
+        INamedTypeSymbol classSymbol,
+        DiagnosticConfiguration diagnosticConfig) =>
+        InjectDeprecationValidator.Validate(context, classDeclaration, classSymbol, diagnosticConfig);
+
     // IOC080: Validate that classes with code-generating attributes are marked as partial
     public static void ValidateMissingPartialKeyword(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

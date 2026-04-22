@@ -200,6 +200,8 @@ internal static class DiagnosticsRunner
         DiagnosticRules.ValidateDuplicatesWithinSingleDependsOn(context, classDeclaration, classSymbol);
         DiagnosticRules.ValidateUnnecessarySkipRegistration(context, classDeclaration, classSymbol);
         DiagnosticRules.ValidateInjectFieldPreferences(context, classDeclaration, classSymbol);
+        // IOC095: [Inject] deprecation
+        DiagnosticRules.ValidateInjectDeprecation(context, classDeclaration, classSymbol, diagnosticConfig);
         DiagnosticRules.ValidateUnusedDependencies(context, classDeclaration, classSymbol, semanticModel,
             hierarchyDependencies);
         DiagnosticRules.ValidateManualDependencyFieldShadows(context, classDeclaration, classSymbol, semanticModel,

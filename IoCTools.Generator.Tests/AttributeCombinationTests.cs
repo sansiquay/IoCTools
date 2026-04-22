@@ -1545,7 +1545,7 @@ public partial class SpecificDiagnosticService
             .Where(d => d.Id.StartsWith("IOC"))
             .ToList();
 
-        var expectedIds = new[] { "IOC001", "IOC039" };
+        var expectedIds = new[] { "IOC001", "IOC039", "IOC095" };
         allIOCDiagnostics.Select(d => d.Id)
             .Should().BeEquivalentTo(expectedIds);
 

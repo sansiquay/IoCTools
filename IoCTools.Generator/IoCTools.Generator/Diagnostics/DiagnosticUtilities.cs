@@ -48,6 +48,9 @@ internal static class DiagnosticUtilities
         if (tryGetValue("build_property.IoCToolsDisableLifetimeValidation", out var disableLifetimeStr) &&
             bool.TryParse(disableLifetimeStr, out var disableLifetime))
             config.LifetimeValidationEnabled = !disableLifetime;
+        if (tryGetValue("build_property.IoCToolsInjectDeprecationSeverity", out var injectDeprecationSeverity) &&
+            !string.IsNullOrWhiteSpace(injectDeprecationSeverity))
+            config.InjectDeprecationSeverity = ParseDiagnosticSeverity(injectDeprecationSeverity!);
 
         // Parse IoCToolsIgnoredTypePatterns for cross-assembly interface matching
         if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns) &&
