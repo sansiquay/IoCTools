@@ -238,6 +238,56 @@ internal static class CommandLineParser
             new SuppressCommandOptions(common, severities, codes, live, outputPath));
     }
 
+    internal static ParseResult<ProfilesCommandOptions> ParseProfiles(string[] args)
+    {
+        // The `profiles` (plural) subcommand accepts an optional positional profile-name
+        // argument in addition to the flag-style options. Separate positional tokens from
+        // the rest before handing off to the shared collector.
+        var positional = new List<string>();
+        var flagArgs = new List<string>();
+        for (var i = 0; i < args.Length; i++)
+        {
+            var token = args[i];
+            if (token.StartsWith('-'))
+            {
+                flagArgs.Add(token);
+                // Consume the value for non-flag options so the positional scan does not
+                // mistake it for a profile name.
+                if (!token.Contains('='))
+                {
+                    var key = NormalizeKey(token);
+                    if (!IsFlag(key) && i + 1 < args.Length)
+                    {
+                        flagArgs.Add(args[i + 1]);
+                        i++;
+                    }
+                }
+            }
+            else
+            {
+                positional.Add(token);
+            }
+        }
+
+        if (positional.Count > 1)
+            return ParseResult<ProfilesCommandOptions>.Fail(
+                $"Unexpected extra positional argument '{positional[1]}'. `profiles` accepts at most one <ProfileName>.");
+
+        if (!TryCollectOptions(flagArgs, out var map, out var error))
+            return ParseResult<ProfilesCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<ProfilesCommandOptions>.Fail("--project is required.");
+
+        var common = BuildCommon(projectValues[^1], map);
+        var showMatches = map.ContainsKey("matches");
+        var format = map.TryGetValue("format", out var fmtValues) ? fmtValues[^1].ToLowerInvariant() : "text";
+        var profileName = positional.Count == 1 ? positional[0] : null;
+
+        return ParseResult<ProfilesCommandOptions>.Ok(
+            new ProfilesCommandOptions(common, profileName, showMatches, format));
+    }
+
     internal static ParseResult<ValidatorsCommandOptions> ParseValidators(string[] args)
     {
         if (!TryCollectOptions(args, out var map, out var error))
@@ -337,6 +387,7 @@ internal static class CommandLineParser
             "--live" => "live",
             "--filter" => "filter",
             "--why" => "why",
+            "--matches" => "matches",
             _ => key
         };
     }
@@ -352,7 +403,8 @@ internal static class CommandLineParser
         return true;
     }
 
-    private static bool IsFlag(string key) => key is "fixable-only" or "source" or "json" or "verbose" or "live";
+    private static bool IsFlag(string key) =>
+        key is "fixable-only" or "source" or "json" or "verbose" or "live" or "matches";
 
     private static bool TryCollectValue(
         ref int index,
@@ -473,6 +525,12 @@ internal sealed record SuppressCommandOptions(
     HashSet<string>? Codes,
     bool Live,
     string? OutputPath);
+
+internal sealed record ProfilesCommandOptions(
+    CommonOptions Common,
+    string? ProfileName,
+    bool ShowMatches,
+    string Format);
 
 internal sealed record ValidatorsCommandOptions(CommonOptions Common, string? Filter);
 

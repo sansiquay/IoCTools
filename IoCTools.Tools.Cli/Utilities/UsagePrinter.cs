@@ -19,6 +19,9 @@ internal static class UsagePrinter
         Console.WriteLine("  dotnet ioc-tools doctor --project <csproj> [--fixable-only]");
         Console.WriteLine("  dotnet ioc-tools compare --project <csproj> --output <dir> [--baseline <dir>]");
         Console.WriteLine("  dotnet ioc-tools profile --project <csproj> [--type Namespace.Service]");
+        Console.WriteLine("      (singular: project-load benchmarking)");
+        Console.WriteLine("  dotnet ioc-tools profiles --project <csproj> [<ProfileName>] [--matches] [--format text|json]");
+        Console.WriteLine("      (plural: auto-deps profile introspection)");
         Console.WriteLine("  dotnet ioc-tools config-audit --project <csproj> [--settings appsettings.json]");
         Console.WriteLine("  dotnet ioc-tools evidence --project <csproj> [--type Namespace.Service] [--settings appsettings.json] [--baseline <dir>] [--output <dir>]");
         Console.WriteLine("  dotnet ioc-tools suppress --project <csproj> [--severity warning,info] [--codes IOC035,IOC053] [--live] [--output .editorconfig]");

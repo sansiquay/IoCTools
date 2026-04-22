@@ -39,6 +39,7 @@ public static class Program
                 "doctor" => await RunDoctorAsync(remaining, cts.Token),
                 "compare" => await RunCompareAsync(remaining, cts.Token),
                 "profile" => await RunProfileAsync(remaining, cts.Token),
+                "profiles" => await RunProfilesAsync(remaining, cts.Token),
                 "config-audit" => await RunConfigAuditAsync(remaining, cts.Token),
                 "evidence" => await RunEvidenceAsync(remaining, cts.Token),
                 "suppress" => await RunSuppressAsync(remaining, cts.Token),
@@ -455,6 +456,47 @@ public static class Program
         ProfilePrinter.Write(sw.Elapsed, context.Project.FilePath ?? "<unknown>", options.TypeName, serviceCount, configurationCount, output);
         output.ReportTiming("Command completed");
         return 0;
+    }
+
+    private static async Task<int> RunProfilesAsync(string[] args,
+        CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseProfiles(args);
+        if (!parse.Success)
+            return UsagePrinter.ExitWithError(parse.Error);
+
+        var options = parse.Value!;
+        // The plural `profiles` subcommand obeys --json via --format json for its dedicated
+        // output shape; the common --json flag routes through OutputContext as normal but is
+        // not the documented channel for this command.
+        var useJson = string.Equals(options.Format, "json", System.StringComparison.OrdinalIgnoreCase) ||
+                      options.Common.Json;
+        var output = OutputContext.Create(useJson, options.Common.Verbose);
+        output.Verbose($"Project: {options.Common.ProjectPath}");
+        await using var context = await ProjectContext.CreateAsync(options.Common, token);
+        output.Verbose($"Project loaded: {context.Project.FilePath}");
+
+        // Strip source-generator output so we see only user-authored declarations. Without this
+        // step generator-emitted attributes could confuse the profile/attachment scans.
+        var stripped = StripGeneratedTreesForProfiles(context.Compilation);
+        var result = ProfilesPrinter.Print(stripped, options, output);
+        output.ReportTiming("profiles command completed");
+        return result;
+    }
+
+    private static Microsoft.CodeAnalysis.CSharp.CSharpCompilation StripGeneratedTreesForProfiles(
+        Microsoft.CodeAnalysis.CSharp.CSharpCompilation compilation)
+    {
+        // Mirrors AutoDepsAttributionResolver.StripGeneratedTrees (private there).
+        var generatedTrees = compilation.SyntaxTrees
+            .Where(t => !string.IsNullOrEmpty(t.FilePath) &&
+                        (t.FilePath.EndsWith(".g.cs", System.StringComparison.OrdinalIgnoreCase) ||
+                         t.FilePath.Contains("/generated/", System.StringComparison.OrdinalIgnoreCase) ||
+                         t.FilePath.Contains("\\generated\\", System.StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+        if (generatedTrees.Length == 0) return compilation;
+        return (Microsoft.CodeAnalysis.CSharp.CSharpCompilation)compilation.RemoveSyntaxTrees(generatedTrees);
     }
 
     private static async Task<int> RunConfigAuditAsync(string[] args,
