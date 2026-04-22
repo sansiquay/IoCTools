@@ -237,6 +237,7 @@ public partial class MisconfiguredRegistrationService : IDisposable
 [Scoped]
 [RegisterAsAll]
 [SkipRegistration<IDisposable>] // IOC009: IDisposable won't be registered by RegisterAsAll anyway
+[NoAutoDepOpen(typeof(ILogger<>))] // Keep constructor parameter-less so Clone() below compiles unchanged under 1.6 auto-deps.
 public partial class RedundantSkipRegistrationService : ICloneable
 {
     public object Clone() => new RedundantSkipRegistrationService();
