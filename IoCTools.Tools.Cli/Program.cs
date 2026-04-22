@@ -308,7 +308,7 @@ public static class Program
             return 1;
         }
 
-        ExplainPrinter.Write(target, output);
+        ExplainPrinter.Write(target, output, options.AutoDepsFlags);
         output.ReportTiming("Command completed");
         return 0;
     }
