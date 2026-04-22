@@ -74,20 +74,28 @@ public partial class UserService : IUserService
 
 ---
 
-### `[Inject]`
+### `[Inject]` — **deprecated in 1.6.0**
 
-Compatibility-only escape hatch for legacy fields that must physically exist.
+`[Inject]` is marked `[Obsolete]` in 1.6.0 and fires
+[IOC095](diagnostics.md#ioc095-primary-160--inject-is-deprecated) at warning
+severity. Timeline:
 
-```csharp
-[Inject]
-private readonly IMeter _meter; // Field genuinely reused across methods
-```
+- **1.6.x** — warning. Roslyn code fix and `ioc-tools migrate-inject` ship.
+- **1.7.0** — error. `IOC095` defaults to error severity.
+- **2.0.0** — `InjectAttribute` is removed.
 
-**When to use:** Never in new code. Only keep `[Inject]` when you are preserving existing legacy shape that cannot yet move to `[DependsOn]`.
+Migrate with one of:
 
-**Migration target:** `[DependsOn<T>]`
+- IDE: accept the IOC095 quick-fix light-bulb per field.
+- CLI (solution-wide): `ioc-tools migrate-inject --dry-run` to preview,
+  then `ioc-tools migrate-inject` to apply.
 
-**Diagnostic:** [IOC035](diagnostics.md#ioc035) warns when `[Inject]` matches the default `[DependsOn]` pattern and explicitly tells you not to introduce new `[Inject]` usage.
+See the [1.5.x → 1.6.x migration guide](migration.md#migrating-from-15x-to-16x)
+for recommended workflow.
+
+**Migration target:** `[DependsOn<T>]` on the class (replaces the per-field
+declaration). Custom field names round-trip via `memberName1..N`; the
+`[ExternalService]` flag round-trips via `external: true` on `DependsOn`.
 
 ---
 
@@ -287,6 +295,133 @@ public partial class NewCheckoutService : INewCheckoutService { }
 - `Equals` / `NotEquals`: Value comparison for ConfigValue
 
 **Requires:** A lifetime attribute ([IOC021](diagnostics.md#ioc021))
+
+---
+
+## Auto-Deps Attributes (1.6.0+)
+
+Auto-deps let you declare ambient dependencies once — at assembly scope,
+in a profile, or transitively across projects — so every matching service
+receives them without repeating the declaration. See
+[docs/auto-deps.md](auto-deps.md) for the full reference and worked recipes.
+
+### `[assembly: AutoDep<T>]`
+
+Universal closed-type auto-dep. Every service the generator processes in the
+assembly receives `T` as a constructor parameter.
+
+```csharp
+[assembly: AutoDep<TimeProvider>]
+[assembly: AutoDep<IMetrics>]
+```
+
+Supports `Scope = AutoDepScope.Transitive` to propagate to consumers of the
+declaring assembly.
+
+### `[assembly: AutoDepOpen(typeof(T<>))]`
+
+Universal single-arity open-generic auto-dep. The generator closes the
+unbound type with the concrete service type at codegen — applied to
+`OrderController`, `AutoDepOpen(typeof(ILogger<>))` yields
+`ILogger<OrderController>`.
+
+```csharp
+[assembly: AutoDepOpen(typeof(ILogger<>))]
+```
+
+The `typeof()` is the unavoidable exception to "generics all the way down"
+because C# does not permit unbound generics as type arguments to generic
+attributes. Multi-arity (`typeof(IFoo<,>)`) is rejected with
+[IOC100](diagnostics.md#ioc100--autodepopen-on-multi-arity-generic).
+
+**Built-in `ILogger<T>` detection.** When
+`Microsoft.Extensions.Logging.ILogger<T>` is discoverable in the compilation,
+the generator behaves as if a universal `AutoDepOpen(typeof(ILogger<>))`
+had been declared. No user config required. Disable with
+`<IoCToolsAutoDetectLogger>false</IoCToolsAutoDetectLogger>`.
+
+### `[assembly: AutoDepIn<TProfile, T>]`
+
+Add `T` to a named profile:
+
+```csharp
+public sealed class ControllerDefaults : IAutoDepsProfile { }
+
+[assembly: AutoDepIn<ControllerDefaults, IMediator>]
+[assembly: AutoDepIn<ControllerDefaults, IMapper>]
+```
+
+Profile types must implement `IAutoDepsProfile` (an empty marker interface)
+and must be non-generic. Missing marker fires
+[IOC097](diagnostics.md#ioc097--profile-missing-iautodepsprofile-marker);
+generic profile fires [IOC104](diagnostics.md#ioc104--profile-type-is-generic).
+
+### `[assembly: AutoDepsApply<TProfile, TBase>]`
+
+Attach a profile to every service whose base class or implemented interface
+is `TBase`:
+
+```csharp
+[assembly: AutoDepsApply<ControllerDefaults, ControllerBase>]
+[assembly: AutoDepsApply<BackgroundDefaults, BackgroundService>]
+```
+
+### `[assembly: AutoDepsApplyGlob<TProfile>("pattern")]`
+
+Attach a profile by namespace glob:
+
+```csharp
+[assembly: AutoDepsApplyGlob<AdminDefaults>("*.Admin.Controllers.*")]
+```
+
+**Library-author note:** When this attribute carries `Scope =
+AutoDepScope.Transitive`, the glob evaluates against service namespaces in
+the *consuming* assembly, not the declaring one. Prefer broad
+convention-based patterns (`"*.Controllers.*"`) over assembly-specific ones.
+Invalid patterns fire [IOC103](diagnostics.md#ioc103--invalid-glob-pattern).
+
+### `[AutoDeps<TProfile>]`
+
+Explicitly attach a profile to one service:
+
+```csharp
+[Scoped]
+[AutoDeps<ReportingDefaults>]
+public partial class ReportService { }
+```
+
+### `[NoAutoDeps]` / `[NoAutoDep<T>]` / `[NoAutoDepOpen(typeof(T<>))]`
+
+Opt-out ladder for a service:
+
+```csharp
+[NoAutoDeps]                             // disable all auto-deps for this service
+[NoAutoDep<TimeProvider>]                // disable one closed-type auto-dep
+[NoAutoDepOpen(typeof(ILogger<>))]       // disable any auto-dep from an open-generic shape
+[Scoped] public partial class LegacyService { }
+```
+
+`NoAutoDepOpen` is the rename-safe twin of `AutoDepOpen` — it suppresses by
+shape regardless of closure and regardless of source (built-in, universal,
+or transitive). Stale opt-outs fire
+[IOC096](diagnostics.md#ioc096--stale-opt-out).
+
+### `IAutoDepsProfile`
+
+Empty marker interface identifying a type as a profile. Lives in
+`IoCTools.Abstractions` at netstandard2.0 — declaring profiles never forces
+consumers onto a newer target framework.
+
+### `AutoDepScope` enum
+
+Used as the `Scope` property on `AutoDep<T>`, `AutoDepOpen`,
+`AutoDepIn<TProfile, T>`, `AutoDepsApply<TProfile, TBase>`, and
+`AutoDepsApplyGlob<TProfile>`:
+
+| Value | Meaning |
+|---|---|
+| `AutoDepScope.Assembly` | (Default) Policy applies only to services in the declaring assembly. |
+| `AutoDepScope.Transitive` | Policy also applies to services in consuming assemblies. Consumer opt-outs always win. |
 
 ---
 

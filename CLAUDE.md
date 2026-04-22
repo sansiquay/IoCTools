@@ -43,7 +43,8 @@ Severity options: `Error`, `Warning`, `Info`, `Hidden`. Full diagnostic table in
 ## Key Patterns
 
 - Services must be `partial` (enforced by IOC080)
-- `[Inject]` fields get constructor params; `[DependsOn<T>]` for declarative deps
+- `[Inject]` deprecated in 1.6.0 (IOC095); `[DependsOn<T>]` is canonical for declarative deps
+- Auto-deps (1.6.0+): `[assembly: AutoDep<T>]`, `[assembly: AutoDepOpen(typeof(ILogger<>))]`, profiles via `IAutoDepsProfile` + `[AutoDepIn<TProfile, T>]` / `[AutoDepsApply<TProfile, TBase>]`. `Microsoft.Extensions.Logging.ILogger<T>` auto-detects when referenced.
 - `[RegisterAs<T>(InstanceSharing.Shared)]` for factory pattern (same instance across interfaces)
 - `[RegisterAs<T>]` without lifetime = RegisterAs-only (e.g., EF DbContext registered externally)
 - `[InjectConfiguration]` for config binding; `[ExternalService]` for cross-assembly deps

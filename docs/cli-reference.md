@@ -117,8 +117,19 @@ ioc-tools graph --project MyProject.csproj --format json --output ./graphs
 - `--format <json|puml|mermaid>` — Output format (default: json)
 - `--type <typename>` — Filter graph to specific service
 - `--output <dir>` — Output directory
+- `--hide-auto-deps` / `--only-auto-deps` — Auto-dep visibility filter (mutually exclusive; see below)
 
-**Output:** Service → implementation edges in the specified format.
+**Output:** Service → implementation edges with per-dependency
+[source attribution](auto-deps.md#cli-integration) in 1.6.0+:
+
+- `ℹ` marker — universal auto-dep (`auto-universal` or `auto-builtin:ILogger`)
+- `▣ <ProfileName>` marker — profile-sourced auto-dep
+- unmarked — explicit `[DependsOn<T>]`
+- JSON output adds a `source` field per node: `"explicit"`, `"auto-universal"`,
+  `"auto-profile:<ProfileName>"`, `"auto-transitive:<AssemblyName>"`, or
+  `"auto-builtin:ILogger"`.
+
+A legend is emitted at the bottom of non-JSON outputs.
 
 ---
 
@@ -130,13 +141,57 @@ Shows which generated field/config binding matches a requested dependency.
 ioc-tools why --project MyProject.csproj --type MyNamespace.UserService --dependency MyNamespace.IUserRepository
 ```
 
-**Use case:** Debugging why a specific dependency is wired the way it is.
+**Options:**
+- `--hide-auto-deps` / `--only-auto-deps` — Auto-dep visibility filter for
+  downstream context; the direct target is always fully attributed.
+
+**Output (1.6.0+):** Structured source-attribution block per dep, e.g.:
+
+```
+ILogger<OrderController> on OrderController
+  source: auto-builtin:ILogger (Microsoft.Extensions.Logging.ILogger<T> detected in references)
+  closed to: ILogger<OrderController> (service's concrete type)
+  disable detection: IoCToolsAutoDetectLogger=false
+  suppress here: [NoAutoDepOpen(typeof(ILogger<>))]
+
+IMediator on OrderController
+  source: auto-profile:ControllerDefaults
+  attached by: [assembly: AutoDepsApply<ControllerDefaults, ControllerBase>]
+  contributes: [assembly: AutoDepIn<ControllerDefaults, IMediator>] (Program.cs:19)
+  suppress here: [NoAutoDep<IMediator>] or remove from profile
+
+IPaymentService on OrderController
+  source: explicit
+  declared at: OrderController.cs:14 via [DependsOn<IPaymentService>]
+```
+
+When a dep has multiple sources, all are listed with precedence order
+(`explicit → auto-profile → auto-universal → auto-transitive → auto-builtin`).
+
+---
+
+### `explain`
+
+Prose narrative for a service. In 1.6.0+, auto-deps appear in the narrative
+with their source attribution.
+
+**Options:**
+- `--hide-auto-deps` / `--only-auto-deps` — Auto-dep visibility filter.
 
 ---
 
 ### `doctor`
 
-Runs the generator and prints diagnostics.
+Runs the generator and prints diagnostics, plus three auto-dep preflight
+checks (1.6.0+):
+
+1. Every universal auto-dep type has at least one discoverable DI
+   registration — catches broken declarations before they spam IOC001
+   across the assembly.
+2. No `AutoDepsApply` / `AutoDepsApplyGlob` rule matches zero services
+   (aggregate of IOC099 per stale rule).
+3. No `IAutoDepsProfile` type is declared but unreferenced by any
+   `AutoDepIn` / `AutoDepsApply` / `AutoDeps` usage (dead profile).
 
 ```bash
 ioc-tools doctor --project MyProject.csproj --fixable-only
@@ -164,6 +219,14 @@ ioc-tools compare --project MyProject.csproj --output ./snapshots --baseline ./b
 **Output:** Lists changed `.g.cs` files relative to baseline.
 
 ---
+
+### `profile` vs `profiles` — two different subcommands
+
+The singular `profile` is the existing project-load-benchmarking subcommand
+(documented below). The plural `profiles` is the new auto-deps profile
+introspection subcommand (1.6.0+, documented in its own section further
+down). The distinction is intentional; one cannot be repurposed into the
+other without a breaking rename.
 
 ### `profile`
 
@@ -208,6 +271,13 @@ ioc-tools evidence --project MyProject.csproj --type MyNamespace.UserService --s
 - `--settings <path>` — Validate configuration evidence against a settings file
 - `--baseline <dir>` — Include compare output when a baseline exists
 - `--output <dir>` — Use deterministic artifact directory for generated snapshots
+- `--hide-auto-deps` / `--only-auto-deps` — Auto-dep visibility filter for
+  per-service rows (1.6.0+).
+
+In 1.6.0+, each service's evidence block lists its resolved auto-dep set
+alongside explicit declarations, tagged by source
+(`auto-builtin:ILogger`, `auto-universal`, `auto-transitive:<Assembly>`,
+`auto-profile:<Name>`).
 
 **Output:** Compact text review packet by default, or a stable JSON bundle with `project`, `services`, `typeEvidence`, `diagnostics`, `configuration`, `validators`, `artifacts`, and `migrationHints`.
 
@@ -230,6 +300,9 @@ ioc-tools suppress --project MyProject.csproj --codes IOC035,IOC092 --json
 - `--output <path>` — Append generated rules to an existing `.editorconfig`
 
 **Output:** `.editorconfig` entries plus structured rule metadata in JSON mode (`selectionReason`, `isErrorByDefault`, `riskNote`, `suppressedSeverity`).
+
+In 1.6.0+, `suppress` is aware of the new IOC095-IOC105 auto-deps diagnostics
+so generated suppressions cover the expanded diagnostic surface.
 
 ### `validators`
 
@@ -291,6 +364,92 @@ MyApp.OrderValidator is Scoped because:
 ```
 
 **JSON mode:** `validator-graph --json` emits structured composition trees, and `validator-graph --why --json` emits a structured explanation object with `reason` and `steps`.
+
+---
+
+### `profiles` (1.6.0+)
+
+Lists auto-deps profiles (`IAutoDepsProfile`-marked classes), their
+contributed deps, and — optionally — the services each profile attaches to.
+
+```bash
+ioc-tools profiles --project MyProject.csproj
+ioc-tools profiles --project MyProject.csproj --matches
+ioc-tools profiles --project MyProject.csproj ControllerDefaults
+```
+
+**Positional:**
+- `<ProfileName>` (optional) — Drill into one profile. Accepts a simple
+  name (`ControllerDefaults`) or fully-qualified
+  (`MyApp.DiProfiles.ControllerDefaults`). Ambiguous simple names exit
+  non-zero with a candidate list.
+
+**Options:**
+- `--matches` — Also list the services each profile attaches to.
+
+**Output:** For each profile: deps (from `AutoDepIn` declarations),
+attachment rules (`AutoDepsApply`, `AutoDepsApplyGlob`, `[AutoDeps<T>]`
+usages), and — with `--matches` — the set of services the profile resolves
+to.
+
+> **Naming distinction.** Singular `profile` = project-load benchmarking
+> (existing). Plural `profiles` = auto-deps profile introspection (new).
+
+---
+
+### `migrate-inject` (1.6.0+)
+
+Headless bulk `[Inject]` → `[DependsOn<T>]` migration. Uses the exact same
+transform (`InjectMigrationRewriter`) as the IDE code fix, so output is
+identical whether run from the CLI or invoked per-field in the IDE.
+
+```bash
+ioc-tools migrate-inject --project MyProject.csproj --dry-run
+ioc-tools migrate-inject --project MyProject.csproj
+ioc-tools migrate-inject --solution MyApp.sln
+```
+
+**Options:**
+- `--project <path>` — Single project target
+- `--solution <path>` — Walk every project in a solution
+- `--path <dir>` — Alternative scoping by directory
+- `--dry-run` — Print would-be diffs without writing to disk
+
+**Output:** Per-file summary — fields deleted because an auto-dep covers
+them, fields converted to `[DependsOn<T>]`, fields converted with
+`memberName1..N` preservation, fields split into separate `DependsOn`
+attributes because `[ExternalService]` flags diverged.
+
+**Cross-version tolerance.** When the target project still references
+`IoCTools.Abstractions < 1.6.0`, the tool prints a one-line notice and
+disables the "delete entirely" branch (no auto-deps available to cover the
+field); conversions to `[DependsOn<T>]` still run.
+
+**Kill-switch interaction.** When `<IoCToolsAutoDepsDisable>true</IoCToolsAutoDepsDisable>`
+or the project matches `<IoCToolsAutoDepsExcludeGlob>`, the resolver
+returns an empty auto-dep set, so every `[Inject]` converts to an explicit
+`[DependsOn<T>]` — consistent with the kill-switch's meaning.
+
+**Concurrency.** `migrate-inject` processes documents sequentially in 1.6
+for deterministic CI diffs. Parallelization is deferred.
+
+---
+
+### Cross-command auto-dep flags
+
+Available on `graph`, `why`, `explain`, and `evidence`:
+
+- `--hide-auto-deps` — Collapse implicit auto-dep entries from the output.
+  Default is show-everything; hiding is an explicit opt-in.
+- `--only-auto-deps` — Inverse view, for auditing.
+
+The two flags are semantically contradictory and are mutually exclusive —
+passing both exits non-zero with a clear message.
+
+Note that `--hide-auto-deps` is an output filter; `why <type> <dep>` always
+produces a full attribution block for the explicitly-asked dep regardless
+of the flag (the flag only affects downstream context in the extended
+view).
 
 ---
 

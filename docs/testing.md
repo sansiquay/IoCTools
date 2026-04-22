@@ -13,7 +13,7 @@ IoCTools.Testing generates test fixture base classes that provide:
 
 No more manual `new Mock<T>()` declarations or `new Service(mock.Object, ...)` constructors.
 
-Authoring rule for `1.5.1`: never introduce new `[Inject]` or `InjectConfiguration` usage in services just to satisfy testing. Prefer `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+Authoring rule for 1.6.0+: `[Inject]` is deprecated (fires `IOC095`; removed in 2.0). Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `IoCTools.Testing` is itself migrated off `[Inject]`.
 
 ## Installation
 
@@ -394,7 +394,7 @@ public partial class OrderHandlerTests
 ### Requirements
 
 - Test project must reference FluentValidation (helpers are only generated when FluentValidation is in compilation references)
-- Service under test must have an `IValidator<T>` constructor parameter (prefer `[DependsOn]`; existing `[Inject]` remains compatible)
+- Service under test must have an `IValidator<T>` constructor parameter (declare via `[DependsOn<IValidator<T>>]`; `[Inject]` is deprecated in 1.6.0)
 - Both `Validate()` and `ValidateAsync()` are mocked together — no need to set up each separately
 
 ---

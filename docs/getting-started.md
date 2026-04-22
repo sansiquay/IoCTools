@@ -32,7 +32,13 @@ builder.Services.AddYourAssemblyRegisteredServices(builder.Configuration);
 
 That's it — IoCTools generates the constructor and registration.
 
-For `1.5.1`, the authoring rule is explicit: never use `[Inject]` or `InjectConfiguration` in new code. Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+Starting in 1.6.0, `[Inject]` is deprecated (fires `IOC095`; removed in
+2.0) — use `[DependsOn<T>]` on the class instead. For configuration use
+`[DependsOnConfiguration<T>]` / `[DependsOnOptions<T>]`. If
+`Microsoft.Extensions.Logging.ILogger<T>` is referenced in your project, it
+is auto-detected as a universal [auto-dep](auto-deps.md) — no declaration
+needed. See [migration.md](migration.md#migrating-from-15x-to-16x) if you
+are upgrading from 1.5.x.
 
 [Learn more about lifetimes](#lifetimes) | [Attribute reference](attributes.md)
 
@@ -186,7 +192,8 @@ Understanding IoCTools' mental model helps you use it effectively.
 IoCTools treats each service class as the single source of truth for its registration:
 
 - **Lifetime** is declared on the class (`[Scoped]`, `[Singleton]`, `[Transient]`)
-- **Dependencies** are declared on the class (`[DependsOn<T>]`; `[Inject]` is compatibility-only)
+- **Dependencies** are declared on the class (`[DependsOn<T>]`; `[Inject]` is deprecated since 1.6.0 — see [IOC095](diagnostics.md#ioc095-primary-160--inject-is-deprecated))
+- **Ambient deps** (logging, clock, metrics) can be declared once at assembly scope via [auto-deps](auto-deps.md) — `Microsoft.Extensions.Logging.ILogger<T>` is auto-detected
 - **Configuration** needs are declared on the class (`[DependsOnConfiguration<T>]` / `[DependsOnOptions<T>]`; `InjectConfiguration` is compatibility-only)
 - **Interface exposure** is declared on the class (`[RegisterAs<T>]`)
 
