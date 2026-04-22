@@ -64,7 +64,11 @@ internal static class CommandLineParser
 
     internal static ParseResult<ExplainCommandOptions> ParseExplain(string[] args)
     {
-        if (!TryCollectOptions(args, out var map, out var error))
+        var autoDeps = CommonAutoDepsOptions.TryExtract(args, out var remainingArgs, out var autoDepsError);
+        if (autoDepsError != null)
+            return ParseResult<ExplainCommandOptions>.Fail(autoDepsError);
+
+        if (!TryCollectOptions(remainingArgs, out var map, out var error))
             return ParseResult<ExplainCommandOptions>.Fail(error);
 
         if (!map.TryGetValue("project", out var projectValues))
@@ -74,12 +78,16 @@ internal static class CommandLineParser
 
         var common = BuildCommon(projectValues[^1], map);
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
-        return ParseResult<ExplainCommandOptions>.Ok(new ExplainCommandOptions(common, typeValues[^1], output));
+        return ParseResult<ExplainCommandOptions>.Ok(new ExplainCommandOptions(common, typeValues[^1], output, autoDeps));
     }
 
     internal static ParseResult<GraphCommandOptions> ParseGraph(string[] args)
     {
-        if (!TryCollectOptions(args, out var map, out var error))
+        var autoDeps = CommonAutoDepsOptions.TryExtract(args, out var remainingArgs, out var autoDepsError);
+        if (autoDepsError != null)
+            return ParseResult<GraphCommandOptions>.Fail(autoDepsError);
+
+        if (!TryCollectOptions(remainingArgs, out var map, out var error))
             return ParseResult<GraphCommandOptions>.Fail(error);
 
         if (!map.TryGetValue("project", out var projectValues))
@@ -89,12 +97,16 @@ internal static class CommandLineParser
         var typeName = map.TryGetValue("type", out var typeValues) ? typeValues[^1] : null;
         var format = map.TryGetValue("format", out var fmtValues) ? fmtValues[^1].ToLowerInvariant() : "puml";
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
-        return ParseResult<GraphCommandOptions>.Ok(new GraphCommandOptions(common, typeName, format, output));
+        return ParseResult<GraphCommandOptions>.Ok(new GraphCommandOptions(common, typeName, format, output, autoDeps));
     }
 
     internal static ParseResult<WhyCommandOptions> ParseWhy(string[] args)
     {
-        if (!TryCollectOptions(args, out var map, out var error))
+        var autoDeps = CommonAutoDepsOptions.TryExtract(args, out var remainingArgs, out var autoDepsError);
+        if (autoDepsError != null)
+            return ParseResult<WhyCommandOptions>.Fail(autoDepsError);
+
+        if (!TryCollectOptions(remainingArgs, out var map, out var error))
             return ParseResult<WhyCommandOptions>.Fail(error);
 
         if (!map.TryGetValue("project", out var projectValues))
@@ -106,7 +118,7 @@ internal static class CommandLineParser
 
         var common = BuildCommon(projectValues[^1], map);
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
-        return ParseResult<WhyCommandOptions>.Ok(new WhyCommandOptions(common, typeValues[^1], depValues[^1], output));
+        return ParseResult<WhyCommandOptions>.Ok(new WhyCommandOptions(common, typeValues[^1], depValues[^1], output, autoDeps));
     }
 
     internal static ParseResult<DoctorCommandOptions> ParseDoctor(string[] args)
@@ -167,7 +179,11 @@ internal static class CommandLineParser
 
     internal static ParseResult<EvidenceCommandOptions> ParseEvidence(string[] args)
     {
-        if (!TryCollectOptions(args, out var map, out var error))
+        var autoDeps = CommonAutoDepsOptions.TryExtract(args, out var remainingArgs, out var autoDepsError);
+        if (autoDepsError != null)
+            return ParseResult<EvidenceCommandOptions>.Fail(autoDepsError);
+
+        if (!TryCollectOptions(remainingArgs, out var map, out var error))
             return ParseResult<EvidenceCommandOptions>.Fail(error);
 
         if (!map.TryGetValue("project", out var projectValues))
@@ -180,7 +196,7 @@ internal static class CommandLineParser
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
 
         return ParseResult<EvidenceCommandOptions>.Ok(
-            new EvidenceCommandOptions(common, typeName, settings, baseline, output));
+            new EvidenceCommandOptions(common, typeName, settings, baseline, output, autoDeps));
     }
 
     internal static ParseResult<SuppressCommandOptions> ParseSuppress(string[] args)
@@ -248,14 +264,14 @@ internal static class CommandLineParser
         return ParseResult<ValidatorGraphCommandOptions>.Ok(new ValidatorGraphCommandOptions(common, why));
     }
 
-    private static bool TryCollectOptions(string[] args,
+    private static bool TryCollectOptions(IReadOnlyList<string> args,
         out Dictionary<string, List<string>> map,
         out string? error)
     {
         error = null;
         map = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-        for (var i = 0; i < args.Length; i++)
+        for (var i = 0; i < args.Count; i++)
         {
             var token = args[i];
             if (!TryParseToken(token, out var key, out var value, out error))
@@ -340,7 +356,7 @@ internal static class CommandLineParser
 
     private static bool TryCollectValue(
         ref int index,
-        string[] args,
+        IReadOnlyList<string> args,
         string key,
         string? value,
         Dictionary<string, List<string>> map,
@@ -351,7 +367,7 @@ internal static class CommandLineParser
 
         if (value == null && !isFlag)
         {
-            if (index + 1 >= args.Length)
+            if (index + 1 >= args.Count)
             {
                 error = $"Missing value for '{key}'.";
                 return false;
@@ -415,19 +431,25 @@ internal sealed record FieldsPathCommandOptions(
 
 internal sealed record ServicesCommandOptions(CommonOptions Common, string? OutputDirectory, bool OutputSource, string? TypeFilter);
 
-internal sealed record ExplainCommandOptions(CommonOptions Common, string TypeName, string? OutputDirectory);
+internal sealed record ExplainCommandOptions(
+    CommonOptions Common,
+    string TypeName,
+    string? OutputDirectory,
+    CommonAutoDepsOptions AutoDepsFlags);
 
 internal sealed record GraphCommandOptions(
     CommonOptions Common,
     string? TypeName,
     string Format,
-    string? OutputDirectory);
+    string? OutputDirectory,
+    CommonAutoDepsOptions AutoDepsFlags);
 
 internal sealed record WhyCommandOptions(
     CommonOptions Common,
     string TypeName,
     string Dependency,
-    string? OutputDirectory);
+    string? OutputDirectory,
+    CommonAutoDepsOptions AutoDepsFlags);
 
 internal sealed record DoctorCommandOptions(CommonOptions Common, bool FixableOnly, string? OutputDirectory);
 
@@ -442,7 +464,8 @@ internal sealed record EvidenceCommandOptions(
     string? TypeName,
     string? SettingsPath,
     string? BaselineDirectory,
-    string? OutputDirectory);
+    string? OutputDirectory,
+    CommonAutoDepsOptions AutoDepsFlags);
 
 internal sealed record SuppressCommandOptions(
     CommonOptions Common,
