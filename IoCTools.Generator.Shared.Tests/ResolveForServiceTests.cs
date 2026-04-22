@@ -553,6 +553,121 @@ namespace Consumer
         output.Entries[0].DepType.MetadataName.Should().Contain("IBaz");
     }
 
+    // --- 22. Transitive AutoDep + consumer [NoAutoDep<T>] wins ---
+    [Fact]
+    public void Consumer_NoAutoDep_overrides_transitive_AutoDep()
+    {
+        var librarySource = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Library.IFoo>(Scope = AutoDepScope.Transitive)]
+namespace Library { public interface IFoo { } }
+";
+        var libraryCompilation = CreateCompilation("LibraryAsm", librarySource);
+        AssertNoCompileErrors(libraryCompilation);
+        var libraryRef = EmitToReference(libraryCompilation, "LibraryAsm");
+
+        var consumerSource = @"
+using IoCTools.Abstractions.Annotations;
+namespace Consumer
+{
+    [NoAutoDep<Library.IFoo>]
+    public class Svc { }
+}
+";
+        var consumerCompilation = CreateCompilation("ConsumerAsm", consumerSource, new[] { libraryRef });
+        AssertNoCompileErrors(consumerCompilation);
+        var svc = GetType(consumerCompilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(consumerCompilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 23. Multi-library transitive union: two libraries same dep -> one entry, two sources ---
+    [Fact]
+    public void Multi_library_transitive_union_yields_one_entry_with_both_sources()
+    {
+        // Both libraries declare a transitive AutoDep for the same shared interface defined
+        // in a shared library. Consumer references both; the resolver must dedupe on
+        // SymbolIdentity but accumulate attributions.
+        var sharedSource = @"
+namespace Shared { public interface IFoo { } }
+";
+        var sharedCompilation = CreateCompilation("SharedAsm", sharedSource);
+        AssertNoCompileErrors(sharedCompilation);
+        var sharedRef = EmitToReference(sharedCompilation, "SharedAsm");
+
+        var libAsource = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Shared.IFoo>(Scope = AutoDepScope.Transitive)]
+";
+        var libA = CreateCompilation("LibAAsm", libAsource, new[] { sharedRef });
+        AssertNoCompileErrors(libA);
+        var libAref = EmitToReference(libA, "LibAAsm");
+
+        var libBsource = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Shared.IFoo>(Scope = AutoDepScope.Transitive)]
+";
+        var libB = CreateCompilation("LibBAsm", libBsource, new[] { sharedRef });
+        AssertNoCompileErrors(libB);
+        var libBref = EmitToReference(libB, "LibBAsm");
+
+        var consumerSource = "namespace Consumer { public class Svc { } }";
+        var consumer = CreateCompilation("ConsumerAsm", consumerSource, new[] { sharedRef, libAref, libBref });
+        AssertNoCompileErrors(consumer);
+        var svc = GetType(consumer, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(consumer, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources.Should().HaveCount(2);
+        output.Entries[0].Sources.Select(s => s.AssemblyName).Should()
+            .BeEquivalentTo(new[] { "LibAAsm", "LibBAsm" });
+        output.Entries[0].Sources.Should().OnlyContain(s => s.Kind == AutoDepSourceKind.AutoTransitive);
+    }
+
+    // --- 24. Transitive AutoDepsApply evaluated in consumer ---
+    [Fact]
+    public void Transitive_AutoDepsApply_evaluates_match_in_consumer_compilation()
+    {
+        // Library ships both the profile attach rule (transitive) and the profile contribution
+        // (also transitive). Consumer has a service whose base class matches the rule's TBase.
+        var librarySource = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepsApply<Profiles.WebProfile, Library.ControllerBase>(Scope = AutoDepScope.Transitive)]
+[assembly: AutoDepIn<Profiles.WebProfile, Library.IFoo>(Scope = AutoDepScope.Transitive)]
+namespace Library
+{
+    public abstract class ControllerBase { }
+    public interface IFoo { }
+}
+namespace Profiles
+{
+    public sealed class WebProfile : IoCTools.Abstractions.Annotations.IAutoDepsProfile { }
+}
+";
+        var libraryCompilation = CreateCompilation("LibraryAsm", librarySource);
+        AssertNoCompileErrors(libraryCompilation);
+        var libraryRef = EmitToReference(libraryCompilation, "LibraryAsm");
+
+        var consumerSource = @"
+namespace Consumer
+{
+    public class Svc : Library.ControllerBase { }
+}
+";
+        var consumerCompilation = CreateCompilation("ConsumerAsm", consumerSource, new[] { libraryRef });
+        AssertNoCompileErrors(consumerCompilation);
+        var svc = GetType(consumerCompilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(consumerCompilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources[0].Kind.Should().Be(AutoDepSourceKind.AutoTransitive);
+        output.Entries[0].Sources[0].SourceName.Should().Contain("WebProfile");
+    }
+
     // --- 9. Manual constructor skips resolution ---
     [Fact]
     public void Manual_constructor_skips_resolution()
