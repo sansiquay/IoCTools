@@ -45,6 +45,14 @@ public static partial class AutoDepsResolver
 
         public ImmutableArray<AutoDepDiagnosticSignal> Signals => _signals.ToImmutableArray();
 
+        // Tracks per-opt-out spellings so IOC096 can describe WHICH opt-out is stale.
+        // Key: SymbolIdentity of the closed type (NoAutoDep<T>) or open shape (NoAutoDepOpen(typeof(T<>))).
+        // Value: the display string of the type argument (e.g., "Foo" or "IRepo<>").
+        private readonly Dictionary<SymbolIdentity, string> _optOutClosedDisplay =
+            new Dictionary<SymbolIdentity, string>();
+        private readonly Dictionary<SymbolIdentity, string> _optOutOpenDisplay =
+            new Dictionary<SymbolIdentity, string>();
+
         private void CollectServiceOptOuts()
         {
             // [NoAutoDeps] on any partial -> blanket
@@ -68,13 +76,19 @@ public static partial class AutoDepsResolver
                 else if (attrName == "NoAutoDepAttribute" && cls.TypeArguments.Length == 1)
                 {
                     if (cls.TypeArguments[0] is ITypeSymbol t)
-                        _optOutClosedTypes.Add(SymbolIdentity.From(t));
+                    {
+                        var id = SymbolIdentity.From(t);
+                        _optOutClosedTypes.Add(id);
+                        _optOutClosedDisplay[id] = t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                    }
                 }
                 else if (attrName == "NoAutoDepOpenAttribute" &&
                          a.ConstructorArguments.Length == 1 &&
                          a.ConstructorArguments[0].Value is ITypeSymbol openShape)
                 {
-                    _optOutOpenShapes.Add(SymbolIdentity.From(openShape));
+                    var id = SymbolIdentity.From(openShape);
+                    _optOutOpenShapes.Add(id);
+                    _optOutOpenDisplay[id] = openShape.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
                 }
             }
         }
@@ -84,10 +98,16 @@ public static partial class AutoDepsResolver
             if (_blanketOptOut) return;
             var ilogger = GetBuiltinILoggerSymbol(_compilation);
             if (ilogger is null) return;
-            if (_optOutOpenShapes.Contains(SymbolIdentity.From(ilogger))) return;
             var closed = ilogger.Construct(_service);
+            var closedId = SymbolIdentity.From(closed);
+
+            // Record the pre-opt-out entry BEFORE checking open-shape suppression so IOC096 can
+            // distinguish "effective NoAutoDepOpen" from "stale NoAutoDepOpen".
+            _preOptOutEntryIds.Add(closedId);
+
+            if (_optOutOpenShapes.Contains(SymbolIdentity.From(ilogger))) return;
             AddEntry(
-                SymbolIdentity.From(closed),
+                closedId,
                 new AutoDepAttribution(AutoDepSourceKind.AutoBuiltinILogger, sourceName: null, assemblyName: null),
                 closed);
         }
@@ -254,6 +274,8 @@ public static partial class AutoDepsResolver
 
         public void ApplyOptOuts()
         {
+            var serviceName = _service.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
             // Step 4 first: [NoAutoDeps] wipes everything.
             if (_blanketOptOut)
             {
@@ -263,8 +285,19 @@ public static partial class AutoDepsResolver
             }
 
             // Step 3a: [NoAutoDep<T>] removes matching closed-type entries.
+            // IOC096: if NoAutoDep<T> targets a type that was never in the pre-opt-out set,
+            // it's stale.
             foreach (var id in _optOutClosedTypes.ToList())
             {
+                if (!_preOptOutEntryIds.Contains(id))
+                {
+                    var typeDisplay = _optOutClosedDisplay.TryGetValue(id, out var d) ? d : id.MetadataName;
+                    _signals.Add(new AutoDepDiagnosticSignal(
+                        AutoDepDiagnosticKind.StaleOptOut,
+                        arg0: typeDisplay,
+                        arg1: $"[NoAutoDep<{typeDisplay}>]",
+                        arg2: serviceName));
+                }
                 _entries.Remove(id);
                 _entrySymbols.Remove(id);
             }
@@ -273,6 +306,30 @@ public static partial class AutoDepsResolver
             // matches, regardless of the closure.
             if (_optOutOpenShapes.Count > 0)
             {
+                // IOC096: for each NoAutoDepOpen target, check whether any pre-opt-out entry
+                // matched the open shape. If none did, the opt-out is stale.
+                foreach (var openId in _optOutOpenShapes)
+                {
+                    bool hadAnyMatch = false;
+                    foreach (var preId in _preOptOutEntryIds)
+                    {
+                        if (EntryMatchesOpenShape(preId, new HashSet<SymbolIdentity> { openId }))
+                        {
+                            hadAnyMatch = true;
+                            break;
+                        }
+                    }
+                    if (!hadAnyMatch)
+                    {
+                        var typeDisplay = _optOutOpenDisplay.TryGetValue(openId, out var d) ? d : openId.MetadataName;
+                        _signals.Add(new AutoDepDiagnosticSignal(
+                            AutoDepDiagnosticKind.StaleOptOut,
+                            arg0: typeDisplay,
+                            arg1: $"[NoAutoDepOpen(typeof({typeDisplay}))]",
+                            arg2: serviceName));
+                    }
+                }
+
                 var toRemove = new List<SymbolIdentity>();
                 foreach (var kv in _entries)
                 {
@@ -431,6 +488,12 @@ public static partial class AutoDepsResolver
             string? sourceName)
         {
             var id = SymbolIdentity.From(depType);
+
+            // Record the pre-opt-out entry id regardless of whether the opt-out will later
+            // drop the entry -- IOC096 needs to know about entries that WOULD have been added
+            // had no opt-out been applied.
+            _preOptOutEntryIds.Add(id);
+
             if (_optOutClosedTypes.Contains(id)) return;
 
             // When the contribution came from a referenced assembly, the attribution collapses
