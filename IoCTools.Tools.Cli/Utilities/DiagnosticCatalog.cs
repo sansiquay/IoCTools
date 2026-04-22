@@ -103,7 +103,10 @@ internal static class DiagnosticCatalog
             new("IOC091", "typeof() registration duplicates IoCTools registration", "IoCTools.Registration", "Warning"),
             new("IOC092", "typeof() registration lifetime differs from IoCTools", "IoCTools.Registration", "Error"),
             new("IOC094", "Open generic typeof() registration could use IoCTools attributes", "IoCTools.Registration", "Info"),
-            new("IOC095", "Open generic shared aliases fall back to separate registrations", "IoCTools.Registration", "Warning"),
+            // NOTE: IOC095 is defined by two descriptors in the generator today
+            // (OpenGenericSharedInstanceFallsBackToSeparate + InjectDeprecated). The 1.6
+            // milestone reassigned IOC095 to InjectDeprecated; the Registration-side entry
+            // appears to be a stale holdover. The IoCTools.Usage entry below handles both.
 
             // IoCTools.Structural
             new("IOC010", "Background service with non-Singleton lifetime (deprecated)", "IoCTools.Structural", "Warning"),
@@ -139,10 +142,20 @@ internal static class DiagnosticCatalog
             new("TDIAG-04", "Cover attribute references a type that is not a service", "IoCTools.Testing", "Error"),
             new("TDIAG-05", "Test class has multiple Cover attributes", "IoCTools.Testing", "Error"),
 
-            // IoCTools.FluentValidation
-            new("IOC100", "Validator directly instantiates DI-managed child validator", "IoCTools.FluentValidation", "Warning"),
-            new("IOC101", "Validator composition creates lifetime mismatch", "IoCTools.FluentValidation", "Warning"),
-            new("IOC102", "Validator class missing partial modifier", "IoCTools.FluentValidation", "Error"),
+            // IoCTools.AutoDeps (1.6 — Auto-dependencies milestone)
+            new("IOC096", "NoAutoDep[Open] target is not in resolved auto-dep set", "IoCTools.AutoDeps", "Info"),
+            new("IOC097", "Profile type does not implement IAutoDepsProfile", "IoCTools.AutoDeps", "Warning"),
+            new("IOC098", "[DependsOn<T>] overlaps with an active auto-dep", "IoCTools.AutoDeps", "Info"),
+            new("IOC099", "Profile attachment rule matches zero services", "IoCTools.AutoDeps", "Info"),
+            new("IOC100", "AutoDepOpen requires single-arity unbound generic", "IoCTools.AutoDeps", "Error"),
+            new("IOC101", "AutoDepOpen requires an unbound generic type", "IoCTools.AutoDeps", "Error"),
+            new("IOC102", "AutoDepOpen closure violates type parameter constraint", "IoCTools.AutoDeps", "Error"),
+            new("IOC103", "AutoDepsApplyGlob pattern is invalid", "IoCTools.AutoDeps", "Error"),
+            new("IOC104", "Profile type is generic", "IoCTools.AutoDeps", "Error"),
+            new("IOC105", "Redundant profile attachment", "IoCTools.AutoDeps", "Info"),
+
+            // IoCTools.Usage (1.6 — [Inject] deprecation)
+            new("IOC095", "[Inject] is deprecated; use [DependsOn<T>]", "IoCTools.Usage", "Warning"),
         };
     }
 }
