@@ -372,11 +372,26 @@ public static partial class AutoDepsResolver
                     var slotId = SymbolIdentity.From(slotType);
                     if (!_entries.ContainsKey(slotId)) continue;
 
-                    // Classification (bare vs customized) is computed for downstream IOC098.
-                    // The resolver's behavior is the same either way: drop the entry so
-                    // DependsOn wins.
-                    _ = attrWideExternal ||
+                    // Classification (bare vs customized) drives IOC098. A "customized" slot
+                    // (external=true OR a non-null/non-empty memberName for this slot) is a
+                    // deliberate override and produces no diagnostic -- the resolver just
+                    // drops the auto-dep silently. A "bare" slot trips IOC098 because the
+                    // overlap is pure redundancy.
+                    var isCustomized = attrWideExternal ||
                         (memberNames.TryGetValue(i + 1, out var mn) && !string.IsNullOrEmpty(mn));
+
+                    if (!isCustomized)
+                    {
+                        // Emit signal BEFORE we drop the entry so we can read its attribution.
+                        var entrySources = _entries[slotId];
+                        var sourceTag = entrySources.Count > 0
+                            ? entrySources[0].ToTag()
+                            : "unknown";
+                        _signals.Add(new AutoDepDiagnosticSignal(
+                            AutoDepDiagnosticKind.DependsOnOverlap,
+                            arg0: slotType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                            arg1: sourceTag));
+                    }
 
                     _entries.Remove(slotId);
                     _entrySymbols.Remove(slotId);
