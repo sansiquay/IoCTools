@@ -8,6 +8,7 @@ namespace IoCTools.Generator.Diagnostics;
 ///     - ConfigurationDiagnostics.cs (IOC016-019, IOC046, IOC056-057, IOC079, IOC088)
 ///     - RegistrationDiagnostics.cs (IOC004-005, IOC027-038, IOC069-072, IOC074, IOC081-086)
 ///     - StructuralDiagnostics.cs (IOC010-011, IOC020-026, IOC058, IOC067-068, IOC080)
+///     - AutoDepsDiagnostics.cs (IOC095-105)
 /// </summary>
 internal static partial class DiagnosticDescriptors
 {
