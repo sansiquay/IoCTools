@@ -245,16 +245,16 @@ public static class SourceGeneratorTestHelper
         // Run the source generator
         var generator = new DependencyInjectionGenerator();
         var additionalTexts = new List<AdditionalText>();
-        AnalyzerConfigOptionsProvider? configProvider = null;
-        if (analyzerBuildProperties is not null && analyzerBuildProperties.Count > 0)
-        {
-            var normalizedProperties = NormalizeBuildProperties(analyzerBuildProperties);
-            if (normalizedProperties.Count > 0)
-            {
-                additionalTexts.Add(CreateEditorConfigFromNormalized(normalizedProperties));
-                configProvider = new InMemoryAnalyzerConfigOptionsProvider(normalizedProperties);
-            }
-        }
+        AnalyzerConfigOptionsProvider? configProvider;
+
+        // Default the auto-deps resolver to OFF for every test unless the test explicitly opts
+        // in by setting IoCToolsAutoDepsDisable=false. This preserves existing fixtures that
+        // assert exact constructor signatures and do not anticipate auto-injected ILogger or
+        // assembly-level AutoDep<T> contributions. Integration tests that want to exercise
+        // auto-deps pass IoCToolsAutoDepsDisable=false (or omit it / override individually).
+        var propertiesForDriver = ApplyAutoDepsTestDefaults(analyzerBuildProperties);
+        additionalTexts.Add(CreateEditorConfigFromNormalized(propertiesForDriver));
+        configProvider = new InMemoryAnalyzerConfigOptionsProvider(propertiesForDriver);
 
         var driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() },
             additionalTexts.ToArray(),
@@ -902,17 +902,12 @@ public partial class {className}{baseClause}
             // Run generator again on the compilation that includes previous generated files
             var generator = new DependencyInjectionGenerator();
             var additionalTexts = new List<AdditionalText>();
-            AnalyzerConfigOptionsProvider? configProvider = null;
 
-            if (analyzerBuildProperties is not null && analyzerBuildProperties.Count > 0)
-            {
-                var normalizedProperties = NormalizeBuildProperties(analyzerBuildProperties);
-                if (normalizedProperties.Count > 0)
-                {
-                    additionalTexts.Add(CreateEditorConfigFromNormalized(normalizedProperties));
-                    configProvider = new InMemoryAnalyzerConfigOptionsProvider(normalizedProperties);
-                }
-            }
+            // Keep auto-deps off for incremental-scenario tests to match the primary harness
+            // default (see ApplyAutoDepsTestDefaults).
+            var propertiesForDriver = ApplyAutoDepsTestDefaults(analyzerBuildProperties);
+            additionalTexts.Add(CreateEditorConfigFromNormalized(propertiesForDriver));
+            AnalyzerConfigOptionsProvider? configProvider = new InMemoryAnalyzerConfigOptionsProvider(propertiesForDriver);
 
             var driver = CSharpGeneratorDriver.Create(new[] { generator.AsSourceGenerator() },
                 additionalTexts.ToArray(),
@@ -1111,6 +1106,26 @@ public partial class {className}{baseClause}
         }
 
         return normalized;
+    }
+
+    /// <summary>
+    /// Test-harness policy: auto-deps resolution is OFF by default for every test so existing
+    /// fixtures (which assert exact constructor signatures, field lists, and inheritance
+    /// ordering) aren't destabilised by Phase 4 behaviour. Tests that specifically exercise
+    /// auto-deps opt in by setting <c>IoCToolsAutoDepsDisable=false</c> (or the fine-grained
+    /// <c>IoCToolsAutoDetectLogger</c> toggle).
+    /// </summary>
+    private static Dictionary<string, string> ApplyAutoDepsTestDefaults(Dictionary<string, string>? userProperties)
+    {
+        var merged = userProperties is { Count: > 0 }
+            ? NormalizeBuildProperties(userProperties)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+
+        const string killSwitchKey = "build_property.IoCToolsAutoDepsDisable";
+        if (!merged.ContainsKey(killSwitchKey))
+            merged[killSwitchKey] = "true";
+
+        return merged;
     }
 
     private static AdditionalText CreateEditorConfig(Dictionary<string, string> buildProperties)

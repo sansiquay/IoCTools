@@ -31,6 +31,12 @@
         <!-- Disable all dependency validation diagnostics (default: false) -->
         <!-- <IoCToolsDisableDiagnostics>true</IoCToolsDisableDiagnostics> -->
 
+        <!-- Phase 4 (1.6): auto-deps resolver kill switch. Held OFF in the sample until Task
+             4.3 lands inheritance-aware base() chaining; the Sample exercises deep inheritance
+             chains that today's single-level auto-deps merge would leave with unsatisfiable
+             base constructor calls. Remove once Task 4.3 ships. -->
+        <IoCToolsAutoDepsDisable>true</IoCToolsAutoDepsDisable>
+
         <!-- Available severity options: Error, Warning, Info, Hidden -->
         <!-- To see diagnostic examples in action, build the project and check build output -->
 
@@ -42,6 +48,17 @@
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>generated</CompilerGeneratedFilesOutputPath>
     </PropertyGroup>
+
+    <!-- ProjectReference consumers don't get the NuGet-packaged build/ targets file, so wire
+         the relevant CompilerVisibleProperty entries here. Once the generator is consumed via
+         NuGet the targets file takes over automatically. -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="IoCToolsAutoDepsDisable" />
+        <CompilerVisibleProperty Include="IoCToolsAutoDepsExcludeGlob" />
+        <CompilerVisibleProperty Include="IoCToolsAutoDepsReport" />
+        <CompilerVisibleProperty Include="IoCToolsAutoDetectLogger" />
+        <CompilerVisibleProperty Include="IoCToolsInjectDeprecationSeverity" />
+    </ItemGroup>
 
     <ItemGroup>
         <!-- Core package references for sample functionality -->

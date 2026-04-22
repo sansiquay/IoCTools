@@ -1,0 +1,156 @@
+namespace IoCTools.Generator.Tests;
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+using Xunit;
+
+public sealed class AutoDepsIntegrationTests
+{
+    private static Dictionary<string, string> OptIn(params (string Key, string Value)[] extra)
+    {
+        var d = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsAutoDepsDisable"] = "false"
+        };
+        foreach (var (k, v) in extra) d[k] = v;
+        return d;
+    }
+
+    [Fact]
+    public void Universal_AutoDep_closed_type_appears_in_generated_constructor()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+[assembly: AutoDep<TestNs.IFoo>]
+
+namespace TestNs;
+
+[Scoped] public partial class Svc { }
+public interface IFoo { }
+[Scoped] public partial class FooImpl : IFoo { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        var ctor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        ctor.Should().NotBeNull("the generator should emit a constructor for Svc");
+        ctor!.Content.Should().Contain("IFoo");
+    }
+
+    [Fact]
+    public void Builtin_ILogger_auto_detected_appears_as_closed_generic()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class Svc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        var ctor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        ctor.Should().NotBeNull("Svc should get a generated constructor now that built-in ILogger auto-detection is enabled");
+        ctor!.Content.Should().Contain("ILogger<Svc>");
+    }
+
+    [Fact]
+    public void Existing_DependsOn_deduplicates_auto_dep_of_same_type()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+[assembly: AutoDep<TestNs.IFoo>]
+
+namespace TestNs;
+
+[Scoped]
+[DependsOn<IFoo>]
+public partial class Svc { }
+public interface IFoo { }
+[Scoped] public partial class FooImpl : IFoo { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        var ctor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        // Explicit DependsOn wins over universal AutoDep; the resolver drops its entry so
+        // there should be exactly one IFoo constructor parameter.
+        var paramMatches = Regex.Matches(ctor.Content, @"\bIFoo\s+\w+\s*[,)]");
+        paramMatches.Count.Should().Be(1);
+    }
+
+    [Fact]
+    public void AutoDepsDisable_kill_switch_suppresses_all_auto_deps()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+[assembly: AutoDep<TestNs.IFoo>]
+
+namespace TestNs;
+
+[Scoped] public partial class Svc { }
+public interface IFoo { }
+";
+        var options = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsAutoDepsDisable"] = "true"
+        };
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, options);
+        var ctor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        // With the kill-switch on no auto-deps should flow through. Svc has no [Inject]/
+        // [DependsOn], so there should either be no constructor emitted OR it should not
+        // contain IFoo.
+        if (ctor is not null)
+            ctor.Content.Should().NotContain("IFoo");
+    }
+
+    [Fact]
+    public void NoAutoDeps_on_service_suppresses_all_entries()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped]
+[NoAutoDeps]
+public partial class Svc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        var ctor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        if (ctor is not null)
+            ctor.Content.Should().NotContain("ILogger");
+    }
+
+    [Fact]
+    public void AutoDetectLogger_opt_out_suppresses_ILogger()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class Svc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true,
+            OptIn(("build_property.IoCToolsAutoDetectLogger", "false")));
+        var ctor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+
+        if (ctor is not null)
+            ctor.Content.Should().NotContain("ILogger");
+    }
+}

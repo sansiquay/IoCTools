@@ -7,5 +7,11 @@
   -->
   <ItemGroup>
     <CompilerVisibleProperty Include="IoCToolsIgnoredTypePatterns" />
+    <!-- 1.6 auto-deps resolver properties -->
+    <CompilerVisibleProperty Include="IoCToolsAutoDepsDisable" />
+    <CompilerVisibleProperty Include="IoCToolsAutoDepsExcludeGlob" />
+    <CompilerVisibleProperty Include="IoCToolsAutoDepsReport" />
+    <CompilerVisibleProperty Include="IoCToolsAutoDetectLogger" />
+    <CompilerVisibleProperty Include="IoCToolsInjectDeprecationSeverity" />
   </ItemGroup>
 </Project>

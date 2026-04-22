@@ -45,6 +45,16 @@ internal static class ConstructorEmitter
             var hierarchyDependencies = DependencyAnalyzer.GetConstructorDependencies(
                 serviceInfo.ClassSymbol, serviceInfo.SemanticModel);
 
+            // Merge any resolved auto-deps (built-in ILogger, assembly-level AutoDep<T>,
+            // profiles, etc.) into the hierarchy as Level-0 DependsOn entries before rendering.
+            // The resolver has already done reconciliation against explicit DependsOn and all
+            // opt-outs, so the merger just surfaces what's left.
+            AutoDepsMerger.MergeAutoDepsIntoHierarchy(
+                hierarchyDependencies,
+                serviceInfo.SemanticModel.Compilation,
+                serviceInfo.ClassSymbol,
+                autoDepsOptions);
+
             var constructorCode = GenerateInheritanceAwareConstructorCodeWithContext(
                 serviceInfo.ClassDeclaration, hierarchyDependencies, serviceInfo.SemanticModel, context);
 
