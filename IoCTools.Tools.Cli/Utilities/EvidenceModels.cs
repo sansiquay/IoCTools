@@ -34,7 +34,13 @@ internal sealed record EvidenceTypeEvidence(
     string filePath,
     IReadOnlyList<EvidenceDependency> dependencies,
     IReadOnlyList<EvidenceConfigurationBinding> configuration,
-    IReadOnlyList<EvidenceRegistration> registrations);
+    IReadOnlyList<EvidenceRegistration> registrations,
+    IReadOnlyList<EvidenceAutoDep> autoDeps);
+
+internal sealed record EvidenceAutoDep(
+    string typeName,
+    string source,
+    string suppress);
 
 internal sealed record EvidenceDependency(
     string fieldName,

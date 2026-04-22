@@ -6,6 +6,8 @@ using System.Text.Json;
 
 using CommandLine;
 
+using Generator.Shared;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -38,21 +40,39 @@ internal static class EvidencePrinter
             .Where(r => string.Equals(r.kind, nameof(RegistrationKind.Configuration), StringComparison.Ordinal))
             .ToArray();
 
+        var explicitDeps = target == null
+            ? Array.Empty<GeneratedFieldInfo>()
+            : target.DependencyFields.Where(d => !IsAutoDep(d.Attribution)).ToArray();
+        var autoDepFields = target == null
+            ? Array.Empty<GeneratedFieldInfo>()
+            : target.DependencyFields.Where(d => IsAutoDep(d.Attribution)).ToArray();
+
+        var hideAuto = options.AutoDepsFlags.HideAutoDeps;
+        var onlyAuto = options.AutoDepsFlags.OnlyAutoDeps;
+
         var typeEvidence = target == null
             ? null
             : new EvidenceTypeEvidence(
                 target.TypeName,
                 target.FilePath,
-                target.DependencyFields.Select(d => new EvidenceDependency(d.FieldName, d.TypeName, d.Source, d.IsExternal))
+                (onlyAuto ? Array.Empty<GeneratedFieldInfo>() : explicitDeps)
+                    .Select(d => new EvidenceDependency(d.FieldName, d.TypeName, d.Source, d.IsExternal))
                     .ToArray(),
-                target.ConfigurationFields.Select(c => new EvidenceConfigurationBinding(
+                (onlyAuto ? Array.Empty<GeneratedFieldInfo>() : target.ConfigurationFields.ToArray())
+                    .Select(c => new EvidenceConfigurationBinding(
                         c.FieldName,
                         c.TypeName,
                         string.IsNullOrWhiteSpace(c.ConfigurationKey) ? "<inferred>" : c.ConfigurationKey!,
                         c.Required == true,
                         c.SupportsReloading == true))
                     .ToArray(),
-                FilterRegistrations(registrations, target.TypeName));
+                FilterRegistrations(registrations, target.TypeName),
+                (hideAuto ? Array.Empty<GeneratedFieldInfo>() : autoDepFields)
+                    .Select(d => new EvidenceAutoDep(
+                        d.TypeName,
+                        d.Attribution!.Value.ToTag(),
+                        SuppressHint(d.TypeName, d.Attribution.Value)))
+                    .ToArray());
 
         return new EvidenceBundle(
             new EvidenceProject(
@@ -142,6 +162,14 @@ internal static class EvidencePrinter
                 foreach (var config in bundle.typeEvidence.configuration)
                     output.WriteLine(
                         $"    - {config.typeName} => {config.fieldName} (key: {config.configurationKey}, {(config.required ? "required" : "optional")}{(config.supportsReloading ? ", reload" : string.Empty)})");
+
+            if (bundle.typeEvidence.autoDeps.Count > 0)
+            {
+                output.WriteLine("  Auto-dependencies:");
+                output.WriteLine("    Type | Source Tag | Suppress With");
+                foreach (var autoDep in bundle.typeEvidence.autoDeps)
+                    output.WriteLine($"    {autoDep.typeName} | {autoDep.source} | {autoDep.suppress}");
+            }
         }
 
         output.WriteLine(string.Empty);
@@ -197,6 +225,19 @@ internal static class EvidencePrinter
                 output.WriteLine($"  - {hint.message}");
         }
     }
+
+    private static bool IsAutoDep(AutoDepAttribution? attr) =>
+        attr is { } a && a.Kind != AutoDepSourceKind.Explicit;
+
+    private static string SuppressHint(string depTypeName, AutoDepAttribution attribution) => attribution.Kind switch
+    {
+        AutoDepSourceKind.AutoBuiltinILogger => "[NoAutoDepOpen(typeof(ILogger<>))]",
+        AutoDepSourceKind.AutoOpenUniversal => "[NoAutoDepOpen(typeof(<OpenShape>))]",
+        AutoDepSourceKind.AutoUniversal => $"[NoAutoDep<{depTypeName}>]",
+        AutoDepSourceKind.AutoTransitive => $"[NoAutoDep<{depTypeName}>]",
+        AutoDepSourceKind.AutoProfile => $"[NoAutoDep<{depTypeName}>] or remove from profile",
+        _ => string.Empty
+    };
 
     private static IReadOnlyList<EvidenceRegistration> BuildRegistrations(ProjectContext context,
         GeneratorArtifactWriter artifacts)
