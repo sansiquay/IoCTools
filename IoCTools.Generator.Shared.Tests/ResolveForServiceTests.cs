@@ -246,6 +246,112 @@ namespace MyApp.Generated { public interface IFoo { } public class Svc { } }
         output.Entries.IsEmpty.Should().BeTrue();
     }
 
+    private const string ProfileMarkerSource = @"
+namespace Profiles {
+    public sealed class WebProfile : IoCTools.Abstractions.Annotations.IAutoDepsProfile { }
+}
+";
+
+    // --- 10. Profile attach via base class ---
+    [Fact]
+    public void Profile_attached_via_base_class_contributes_deps()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepsApply<Profiles.WebProfile, Consumer.ControllerBase>]
+[assembly: AutoDepIn<Profiles.WebProfile, Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    public abstract class ControllerBase { }
+    public class Svc : ControllerBase { }
+}
+" + ProfileMarkerSource;
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources[0].Kind.Should().Be(AutoDepSourceKind.AutoProfile);
+        output.Entries[0].Sources[0].SourceName.Should().Contain("WebProfile");
+    }
+
+    // --- 11. Profile attach via interface ---
+    [Fact]
+    public void Profile_attached_via_implemented_interface_contributes_deps()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepsApply<Profiles.WebProfile, Consumer.IHandler>]
+[assembly: AutoDepIn<Profiles.WebProfile, Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    public interface IHandler { }
+    public class Svc : IHandler { }
+}
+" + ProfileMarkerSource;
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources[0].Kind.Should().Be(AutoDepSourceKind.AutoProfile);
+    }
+
+    // --- 12. Profile attach via glob pattern ---
+    [Fact]
+    public void Profile_attached_via_glob_pattern_contributes_deps()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepsApplyGlob<Profiles.WebProfile>(""*.Web.*"")]
+[assembly: AutoDepIn<Profiles.WebProfile, MyApp.Web.Controllers.IFoo>]
+namespace MyApp.Web.Controllers
+{
+    public interface IFoo { }
+    public class Svc { }
+}
+" + ProfileMarkerSource;
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "MyApp.Web.Controllers.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources[0].Kind.Should().Be(AutoDepSourceKind.AutoProfile);
+    }
+
+    // --- 13. Explicit [AutoDeps<Profile>] on service ---
+    [Fact]
+    public void Explicit_AutoDeps_on_service_attaches_profile()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepIn<Profiles.WebProfile, Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    [AutoDeps<Profiles.WebProfile>]
+    public class Svc { }
+}
+" + ProfileMarkerSource;
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].Sources[0].Kind.Should().Be(AutoDepSourceKind.AutoProfile);
+        output.Entries[0].Sources[0].SourceName.Should().Contain("WebProfile");
+    }
+
     // --- 9. Manual constructor skips resolution ---
     [Fact]
     public void Manual_constructor_skips_resolution()

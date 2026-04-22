@@ -113,7 +113,90 @@ public static partial class AutoDepsResolver
 
         public void ApplyProfiles()
         {
-            // Stub: implemented in Increment B (step 2 of the resolution order).
+            if (_blanketOptOut) return;
+
+            // `attachedProfiles`: profile identity -> `isTransitiveAttachment` (true if the
+            // attachment rule came from a referenced assembly). Service-level [AutoDeps<T>] is
+            // always local. For AutoDepsApply / AutoDepsApplyGlob, the attachment rule may come
+            // from a transitive assembly; however the per-dep transitivity used for attribution
+            // is determined by each AutoDepIn's own IsTransitive flag, not by the attachment's
+            // origin (a local attachment still sees transitive AutoDepIn contributions, and
+            // vice versa).
+            var attachedProfiles = new HashSet<SymbolIdentity>();
+
+            // 1. [AutoDeps<TProfile>] on the service (always local attachment)
+            foreach (var a in _service.GetAttributes())
+            {
+                var cls = a.AttributeClass;
+                if (cls is null) continue;
+                var ns = cls.ContainingNamespace?.ToDisplayString();
+                if (ns != "IoCTools.Abstractions.Annotations") continue;
+                if (cls.Name == "AutoDepsAttribute" && cls.TypeArguments.Length == 1 &&
+                    cls.TypeArguments[0] is ITypeSymbol profile)
+                {
+                    attachedProfiles.Add(SymbolIdentity.From(profile));
+                }
+            }
+
+            // 2. [assembly: AutoDepsApply<TProfile, TBase>] matching service's base or implemented interface
+            // 3. [assembly: AutoDepsApplyGlob<TProfile>("pattern")] matching service's namespace
+            foreach (var entry in EnumerateAutoDepAttributes(_compilation, includeTransitive: true))
+            {
+                var a = entry.Attribute;
+                var cls = a.AttributeClass;
+                if (cls is null) continue;
+                var attrName = cls.Name;
+
+                if (attrName == "AutoDepsApplyAttribute" && cls.TypeArguments.Length == 2)
+                {
+                    if (cls.TypeArguments[0] is ITypeSymbol prof &&
+                        cls.TypeArguments[1] is ITypeSymbol tbase &&
+                        ServiceMatchesBase(tbase))
+                    {
+                        attachedProfiles.Add(SymbolIdentity.From(prof));
+                    }
+                }
+                else if (attrName == "AutoDepsApplyGlobAttribute" &&
+                         cls.TypeArguments.Length == 1 &&
+                         a.ConstructorArguments.Length >= 1 &&
+                         a.ConstructorArguments[0].Value is string pattern)
+                {
+                    if (cls.TypeArguments[0] is ITypeSymbol prof)
+                    {
+                        var ns = _service.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+                        if (GlobMatch(ns, pattern, out _))
+                        {
+                            attachedProfiles.Add(SymbolIdentity.From(prof));
+                        }
+                    }
+                }
+            }
+
+            if (attachedProfiles.Count == 0) return;
+
+            // For each attached profile, find [assembly: AutoDepIn<TProfile, T>] contributions
+            // (local + transitive) across all assemblies.
+            foreach (var profileId in attachedProfiles)
+            {
+                foreach (var entry in EnumerateAutoDepAttributes(_compilation, includeTransitive: true))
+                {
+                    var a = entry.Attribute;
+                    var cls = a.AttributeClass;
+                    if (cls is null) continue;
+                    if (cls.Name != "AutoDepInAttribute") continue;
+                    if (cls.TypeArguments.Length != 2) continue;
+                    if (cls.TypeArguments[0] is not ITypeSymbol profArgSym) continue;
+                    var profArg = SymbolIdentity.From(profArgSym);
+                    if (!profArg.Equals(profileId)) continue;
+                    if (cls.TypeArguments[1] is not ITypeSymbol depType) continue;
+
+                    AddDepWithAttribution(
+                        depType,
+                        entry.IsTransitive,
+                        AutoDepSourceKind.AutoProfile,
+                        sourceName: profileId.MetadataName);
+                }
+            }
         }
 
         public void ApplyOptOuts()
@@ -143,13 +226,40 @@ public static partial class AutoDepsResolver
             var id = SymbolIdentity.From(depType);
             if (_optOutClosedTypes.Contains(id)) return;
 
-            var actualKind = isTransitive ? AutoDepSourceKind.AutoTransitive : kind;
-            var attribution = new AutoDepAttribution(
-                actualKind,
-                sourceName,
-                isTransitive ? sourceName : null);
-
-            AddEntry(id, attribution);
+            // When the contribution came from a referenced assembly, the attribution collapses
+            // to AutoTransitive regardless of which universal/profile kind produced it. The
+            // `sourceName` parameter is a pun at that point:
+            //   - Universal (AutoUniversal/AutoOpenUniversal): sourceName is the declaring
+            //     assembly name (used as AssemblyName when transitive).
+            //   - Profile (AutoProfile): sourceName is the profile's metadata name. For a
+            //     transitive profile contribution, we still want AutoTransitive + AssemblyName;
+            //     the profile name is informational and kept in SourceName.
+            if (isTransitive)
+            {
+                // For universal transitive, the sourceName IS the assembly name.
+                // For profile transitive, sourceName is the profile name; we don't track the
+                // declaring assembly separately here -- callers pass assembly via sourceName
+                // for universal, and profile name for profile. Use sourceName for both slots
+                // when universal; keep profile name in SourceName for profile-transitive.
+                if (kind == AutoDepSourceKind.AutoProfile)
+                {
+                    AddEntry(id, new AutoDepAttribution(
+                        AutoDepSourceKind.AutoTransitive,
+                        sourceName,
+                        id.ContainingAssemblyName));
+                }
+                else
+                {
+                    AddEntry(id, new AutoDepAttribution(
+                        AutoDepSourceKind.AutoTransitive,
+                        sourceName,
+                        sourceName));
+                }
+            }
+            else
+            {
+                AddEntry(id, new AutoDepAttribution(kind, sourceName, null));
+            }
         }
 
         private void AddEntry(SymbolIdentity id, AutoDepAttribution attribution)
