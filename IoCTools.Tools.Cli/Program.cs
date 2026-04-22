@@ -357,7 +357,7 @@ public static class Program
         if (target == null)
             return UsagePrinter.ExitWithError($"Type '{options.TypeName}' not found or not IoCTools-enabled.");
 
-        WhyPrinter.Write(target, options.Dependency, output);
+        WhyPrinter.Write(target, options.Dependency, output, options.AutoDepsFlags);
         output.ReportTiming("Command completed");
         return 0;
     }

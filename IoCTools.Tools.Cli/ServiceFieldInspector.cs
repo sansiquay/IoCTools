@@ -1,8 +1,11 @@
 namespace IoCTools.Tools.Cli;
 
+using System.Collections.Immutable;
+
 using Generator.Analysis;
 using Generator.Generator;
 using Generator.Generator.Intent;
+using Generator.Shared;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -44,6 +47,9 @@ internal sealed class ServiceFieldInspector
         var matches = new List<ServiceFieldReport>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
+        var compilation = await _project.GetCompilationAsync(cancellationToken);
+        var msbuildProps = AutoDepsAttributionResolver.BuildMsBuildProperties(_project);
+
         foreach (var (declaration, semanticModel) in semanticContext)
         {
             var symbol = semanticModel.GetDeclaredSymbol(declaration, cancellationToken);
@@ -53,17 +59,47 @@ internal sealed class ServiceFieldInspector
             if (!IsServiceCandidate(symbol, declaration)) continue;
             if (!MatchesFilter(symbol, typeFilters)) continue;
 
+            var attributions = compilation != null
+                ? AutoDepsAttributionResolver.ResolveAttributions(compilation, symbol, msbuildProps)
+                : ImmutableDictionary<string, AutoDepAttribution>.Empty;
+
             var dependencyFields = DependsOnFieldAnalyzer.GetRawDependsOnFieldsForTypeWithExternalFlag(symbol)
-                .Select(dep => new GeneratedFieldInfo(dep.FieldName,
-                    FormatTypeName(dep.ServiceType),
-                    GeneratedFieldKind.Dependency,
-                    "DependsOn",
-                    null,
-                    null,
-                    null,
-                    null,
-                    dep.IsExternal))
+                .Select(dep =>
+                {
+                    var typeName = FormatTypeName(dep.ServiceType);
+                    AutoDepAttribution? attribution = attributions.TryGetValue(typeName, out var resolved)
+                        ? resolved
+                        : null;
+                    return new GeneratedFieldInfo(dep.FieldName,
+                        typeName,
+                        GeneratedFieldKind.Dependency,
+                        "DependsOn",
+                        null,
+                        null,
+                        null,
+                        null,
+                        dep.IsExternal,
+                        attribution);
+                })
                 .ToList();
+
+            // Merge auto-deps that are NOT covered by explicit DependsOn fields (e.g., auto-builtin
+            // ILogger detected via MEL). These are surfaced as additional dependency rows so the
+            // CLI can narrate the full resolved set, not just the DependsOn subset.
+            var coveredTypeNames = new HashSet<string>(dependencyFields.Select(f => f.TypeName), StringComparer.Ordinal);
+            foreach (var kvp in attributions)
+            {
+                if (coveredTypeNames.Contains(kvp.Key)) continue;
+                if (kvp.Value.Kind == AutoDepSourceKind.Explicit) continue;
+                dependencyFields.Add(new GeneratedFieldInfo(
+                    DeriveFieldName(kvp.Key),
+                    kvp.Key,
+                    GeneratedFieldKind.Dependency,
+                    MapSourceLabel(kvp.Value),
+                    null, null, null, null,
+                    false,
+                    kvp.Value));
+            }
 
             var configFields = ConfigurationFieldAnalyzer.GetConfigurationInjectedFieldsForType(symbol, semanticModel)
                 .Where(info => info.GeneratedField)
@@ -75,7 +111,8 @@ internal sealed class ServiceFieldInspector
                     info.DefaultValue,
                     info.Required,
                     info.SupportsReloading,
-                    false))
+                    false,
+                    null))
                 .ToList();
 
             var report = new ServiceFieldReport(symbol.ToDisplayString(TypeFormat),
@@ -86,6 +123,34 @@ internal sealed class ServiceFieldInspector
         }
 
         return matches;
+    }
+
+    private static string MapSourceLabel(AutoDepAttribution attribution) => attribution.Kind switch
+    {
+        AutoDepSourceKind.AutoBuiltinILogger => "AutoDep (built-in ILogger)",
+        AutoDepSourceKind.AutoUniversal => "AutoDep",
+        AutoDepSourceKind.AutoOpenUniversal => "AutoDepOpen",
+        AutoDepSourceKind.AutoProfile => $"AutoDepsProfile:{attribution.SourceName}",
+        AutoDepSourceKind.AutoTransitive => $"AutoDep (transitive:{attribution.AssemblyName})",
+        _ => "AutoDep"
+    };
+
+    private static string DeriveFieldName(string typeName)
+    {
+        // Produce a stable, lowercase, underscore-prefixed field name for display in CLI tables.
+        // Only used when the resolver surfaced an auto-dep not covered by an existing DependsOn
+        // field -- this matches the generator's `_camelCase` convention for consistency.
+        //
+        // Takes only the outer type name (strip namespace and any generic argument suffix),
+        // drops a leading 'I' on interfaces, and camel-cases the result.
+        var simple = typeName;
+        var firstGeneric = simple.IndexOf('<');
+        var pruned = firstGeneric >= 0 ? simple.Substring(0, firstGeneric) : simple;
+        var lastDot = pruned.LastIndexOf('.');
+        if (lastDot >= 0) pruned = pruned.Substring(lastDot + 1);
+        if (pruned.Length > 1 && pruned[0] == 'I' && char.IsUpper(pruned[1])) pruned = pruned.Substring(1);
+        if (pruned.Length == 0) return "_dep";
+        return "_" + char.ToLowerInvariant(pruned[0]) + pruned.Substring(1);
     }
 
     public async Task<INamedTypeSymbol?> FindServiceSymbolAsync(string filePath,
@@ -208,7 +273,8 @@ internal sealed record GeneratedFieldInfo(
     object? DefaultValue,
     bool? Required,
     bool? SupportsReloading,
-    bool IsExternal);
+    bool IsExternal,
+    AutoDepAttribution? Attribution = null);
 
 internal enum GeneratedFieldKind
 {
