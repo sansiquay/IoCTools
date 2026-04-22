@@ -6,16 +6,16 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.5.1</Version>
-        <PackageVersion>1.5.1</PackageVersion>
-        <AssemblyVersion>1.5.1.0</AssemblyVersion>
-        <FileVersion>1.5.1.0</FileVersion>
+        <Version>1.6.0</Version>
+        <PackageVersion>1.6.0</PackageVersion>
+        <AssemblyVersion>1.6.0.0</AssemblyVersion>
+        <FileVersion>1.6.0.0</FileVersion>
         <Title>IoC Tools Abstractions Package</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
         <RepositoryUrl>https://github.com/sansiquay/IoCTools</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageReleaseNotes>v1.5.1: prepare the release surface for the first public 1.5.1 packages and keep the packaging metadata aligned with the published repository.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.6.0: adds auto-deps attribute surface (AutoDep&lt;T&gt;, AutoDepOpen, AutoDepIn, AutoDepsApply, AutoDepsApplyGlob, AutoDeps&lt;TProfile&gt;, NoAutoDeps, NoAutoDep&lt;T&gt;, NoAutoDepOpen) and deprecates [Inject] in favor of [DependsOn&lt;T&gt;].</PackageReleaseNotes>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
