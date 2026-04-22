@@ -557,6 +557,12 @@ internal static class DiagnosticRules
         DiagnosticConfiguration diagnosticConfig) =>
         ProfileMarkerValidator.Validate(context, compilation, diagnosticConfig);
 
+    // IOC100 + IOC101: AutoDepOpen type-argument validation (compilation-level)
+    public static void ValidateAutoDepOpenArguments(SourceProductionContext context,
+        Compilation compilation,
+        DiagnosticConfiguration diagnosticConfig) =>
+        AutoDepOpenArgumentValidator.Validate(context, compilation, diagnosticConfig);
+
     // IOC080: Validate that classes with code-generating attributes are marked as partial
     public static void ValidateMissingPartialKeyword(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

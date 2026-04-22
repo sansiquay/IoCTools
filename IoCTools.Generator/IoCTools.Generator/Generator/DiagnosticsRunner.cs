@@ -467,6 +467,9 @@ internal static class DiagnosticsRunner
 
         // IOC097: Profile missing IAutoDepsProfile marker (defensive check)
         DiagnosticRules.ValidateProfileMarker(context, compilation, diagnosticConfig);
+
+        // IOC100 + IOC101: AutoDepOpen type-argument validation
+        DiagnosticRules.ValidateAutoDepOpenArguments(context, compilation, diagnosticConfig);
     }
 
     private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
