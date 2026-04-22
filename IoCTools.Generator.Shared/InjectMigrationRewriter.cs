@@ -139,15 +139,14 @@ public static class InjectMigrationRewriter
     }
 
     /// <summary>
-    ///     Simplified default-name check. Replaced in Task 5.1a by <see cref="DefaultFieldName" />.
+    ///     Checks whether a field uses the default name IoCTools' generator would emit
+    ///     for its type. Routes through <see cref="DefaultFieldName" /> so the rewriter
+    ///     agrees with the generator on edge cases (generic collections, arrays,
+    ///     reserved keywords, non-default naming conventions).
     /// </summary>
     private static bool IsDefaultFieldName(string fieldName, ITypeSymbol type)
     {
-        var simple = type.Name;
-        if (simple.Length >= 2 && simple[0] == 'I' && char.IsUpper(simple[1]))
-            simple = simple.Substring(1);
-        if (string.IsNullOrEmpty(simple)) return false;
-        var expected = "_" + char.ToLowerInvariant(simple[0]) + simple.Substring(1);
+        var expected = DefaultFieldName.Compute(type);
         return string.Equals(fieldName, expected, StringComparison.Ordinal);
     }
 }
