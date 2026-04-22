@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.5.1</Version>
-        <PackageVersion>1.5.1</PackageVersion>
-        <AssemblyVersion>1.5.1.0</AssemblyVersion>
-        <FileVersion>1.5.1.0</FileVersion>
+        <Version>1.6.0</Version>
+        <PackageVersion>1.6.0</PackageVersion>
+        <AssemblyVersion>1.6.0.0</AssemblyVersion>
+        <FileVersion>1.6.0.0</FileVersion>
         <Title>IoC Tools Testing Abstractions Package</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,6 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>v1.6.0: aligned with core 1.6.0.</PackageReleaseNotes>
         <Description>Test fixture generation attributes for IoCTools - mark test classes with [Cover&lt;TService&gt;] to auto-generate Mock&lt;T&gt; fields and CreateSut() factories.</Description>
     </PropertyGroup>
     <ItemGroup>
