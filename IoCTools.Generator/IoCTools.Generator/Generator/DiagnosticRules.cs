@@ -545,6 +545,12 @@ internal static class DiagnosticRules
         DiagnosticConfiguration diagnosticConfig) =>
         InjectDeprecationValidator.Validate(context, classDeclaration, classSymbol, diagnosticConfig);
 
+    // IOC104: Generic profile rejection (compilation-level pass)
+    public static void ValidateProfileIsGeneric(SourceProductionContext context,
+        Compilation compilation,
+        DiagnosticConfiguration diagnosticConfig) =>
+        ProfileIsGenericValidator.Validate(context, compilation, diagnosticConfig);
+
     // IOC080: Validate that classes with code-generating attributes are marked as partial
     public static void ValidateMissingPartialKeyword(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

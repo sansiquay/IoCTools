@@ -273,6 +273,10 @@ internal static class DiagnosticsRunner
                     }
                 }
 
+                // Auto-deps attribute-argument diagnostics fire even when no services are present
+                // (e.g., an assembly that only declares [assembly: AutoDepIn<...>] rules).
+                RunCompilationLevelAutoDepsDiagnostics(context, compilation, diagnosticConfig);
+
                 return;
             }
 
@@ -442,11 +446,24 @@ internal static class DiagnosticsRunner
             // TDIAG-01 through TDIAG-05: Test fixture analysis
             if (diagnosticConfig.DiagnosticsEnabled)
                 TestFixtureAnalyzer.Validate(compilation, context.ReportDiagnostic, diagnosticConfig);
+
+            // Auto-deps attribute-argument diagnostics (compilation-level; run once per compilation)
+            RunCompilationLevelAutoDepsDiagnostics(context, compilation, diagnosticConfig);
         }
         catch (Exception ex)
         {
             GeneratorDiagnostics.Report(context, "IOC997", "Cross-assembly diagnostic validation error", ex.Message);
         }
+    }
+
+    private static void RunCompilationLevelAutoDepsDiagnostics(SourceProductionContext context,
+        Compilation compilation,
+        Models.DiagnosticConfiguration diagnosticConfig)
+    {
+        if (!diagnosticConfig.DiagnosticsEnabled) return;
+
+        // IOC104: Generic profile rejection
+        DiagnosticRules.ValidateProfileIsGeneric(context, compilation, diagnosticConfig);
     }
 
     private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
