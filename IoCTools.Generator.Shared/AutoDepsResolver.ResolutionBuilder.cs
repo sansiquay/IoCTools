@@ -230,7 +230,98 @@ public static partial class AutoDepsResolver
 
         public void ReconcileAgainstDependsOn()
         {
-            // Stub: implemented in Increment D (step 5 of the resolution order).
+            // Step 5: an explicit [DependsOn<T>] on the service always wins over an auto-dep
+            // for the same type. We remove the matching entry from the resolver output here;
+            // the diagnostics pipeline (IOC098) consumes this same reconciliation pass
+            // elsewhere to distinguish bare vs customized slots.
+            //
+            // Robust reading of `external` and `memberName{N}`:
+            //
+            //   DependsOnAttribute<T1..Tn>(
+            //       NamingConvention namingConvention = NamingConvention.CamelCase,
+            //       bool stripI = true,
+            //       string prefix = "_",
+            //       bool external = false,
+            //       string? memberName1 = null, ..., string? memberNameN = null)
+            //
+            // `external`, `stripI`, `prefix`, `namingConvention` are ALSO public settable
+            // properties. A user can write `[DependsOn<T>{External = true}]` (property syntax)
+            // OR `[DependsOn<T>(external: true)]` (constructor-param named syntax). Roslyn puts
+            // the former in NamedArguments and the latter in ConstructorArguments by position.
+            // We check NamedArguments first, then fall back to positional ConstructorArguments
+            // (index 3 = external, indices 4..(3+arity) = memberName1..N).
+            foreach (var a in _service.GetAttributes())
+            {
+                var cls = a.AttributeClass;
+                if (cls is null) continue;
+                if (cls.Name != "DependsOnAttribute") continue;
+
+                var arity = cls.TypeArguments.Length;
+
+                // Read attribute-wide External.
+                bool attrWideExternal = false;
+                bool externalFromNamed = false;
+                foreach (var named in a.NamedArguments)
+                {
+                    if ((named.Key == "External" || named.Key == "external") &&
+                        named.Value.Value is bool b)
+                    {
+                        attrWideExternal = b;
+                        externalFromNamed = true;
+                        break;
+                    }
+                }
+                if (!externalFromNamed &&
+                    a.ConstructorArguments.Length > 3 &&
+                    a.ConstructorArguments[3].Value is bool b2)
+                {
+                    attrWideExternal = b2;
+                }
+
+                // Build per-slot memberName map (1-based). NamedArguments take priority over
+                // positional ConstructorArguments because a user writing
+                // `DependsOn<T>(memberName1: "_foo")` puts the value in ConstructorArguments at
+                // index 4, while `DependsOn<T> { ... }` (if it existed as a property) would go
+                // to NamedArguments. The properties in question here are actually fields set
+                // via setters only for External/NamingConvention/StripI/Prefix -- memberNameN
+                // is strictly a constructor param -- but the attribute class could be extended
+                // in the future, so we accept both spellings.
+                var memberNames = new Dictionary<int, string?>();
+                foreach (var named in a.NamedArguments)
+                {
+                    if (!named.Key.StartsWith("memberName", StringComparison.Ordinal)) continue;
+                    var tail = named.Key.Substring("memberName".Length);
+                    if (int.TryParse(tail, out var slot))
+                    {
+                        memberNames[slot] = named.Value.Value as string;
+                    }
+                }
+                for (int i = 0; i < arity; i++)
+                {
+                    int ctorIdx = 4 + i;
+                    int slot = i + 1;
+                    if (memberNames.ContainsKey(slot)) continue; // Named-syntax takes priority
+                    if (a.ConstructorArguments.Length > ctorIdx)
+                    {
+                        memberNames[slot] = a.ConstructorArguments[ctorIdx].Value as string;
+                    }
+                }
+
+                for (int i = 0; i < arity; i++)
+                {
+                    if (cls.TypeArguments[i] is not ITypeSymbol slotType) continue;
+                    var slotId = SymbolIdentity.From(slotType);
+                    if (!_entries.ContainsKey(slotId)) continue;
+
+                    // Classification (bare vs customized) is computed for downstream IOC098.
+                    // The resolver's behavior is the same either way: drop the entry so
+                    // DependsOn wins.
+                    _ = attrWideExternal ||
+                        (memberNames.TryGetValue(i + 1, out var mn) && !string.IsNullOrEmpty(mn));
+
+                    _entries.Remove(slotId);
+                }
+            }
         }
 
         public AutoDepsResolverOutput Build()

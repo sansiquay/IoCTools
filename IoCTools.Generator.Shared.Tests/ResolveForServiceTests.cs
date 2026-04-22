@@ -447,6 +447,112 @@ namespace Consumer
         output.Entries.IsEmpty.Should().BeTrue();
     }
 
+    // --- 18. Bare DependsOn wins over auto-dep ---
+    [Fact]
+    public void Bare_DependsOn_wins_over_AutoDep_for_same_type()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    [DependsOn<IFoo>]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 19. DependsOn with memberName1 customization wins ---
+    [Fact]
+    public void Customized_DependsOn_memberName_wins_over_AutoDep()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    [DependsOn<IFoo>(memberName1: ""_custom"")]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 20. DependsOn with external:true via constructor-param named syntax ---
+    [Fact]
+    public void Customized_DependsOn_external_true_via_ctor_named_syntax_wins()
+    {
+        // This test specifically verifies the ConstructorArguments positional-read path
+        // because `external` is a CONSTRUCTOR PARAMETER (index 3), not just a property.
+        // `[DependsOn<IFoo>(external: true)]` puts `true` in ConstructorArguments[3], NOT
+        // NamedArguments, since C# named-argument syntax binds to a constructor parameter.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    [DependsOn<IFoo>(external: true)]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 21. Multi-partial attribute union: DependsOn + NoAutoDep across partials ---
+    [Fact]
+    public void Multi_partial_service_unions_DependsOn_and_NoAutoDep_across_partials()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+[assembly: AutoDep<Consumer.IBar>]
+[assembly: AutoDep<Consumer.IBaz>]
+namespace Consumer
+{
+    public interface IFoo { }
+    public interface IBar { }
+    public interface IBaz { }
+
+    [DependsOn<IFoo>]
+    public partial class Svc { }
+
+    [NoAutoDep<IBar>]
+    public partial class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        // IFoo dropped by DependsOn; IBar dropped by NoAutoDep; IBaz survives.
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].DepType.MetadataName.Should().Contain("IBaz");
+    }
+
     // --- 9. Manual constructor skips resolution ---
     [Fact]
     public void Manual_constructor_skips_resolution()
