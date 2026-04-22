@@ -11,6 +11,7 @@ IoCTools targets `netstandard2.0` for broad compatibility. This document explain
 | IoCTools.Generator (analyzer package) | netstandard2.0 | Limited to netstandard2.0 APIs |
 | Your service code | Any .NET version | No constraints from IoCTools |
 | IoCTools.Abstractions (attributes) | netstandard2.0 | Works on all .NET versions |
+| `IAutoDepsProfile` marker interface | netstandard2.0 | Declaring an auto-deps profile never forces consumers onto a newer TFM |
 
 ## What This Means for You
 

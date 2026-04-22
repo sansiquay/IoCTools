@@ -15,11 +15,16 @@
 
 ## Authoring Posture
 
-- Never use `[Inject]` in new code.
-- Never use `InjectConfiguration` in new code.
-- Use `[DependsOn<T>]` for service dependencies.
-- Use `[DependsOnConfiguration<T>]` or `[DependsOnOptions<T>]` for configuration dependencies.
-- `[Inject]` and `InjectConfiguration` remain supported in `1.5.1` for compatibility-only migration scenarios.
+- `[Inject]` is **deprecated** in 1.6.0 and emits `IOC095`. A Roslyn code
+  fix plus [`ioc-tools migrate-inject`](docs/cli-reference.md) migrate in
+  bulk. Scheduled for removal in 2.0.
+- `[DependsOn<T>]` is the source-of-truth for explicit service dependencies.
+- `[DependsOnConfiguration<T>]` / `[DependsOnOptions<T>]` for config
+  dependencies. `InjectConfiguration` stays supported but is not preferred.
+- **Auto-deps (1.6.0+)** declare ambient dependencies once per assembly:
+  `[assembly: AutoDep<T>]`, `[assembly: AutoDepOpen(typeof(ILogger<>))]`,
+  plus `Microsoft.Extensions.Logging.ILogger<T>` is auto-detected with zero
+  configuration. See [docs/auto-deps.md](docs/auto-deps.md).
 
 ## Installation
 
@@ -37,14 +42,30 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.5.1
+## What's New in v1.6.0
 
-- First real public `1.5.x` release across `IoCTools.Abstractions`, `IoCTools.Generator`, `IoCTools.Tools.Cli`, `IoCTools.Testing`, and `IoCTools.FluentValidation`
-- [Evidence-first CLI](docs/cli-reference.md) — `evidence`, stable artifact fingerprints/deltas, stronger `validator-graph --json`, structured `suppress --json`, and better review packets
-- [Open-generic support](docs/attributes.md#registerasallregistrationmode-mode-instancesharing-mode) — the common `typeof(IFoo<>), typeof(Foo<>)` path is now a supported attribute story
-- [Improved diagnostics](docs/diagnostics.md) — `IOC093` surfaces generator analysis failures instead of degrading silently, and `IOC095` explains open-generic shared-instance fallback
-- [Authoring guidance](docs/attributes.md) — `[DependsOn]` / `[DependsOnConfiguration]` are the normal path; `[Inject]` / `InjectConfiguration` are compatibility-only
-- [Test fixture generation](docs/testing.md) and [FluentValidation support](docs/diagnostics.md#fluentvalidation-diagnostics) ship on the same public `1.5.1` line
+- **[Auto-deps](docs/auto-deps.md)** — declare ambient deps once at
+  assembly scope; universal, profile-scoped, or transitive across
+  project boundaries. `Microsoft.Extensions.Logging.ILogger<T>` is
+  auto-detected with zero configuration.
+- **`[Inject]` deprecated** — emits `IOC095` warning in 1.6, error in 1.7,
+  removed in 2.0. A Roslyn code fix (new `IoCTools.Generator.Analyzer`
+  package) and [`ioc-tools migrate-inject`](docs/cli-reference.md) do the
+  conversion.
+- **11 new diagnostics** — IOC095-IOC105 covering `[Inject]` deprecation,
+  stale opt-outs, profile validation, glob correctness, and redundant
+  attachments. See [diagnostics.md](docs/diagnostics.md).
+- **CLI upgrades** — `graph`/`why`/`explain`/`evidence` gain source
+  attribution and `--hide-auto-deps` / `--only-auto-deps` filters;
+  `doctor` adds preflight checks; new `profiles` (plural) and
+  `migrate-inject` subcommands.
+- **Five new MSBuild properties** — `IoCToolsAutoDepsDisable`,
+  `IoCToolsAutoDepsExcludeGlob`, `IoCToolsAutoDepsReport`,
+  `IoCToolsAutoDetectLogger`, `IoCToolsInjectDeprecationSeverity`.
+- **First-party migration** — `IoCTools.Testing`, `IoCTools.FluentValidation`,
+  and the `IoCTools.Sample` project are all migrated off `[Inject]`. See
+  [docs/migration.md](docs/migration.md#migrating-from-15x-to-16x) for the
+  1.5.x → 1.6.x upgrade path.
 
 ## Getting Started in Three Steps
 
@@ -83,7 +104,13 @@ public partial class Repository<T> : IRepository<T> where T : class
 }
 ```
 
-That common open-generic path is supported in `1.5.1`. If you ask for `InstanceSharing.Shared` across open-generic interface aliases, IoCTools warns with `IOC095` and falls back to valid direct registrations because `Microsoft.Extensions.DependencyInjection` does not support open-generic factory aliases.
+That common open-generic path is supported. If you ask for
+`InstanceSharing.Shared` across open-generic interface aliases, IoCTools
+emits the secondary `IOC095` descriptor and falls back to valid direct
+registrations because `Microsoft.Extensions.DependencyInjection` does not
+support open-generic factory aliases. (In 1.6.0+, the primary `IOC095`
+descriptor is the `[Inject]` deprecation diagnostic — both ship under the
+same ID; see [diagnostics.md](docs/diagnostics.md).)
 
 ## Platform Support
 
@@ -194,11 +221,11 @@ Generated code creates the constructor, binds configuration, and registers every
 
 Complete attribute reference: [docs/attributes.md](docs/attributes.md)
 
-Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[DependsOnConfiguration<T>]`, `[DependsOnOptions<T>]`, `[RegisterAs<T>]`, `[ConditionalService]`
+Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[DependsOnConfiguration<T>]`, `[DependsOnOptions<T>]`, `[RegisterAs<T>]`, `[ConditionalService]`, and the 1.6.0 [auto-deps surface](docs/auto-deps.md) (`[assembly: AutoDep<T>]`, `[assembly: AutoDepOpen(...)]`, `[AutoDeps<TProfile>]`, `[NoAutoDeps]`, …)
 
 ## Diagnostics Reference
 
-IoCTools provides core diagnostics through `IOC095`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100` through `IOC102`). See [complete reference](docs/diagnostics.md).
+IoCTools provides core diagnostics through `IOC105`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100` through `IOC102`). IOC100-IOC102 are shared between the auto-deps and FluentValidation surfaces; see [diagnostics.md](docs/diagnostics.md) for the full list.
 
 ### Error-Severity Diagnostics
 

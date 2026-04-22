@@ -1,6 +1,149 @@
 # Migration Guide
 
-Migrating to IoCTools from manual DI registration or other dependency injection containers.
+Migrating to IoCTools from manual DI registration or other dependency
+injection containers — and migrating between IoCTools versions.
+
+## Migrating from 1.5.x to 1.6.x
+
+IoCTools 1.6.0 deprecates `[Inject]` field injection and introduces the
+**auto-deps** system ([docs/auto-deps.md](auto-deps.md)). This section is the
+canonical upgrade path.
+
+### What changed
+
+- **`[Inject]` is deprecated.** The attribute is `[Obsolete]` and emits
+  `IOC095` (warning severity in 1.6; upgrades to error in 1.7; removed in
+  2.0). `[DependsOn<T>]` is the source-of-truth replacement.
+- **Auto-deps are new.** `[assembly: AutoDep<T>]` and
+  `[assembly: AutoDepOpen(typeof(T<>))]` declare ambient dependencies once per
+  assembly. `Microsoft.Extensions.Logging.ILogger<T>` is auto-detected — no
+  declaration needed if your project references MEL.
+- **IOC095 diagnostic reassigned.** In 1.5.1 IOC095 warned about open-generic
+  `InstanceSharing.Shared` fallback. In 1.6 the same ID also covers
+  `[Inject]` deprecation; both descriptors ship under IOC095. Consumers with
+  existing IOC095 suppressions should review what the suppression now
+  applies to.
+
+### Recommended upgrade sequence
+
+1. **Bump the IoCTools packages** to 1.6.0 across `IoCTools.Abstractions`,
+   `IoCTools.Generator`, `IoCTools.Generator.Analyzer` (new in 1.6),
+   `IoCTools.Testing`, `IoCTools.FluentValidation`, and `IoCTools.Tools.Cli`.
+2. **(Optional) Silence `IOC095` during the migration window.** For a large
+   codebase with many `[Inject]` usages, add a temporary severity override so
+   the upgrade build stays readable:
+
+   ```xml
+   <PropertyGroup>
+     <IoCToolsInjectDeprecationSeverity>Info</IoCToolsInjectDeprecationSeverity>
+   </PropertyGroup>
+   ```
+
+3. **Run the migration.** Two equivalent paths:
+
+   - **IDE (interactive):** the new `IoCTools.Generator.Analyzer` package
+     ships a Roslyn code fix. Hitting Alt+Enter on an `[Inject]` field offers
+     "Migrate `[Inject]` to `[DependsOn<T>]`" per field.
+   - **CLI (headless, recommended for bulk):**
+
+     ```bash
+     ioc-tools migrate-inject --dry-run          # preview
+     ioc-tools migrate-inject                    # apply
+     ```
+
+     The CLI walks the solution, converts every `[Inject]` field to the
+     equivalent `[DependsOn<T>]` surface, and prints a summary (files
+     touched, fields deleted because an auto-dep covered them, fields
+     converted with `memberName*` preservation, fields split due to
+     divergent `external:` flags).
+
+4. **Commit the mechanical conversion as one diff** so code review stays
+   manageable.
+5. **Remove the severity override** from the csproj.
+6. **(Optional) Promote cross-cutting repeats to auto-deps.** `ILogger<T>`
+   is already auto-detected. If your codebase has repeated `TimeProvider`,
+   `IMetrics`, or `ITracer` declarations, promote them once:
+
+   ```csharp
+   [assembly: AutoDep<TimeProvider>]
+   [assembly: AutoDep<IMetrics>]
+   ```
+
+### How the code fix decides
+
+For each `[Inject]` field, the migration picks one of three outcomes:
+
+- **Delete entirely** — the field's type is covered by a resolved auto-dep
+  for the service and the field carries no customization (no custom name,
+  no `[ExternalService]` flag). The auto-dep supplies the dependency
+  implicitly; the field is removed.
+- **Convert to bare `[DependsOn<T>]`** — the field is not covered by an
+  auto-dep and uses the default naming convention.
+- **Convert with customization preserved** — custom field names map to
+  `memberName1..N`; `[ExternalService]` maps to `external: true`. Fields
+  with divergent `external:` flags are split into separate `[DependsOn<T>]`
+  attributes because `external:` is attribute-wide on `DependsOn`.
+
+### Migration losses to be aware of
+
+- **Field access modifiers.** `[Inject] protected readonly IFoo _foo;`
+  cannot round-trip — `[DependsOn<T>]` emits private fields. Protected /
+  internal / public `[Inject]` fields must be hand-migrated to manual
+  constructors. The migration tool surfaces these as requiring manual
+  review rather than converting them silently.
+- **Unusual field ordering.** The generator emits fields in the order
+  `[DependsOn<T>]` attributes appear on the class. Multi-slot `DependsOn`
+  attributes preserve slot order. Code that depended on interleaved
+  `[Inject]` declaration order across multiple fields may need an explicit
+  attribute ordering after migration.
+- **Kept out of scope:** `[InjectConfiguration]` is unaffected and stays.
+  It is not deprecated.
+
+### Opt-out ladder for auto-deps
+
+If auto-deps surprise you after the upgrade, the opt-out ladder goes from
+narrow to broad:
+
+| Need | How |
+|---|---|
+| Suppress the implicit `ILogger<T>` on one service | `[NoAutoDepOpen(typeof(ILogger<>))]` on the class |
+| Suppress one specific auto-dep type on one service | `[NoAutoDep<T>]` on the class |
+| Suppress all auto-deps on one service | `[NoAutoDeps]` on the class |
+| Disable `ILogger<T>` auto-detection project-wide | `<IoCToolsAutoDetectLogger>false</IoCToolsAutoDetectLogger>` |
+| Exclude a namespace of services from auto-deps | `<IoCToolsAutoDepsExcludeGlob>*.Legacy.*</IoCToolsAutoDepsExcludeGlob>` |
+| Kill-switch the entire feature | `<IoCToolsAutoDepsDisable>true</IoCToolsAutoDepsDisable>` |
+
+### Solution-wide auto-dep policy
+
+For teams that want one declaration of auto-dep policy across every project
+in a solution, the idiomatic pattern is a small `MyCompany.DiConfig` project
+containing only assembly attributes with `Scope = AutoDepScope.Transitive`.
+Every other project takes a `<ProjectReference>` to it and inherits the
+policy:
+
+```csharp
+// MyCompany.DiConfig/AssemblyInfo.cs
+[assembly: AutoDepOpen(typeof(ILogger<>), Scope = AutoDepScope.Transitive)]
+[assembly: AutoDep<TimeProvider>(Scope = AutoDepScope.Transitive)]
+[assembly: AutoDepIn<ControllerDefaults, IMediator>(Scope = AutoDepScope.Transitive)]
+[assembly: AutoDepsApply<ControllerDefaults, ControllerBase>(Scope = AutoDepScope.Transitive)]
+```
+
+This is the same pattern teams already use for
+`[assembly: InternalsVisibleTo]`. MSBuild is **not** used for declaring
+auto-deps — it remains override-only.
+
+### Deprecation timeline
+
+| Version | `[Inject]` posture |
+|---|---|
+| **1.6.x** | Deprecated. `IOC095` warning. Code fix + `migrate-inject` CLI ship. Severity tunable via `IoCToolsInjectDeprecationSeverity`. |
+| **1.7.0** | `[Obsolete(error: true)]`. `IOC095` defaults to error. Severity override permits raising but not lowering. |
+| **2.0.0** | `InjectAttribute` removed from `IoCTools.Abstractions`; related analyzers deleted. |
+
+See [docs/auto-deps.md](auto-deps.md) for the full auto-deps reference.
+
+---
 
 ## From Manual DI
 

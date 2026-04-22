@@ -922,6 +922,14 @@ public partial class Repository<T> : IRepository<T> where T : class { }
 
 ### IOC095
 
+> **Note.** The IOC095 ID ships with **two descriptors** in 1.6.0+. The
+> originally-assigned open-generic fallback descriptor (below) remains
+> registered so existing suppressions continue to apply. The new primary
+> meaning — `[Inject]` deprecation — is described in the
+> [Auto-Deps Diagnostics](#auto-deps-diagnostics-1-6-0) section below.
+> Consumers with pre-1.6 `IOC095` suppressions should review what their
+> suppression now covers.
+
 **Severity:** [!Warning](#) | **Category:** IoCTools.Registration
 
 **Cause:** An open generic requests `InstanceSharing.Shared` for interface aliases, but `Microsoft.Extensions.DependencyInjection` does not support open generic implementation factories.
@@ -938,6 +946,150 @@ public partial class Repository<T> : IRepository<T>, ILookup<T> where T : class 
 services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 services.AddScoped(typeof(ILookup<>), typeof(Repository<>));
 ```
+
+---
+
+## Auto-Deps Diagnostics (1.6.0+)
+
+The auto-deps feature introduced in 1.6.0 ships diagnostics IOC095 through
+IOC105. For concept documentation see [docs/auto-deps.md](auto-deps.md);
+every descriptor's `HelpLinkUri` points at the `#iocXXX` anchor on that page.
+
+> **ID-collision disclosure.** IOC100, IOC101, and IOC102 are **also** used
+> by `IoCTools.FluentValidation` (see the FluentValidation Diagnostics
+> section below). In a project that references both packages, a suppression
+> of any of these three IDs applies to both meanings. This is a known
+> overlap carried into 1.6.0; consumers with IOC100-IOC102 suppressions
+> should review them.
+
+### IOC095 (primary, 1.6.0+) — `[Inject]` is deprecated
+
+**Severity:** Warning (1.6) → Error (1.7) → Removed (2.0) | **Category:** IoCTools.AutoDeps
+
+**Cause:** The field uses `[Inject]`, which is deprecated in favor of
+`[DependsOn<T>]`. Ships with a Roslyn code fix (IDE) and the
+`ioc-tools migrate-inject` CLI (headless) for bulk conversion.
+
+**Fix:** Accept the code-fix light-bulb, run `ioc-tools migrate-inject` at
+the solution root, or modulate severity during migration via
+`<IoCToolsInjectDeprecationSeverity>Info</IoCToolsInjectDeprecationSeverity>`.
+See the [1.5.x → 1.6.x migration guide](migration.md#migrating-from-15x-to-16x).
+
+### IOC096 — Stale opt-out
+
+**Severity:** Info | **Category:** IoCTools.AutoDeps
+
+**Cause:** `[NoAutoDep<T>]` references a type not in the service's resolved
+auto-dep set, or `[NoAutoDepOpen(typeof(T<>))]` references an open-generic
+shape with no matching auto-dep derivation for this service.
+
+**Fix:** Remove the stale opt-out, or fix the typo in the referenced type.
+
+### IOC097 — Profile missing `IAutoDepsProfile` marker
+
+**Severity:** Warning | **Category:** IoCTools.AutoDeps
+
+**Cause:** `AutoDepIn<TProfile, T>`, `AutoDepsApply<TProfile, TBase>`,
+`AutoDepsApplyGlob<TProfile>`, or `[AutoDeps<TProfile>]` was given a
+`TProfile` that does not implement `IAutoDepsProfile`.
+
+**Fix:** Add the marker interface:
+
+```csharp
+public sealed class ControllerDefaults : IAutoDepsProfile { }
+```
+
+### IOC098 — `[DependsOn<T>]` redundant with auto-dep
+
+**Severity:** Info | **Category:** IoCTools.AutoDeps
+
+**Cause:** The service's `[DependsOn<T>]` covers a type also supplied by an
+auto-dep (built-in detection, local universal, transitive, or
+profile-sourced). The generated constructor is identical either way. The
+message names the auto-dep's source (`auto-builtin:ILogger`,
+`auto-universal`, `auto-transitive:<AssemblyName>`, or
+`auto-profile:<Name>`).
+
+**Fix:** Remove the redundant `[DependsOn<T>]`, or — if you want explicit
+customization (`memberName*` or `external: true`) — keep it and ignore the
+info (explicit always wins).
+
+### IOC099 — Profile attachment matches zero services
+
+**Severity:** Info | **Category:** IoCTools.AutoDeps
+
+**Cause:** `AutoDepsApply<TProfile, TBase>` or `AutoDepsApplyGlob<TProfile>`
+matches no services in the assembly. Often a stale rule or a typo in the
+glob pattern.
+
+**Fix:** Remove the unused rule, fix the glob pattern, or confirm the base
+class match still holds.
+
+### IOC100 — `AutoDepOpen` on multi-arity generic
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** `AutoDepOpen` was given a multi-arity unbound generic like
+`typeof(IFoo<,>)`. No universal "close with self" convention exists for
+multi-arity generics.
+
+**Fix:** Use `AutoDep<T>` with an explicitly closed type, or redesign the
+dependency so the service-type parameter is a single unbound.
+
+### IOC101 — `AutoDepOpen` on non-generic
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** `AutoDepOpen` was given a non-generic type.
+
+**Fix:** Use `AutoDep<T>` for closed types.
+
+### IOC102 — `AutoDepOpen` closure violates constraints
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** Closing the unbound generic over a matching service's concrete
+type would violate the unbound's type-parameter constraints. The primary
+location is the service declaration where codegen would fail; the
+secondary location is the `AutoDepOpen` assembly attribute.
+
+**Fix:** Exclude the service from the auto-dep via `[NoAutoDepOpen(...)]`,
+or relax the unbound's constraints.
+
+### IOC103 — Invalid glob pattern
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** `AutoDepsApplyGlob<TProfile>` was given an invalid pattern —
+empty string, unterminated character class, or unsupported metacharacter.
+The validator uses the same grammar as `IoCToolsIgnoredTypePatterns` and
+`IoCToolsSkipAssignableTypes*`.
+
+**Fix:** Fix the pattern. Simple leading/trailing wildcards (`*.Foo.*`) are
+always safe.
+
+### IOC104 — Profile type is generic
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** A profile type used as `TProfile` in `AutoDepIn`,
+`AutoDepsApply`, `AutoDepsApplyGlob`, or `AutoDeps` is generic. Profiles
+must be non-generic in 1.6.
+
+**Fix:** Make the profile class non-generic. If domain-specific typing is
+needed, declare per-domain non-generic profiles
+(`OrderProfile`, `ReportProfile`, …) rather than one generic profile.
+
+### IOC105 — Redundant profile attachment
+
+**Severity:** Info | **Category:** IoCTools.AutoDeps
+
+**Cause:** A service is attached to the same profile via more than one path
+(e.g., `AutoDepsApplyGlob` match plus explicit `[AutoDeps<TProfile>]` on
+the class). The attachment is deduped silently.
+
+**Fix:** Remove one of the redundant attachment declarations so the
+attachment is expressed once.
 
 ---
 
