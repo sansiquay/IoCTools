@@ -563,6 +563,12 @@ internal static class DiagnosticRules
         DiagnosticConfiguration diagnosticConfig) =>
         AutoDepOpenArgumentValidator.Validate(context, compilation, diagnosticConfig);
 
+    // IOC103: AutoDepsApplyGlob pattern validation (compilation-level)
+    public static void ValidateAutoDepsApplyGlobPattern(SourceProductionContext context,
+        Compilation compilation,
+        DiagnosticConfiguration diagnosticConfig) =>
+        AutoDepsApplyGlobPatternValidator.Validate(context, compilation, diagnosticConfig);
+
     // IOC080: Validate that classes with code-generating attributes are marked as partial
     public static void ValidateMissingPartialKeyword(SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,

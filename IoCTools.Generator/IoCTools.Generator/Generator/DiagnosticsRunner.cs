@@ -470,6 +470,9 @@ internal static class DiagnosticsRunner
 
         // IOC100 + IOC101: AutoDepOpen type-argument validation
         DiagnosticRules.ValidateAutoDepOpenArguments(context, compilation, diagnosticConfig);
+
+        // IOC103: AutoDepsApplyGlob pattern validation
+        DiagnosticRules.ValidateAutoDepsApplyGlobPattern(context, compilation, diagnosticConfig);
     }
 
     private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
