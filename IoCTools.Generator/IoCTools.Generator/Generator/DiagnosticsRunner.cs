@@ -16,7 +16,8 @@ internal static class DiagnosticsRunner
         ((ImmutableArray<ServiceClassInfo> Services, ImmutableArray<INamedTypeSymbol> ReferencedTypes, Compilation
             Compilation) Input,
             AnalyzerConfigOptionsProvider ConfigOptions,
-            GeneratorStyleOptions StyleOptions) payload) =>
+            GeneratorStyleOptions StyleOptions,
+            ImmutableDictionary<string, string> AutoDepsOptions) payload) =>
         ValidateAllServiceDiagnosticsWithReferencedTypes(context, payload);
 
     internal static void ValidateAllServiceDiagnostics(SourceProductionContext context,
@@ -29,6 +30,7 @@ internal static class DiagnosticsRunner
             var styleOptions = GeneratorStyleOptions.From(configOptions, compilation);
             var implicitLifetime = styleOptions.DefaultImplicitLifetime;
             var diagnosticConfig = DiagnosticUtilities.GetDiagnosticConfiguration(configOptions);
+            var autoDepsOptions = AutoDepsOptionsReader.Read(configOptions.GlobalOptions);
 
             var servicesFiltered = services
                 .Where(s => !TypeSkipEvaluator.ShouldSkipRegistration(s.ClassSymbol, compilation, styleOptions))
@@ -94,7 +96,8 @@ internal static class DiagnosticsRunner
                 if (serviceInfo.ClassDeclaration != null)
                     ValidateDependenciesComplete(context, serviceInfo.ClassDeclaration, hierarchyDependencies,
                         allRegisteredServices, allImplementations, serviceLifetimes, diagnosticConfig,
-                        serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime);
+                        serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime,
+                        compilation, autoDepsOptions);
             }
 
             // IOC050/IOC051: manual registrations overlapping IoCTools (runs after lifetimes map is built)
@@ -139,7 +142,9 @@ internal static class DiagnosticsRunner
         DiagnosticConfiguration diagnosticConfig,
         SemanticModel semanticModel,
         INamedTypeSymbol classSymbol,
-        string implicitLifetime)
+        string implicitLifetime,
+        Compilation? compilation = null,
+        ImmutableDictionary<string, string>? autoDepsOptions = null)
     {
         if (!diagnosticConfig.DiagnosticsEnabled) return;
 
@@ -228,17 +233,23 @@ internal static class DiagnosticsRunner
         DiagnosticRules.ValidateMissingDependencies(context, classDeclaration, hierarchyDependencies,
             allRegisteredServices,
             allImplementations, serviceLifetimes, diagnosticConfig, classSymbol, implicitLifetime);
+
+        // IOC096/IOC098/IOC102/IOC105: resolver-integrated per-service diagnostics.
+        if (compilation is not null && autoDepsOptions is not null)
+            AutoDepsDiagnosticsValidator.Validate(context, compilation, classSymbol, classDeclaration,
+                autoDepsOptions, diagnosticConfig);
     }
 
     private static void ValidateAllServiceDiagnosticsWithReferencedTypes(SourceProductionContext context,
         ((ImmutableArray<ServiceClassInfo> Services, ImmutableArray<INamedTypeSymbol> ReferencedTypes, Compilation
             Compilation) Input,
             AnalyzerConfigOptionsProvider ConfigOptions,
-            GeneratorStyleOptions StyleOptions) input)
+            GeneratorStyleOptions StyleOptions,
+            ImmutableDictionary<string, string> AutoDepsOptions) input)
     {
         try
         {
-            var ((services, referencedTypes, compilation), configOptions, styleOptions) = input;
+            var ((services, referencedTypes, compilation), configOptions, styleOptions, autoDepsOptions) = input;
             var diagnosticConfig = DiagnosticUtilities.GetDiagnosticConfiguration(configOptions);
             var servicesFiltered = services
                 .Where(s => !TypeSkipEvaluator.ShouldSkipRegistration(s.ClassSymbol, compilation, styleOptions))
@@ -419,7 +430,8 @@ internal static class DiagnosticsRunner
 
                     ValidateDependenciesComplete(context, serviceInfo.ClassDeclaration, hierarchyDependencies,
                         allRegisteredServices, allImplementations, serviceLifetimes, diagnosticConfig,
-                        serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime);
+                        serviceInfo.SemanticModel, serviceInfo.ClassSymbol, implicitLifetime,
+                        compilation, autoDepsOptions);
 
                     // IOC068: Suggest DependsOn for types with DI-like constructors
                     if (diagnosticConfig.DiagnosticsEnabled)

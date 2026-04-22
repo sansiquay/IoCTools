@@ -2,6 +2,7 @@ namespace IoCTools.Generator.Shared;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 
 public static partial class AutoDepsResolver
@@ -70,6 +71,49 @@ public static partial class AutoDepsResolver
         builder.ReconcileAgainstDependsOn();
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Variant of <see cref="ResolveForService"/> that ALSO returns resolver-internal diagnostic
+    /// signals (stale opt-outs, DependsOn overlaps, open-generic constraint violations,
+    /// redundant profile attachments). Signals carry no <see cref="Location"/> -- the validator
+    /// looks up the appropriate location by re-walking the compilation.
+    /// </summary>
+    public static (AutoDepsResolverOutput Output, ImmutableArray<AutoDepDiagnosticSignal> Signals)
+        ResolveForServiceWithDiagnostics(
+            Compilation compilation,
+            INamedTypeSymbol serviceSymbol,
+            IReadOnlyDictionary<string, string> msbuildProperties)
+    {
+        if (compilation is null) throw new ArgumentNullException(nameof(compilation));
+        if (serviceSymbol is null) throw new ArgumentNullException(nameof(serviceSymbol));
+        if (msbuildProperties is null) throw new ArgumentNullException(nameof(msbuildProperties));
+
+        if (GetBool(msbuildProperties, "build_property.IoCToolsAutoDepsDisable") == true)
+            return (AutoDepsResolverOutput.Empty, ImmutableArray<AutoDepDiagnosticSignal>.Empty);
+
+        var excludeGlob = GetString(msbuildProperties, "build_property.IoCToolsAutoDepsExcludeGlob");
+        if (!string.IsNullOrEmpty(excludeGlob))
+        {
+            var ns = serviceSymbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            if (GlobMatch(ns, excludeGlob!, out _))
+                return (AutoDepsResolverOutput.Empty, ImmutableArray<AutoDepDiagnosticSignal>.Empty);
+        }
+
+        if (ResolutionBuilder.HasManualConstructor(serviceSymbol))
+            return (AutoDepsResolverOutput.Empty, ImmutableArray<AutoDepDiagnosticSignal>.Empty);
+
+        var builder = new ResolutionBuilder(compilation, serviceSymbol);
+
+        if (GetBool(msbuildProperties, "build_property.IoCToolsAutoDetectLogger") != false)
+            builder.AddBuiltinILoggerIfAvailable();
+
+        builder.AddUniversalFromAttributes();
+        builder.ApplyProfiles();
+        builder.ApplyOptOuts();
+        builder.ReconcileAgainstDependsOn();
+
+        return (builder.Build(), builder.Signals);
     }
 
     private static bool? GetBool(IReadOnlyDictionary<string, string> props, string key) =>

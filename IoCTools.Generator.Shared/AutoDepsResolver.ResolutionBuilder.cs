@@ -28,12 +28,22 @@ public static partial class AutoDepsResolver
         private readonly HashSet<SymbolIdentity> _optOutOpenShapes = new HashSet<SymbolIdentity>();
         private bool _blanketOptOut;
 
+        // Pre-opt-out snapshot: the set of entry IDs that WOULD have been added before
+        // opt-outs fire. Used to classify NoAutoDep*/NoAutoDepOpen as stale (IOC096) or effective.
+        private readonly HashSet<SymbolIdentity> _preOptOutEntryIds = new HashSet<SymbolIdentity>();
+
+        // Diagnostic signals surfaced from the resolver for the validator layer to materialize
+        // into Microsoft.CodeAnalysis.Diagnostic with appropriate Location.
+        private readonly List<AutoDepDiagnosticSignal> _signals = new List<AutoDepDiagnosticSignal>();
+
         public ResolutionBuilder(Compilation compilation, INamedTypeSymbol service)
         {
             _compilation = compilation;
             _service = service;
             CollectServiceOptOuts();
         }
+
+        public ImmutableArray<AutoDepDiagnosticSignal> Signals => _signals.ToImmutableArray();
 
         private void CollectServiceOptOuts()
         {
@@ -123,14 +133,28 @@ public static partial class AutoDepsResolver
         {
             if (_blanketOptOut) return;
 
-            // `attachedProfiles`: profile identity -> `isTransitiveAttachment` (true if the
-            // attachment rule came from a referenced assembly). Service-level [AutoDeps<T>] is
-            // always local. For AutoDepsApply / AutoDepsApplyGlob, the attachment rule may come
-            // from a transitive assembly; however the per-dep transitivity used for attribution
-            // is determined by each AutoDepIn's own IsTransitive flag, not by the attachment's
-            // origin (a local attachment still sees transitive AutoDepIn contributions, and
-            // vice versa).
-            var attachedProfiles = new HashSet<SymbolIdentity>();
+            // Track attachment paths per profile so we can emit IOC105 (redundant profile
+            // attachment) when more than one path attaches the same profile. Paths are stringly
+            // typed descriptions suitable for the diagnostic message:
+            //   - "[AutoDeps<P>] on class"
+            //   - "[assembly: AutoDepsApply<P, IBase>]"
+            //   - "[assembly: AutoDepsApplyGlob<P>(\"pattern\")]"
+            var attachmentPaths = new Dictionary<SymbolIdentity, List<string>>();
+            var profileDisplayNames = new Dictionary<SymbolIdentity, string>();
+
+            void RecordAttachment(ITypeSymbol profile, string pathDescription)
+            {
+                var id = SymbolIdentity.From(profile);
+                if (!attachmentPaths.TryGetValue(id, out var paths))
+                {
+                    paths = new List<string>();
+                    attachmentPaths[id] = paths;
+                    profileDisplayNames[id] = profile.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                }
+
+                if (!paths.Contains(pathDescription, StringComparer.Ordinal))
+                    paths.Add(pathDescription);
+            }
 
             // 1. [AutoDeps<TProfile>] on the service (always local attachment)
             foreach (var a in _service.GetAttributes())
@@ -142,7 +166,8 @@ public static partial class AutoDepsResolver
                 if (cls.Name == "AutoDepsAttribute" && cls.TypeArguments.Length == 1 &&
                     cls.TypeArguments[0] is ITypeSymbol profile)
                 {
-                    attachedProfiles.Add(SymbolIdentity.From(profile));
+                    var profileShort = profile.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                    RecordAttachment(profile, $"[AutoDeps<{profileShort}>] on class");
                 }
             }
 
@@ -161,7 +186,9 @@ public static partial class AutoDepsResolver
                         cls.TypeArguments[1] is ITypeSymbol tbase &&
                         ServiceMatchesBase(tbase))
                     {
-                        attachedProfiles.Add(SymbolIdentity.From(prof));
+                        var profShort = prof.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                        var baseShort = tbase.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                        RecordAttachment(prof, $"[assembly: AutoDepsApply<{profShort}, {baseShort}>]");
                     }
                 }
                 else if (attrName == "AutoDepsApplyGlobAttribute" &&
@@ -174,12 +201,30 @@ public static partial class AutoDepsResolver
                         var ns = _service.ContainingNamespace?.ToDisplayString() ?? string.Empty;
                         if (GlobMatch(ns, pattern, out _))
                         {
-                            attachedProfiles.Add(SymbolIdentity.From(prof));
+                            var profShort = prof.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                            RecordAttachment(prof, $"[assembly: AutoDepsApplyGlob<{profShort}>(\"{pattern}\")]");
                         }
                     }
                 }
             }
 
+            // IOC105: profiles attached via multiple paths -> signal the redundancy.
+            foreach (var kv in attachmentPaths)
+            {
+                if (kv.Value.Count <= 1) continue;
+                var serviceName = _service.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                var profileName = profileDisplayNames.TryGetValue(kv.Key, out var pn)
+                    ? pn
+                    : kv.Key.MetadataName;
+                var paths = string.Join("; ", kv.Value);
+                _signals.Add(new AutoDepDiagnosticSignal(
+                    AutoDepDiagnosticKind.RedundantProfile,
+                    arg0: serviceName,
+                    arg1: profileName,
+                    arg2: paths));
+            }
+
+            var attachedProfiles = new HashSet<SymbolIdentity>(attachmentPaths.Keys);
             if (attachedProfiles.Count == 0) return;
 
             // For each attached profile, find [assembly: AutoDepIn<TProfile, T>] contributions

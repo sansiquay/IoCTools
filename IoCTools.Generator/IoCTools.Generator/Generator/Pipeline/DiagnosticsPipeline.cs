@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator.Pipeline;
 using System.Collections.Immutable;
 
 using IoCTools.Generator.Diagnostics;
+using IoCTools.Generator.Utilities;
 
 internal static class DiagnosticsPipeline
 {
@@ -14,6 +15,9 @@ internal static class DiagnosticsPipeline
             .Combine(context.CompilationProvider)
             .Select(static (input,
                 _) => GeneratorStyleOptions.From(input.Left, input.Right));
+
+        var autoDepsOptionsProvider = context.AnalyzerConfigOptionsProvider
+            .Select(static (opts, _) => AutoDepsOptionsReader.Read(opts.GlobalOptions));
 
         var excludedPrefixesProvider = context.AnalyzerConfigOptionsProvider
             .Select(static (options, _) =>
@@ -64,11 +68,12 @@ internal static class DiagnosticsPipeline
             .Combine(context.CompilationProvider)
             .Combine(context.AnalyzerConfigOptionsProvider)
             .Combine(styleOptionsProvider)
+            .Combine(autoDepsOptionsProvider)
             .Select(static (input,
                 _) =>
             {
-                var ((((services, referencedTypes), compilation), config), styleOptions) = input;
-                return ((services, referencedTypes, compilation), config, styleOptions);
+                var (((((services, referencedTypes), compilation), config), styleOptions), autoDepsOptions) = input;
+                return ((services, referencedTypes, compilation), config, styleOptions, autoDepsOptions);
             });
 
         context.RegisterSourceOutput(diagnosticsInput, DiagnosticsRunner.EmitWithReferencedTypes);
