@@ -117,6 +117,43 @@ public interface IFoo { }
     }
 
     [Fact]
+    public void AutoDepsExcludeGlob_suppresses_services_matching_pattern()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+[assembly: AutoDep<TestNs.IFoo>]
+
+namespace TestNs
+{
+    public interface IFoo { }
+    [Scoped] public partial class IncludedSvc { }
+    [Scoped] public partial class FooImpl : IFoo { }
+}
+
+namespace TestNs.Excluded
+{
+    [Scoped] public partial class ExcludedSvc { }
+}
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true,
+            OptIn(("build_property.IoCToolsAutoDepsExcludeGlob", "*.Excluded*")));
+
+        var excludedCtor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class ExcludedSvc") && s.Content.Contains("ExcludedSvc("));
+        var includedCtor = result.GeneratedSources.FirstOrDefault(s =>
+            s.Content.Contains("partial class IncludedSvc") && s.Content.Contains("IncludedSvc("));
+
+        // ExcludedSvc matches the glob -> auto-dep suppressed -> either no ctor emitted or no IFoo
+        if (excludedCtor is not null)
+            excludedCtor.Content.Should().NotContain("IFoo");
+
+        // IncludedSvc does not match -> auto-dep applied
+        includedCtor.Should().NotBeNull();
+        includedCtor!.Content.Should().Contain("IFoo");
+    }
+
+    [Fact]
     public void NoAutoDeps_on_service_suppresses_all_entries()
     {
         var source = @"
