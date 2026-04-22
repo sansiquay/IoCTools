@@ -334,9 +334,33 @@ public static class Program
         }
 
         var summary = RegistrationSummaryBuilder.Build(path!);
-        GraphPrinter.Write(summary, options.Format, options.TypeName, output);
+        var autoDepRows = await BuildAutoDepGraphRowsAsync(context, options.TypeName, token);
+        GraphPrinter.Write(summary, options.Format, options.TypeName, output, autoDepRows, options.AutoDepsFlags);
         output.ReportTiming("Command completed");
         return 0;
+    }
+
+    private static async Task<IReadOnlyList<AutoDepGraphRow>> BuildAutoDepGraphRowsAsync(ProjectContext context,
+        string? typeFilter,
+        CancellationToken token)
+    {
+        var inspector = new ServiceFieldInspector(context.Project);
+        var reports = await inspector.GetFieldReportsAsync(null, Array.Empty<string>(), token);
+        var rows = new List<AutoDepGraphRow>();
+        foreach (var report in reports)
+        {
+            if (!string.IsNullOrWhiteSpace(typeFilter) &&
+                !TypeFilterUtility.Matches(report.TypeName, typeFilter!))
+                continue;
+            foreach (var dep in report.DependencyFields)
+            {
+                if (dep.Attribution is not { } attribution) continue;
+                if (attribution.Kind == Generator.Shared.AutoDepSourceKind.Explicit) continue;
+                rows.Add(new AutoDepGraphRow(report.TypeName, dep.TypeName, attribution));
+            }
+        }
+
+        return rows;
     }
 
     private static async Task<int> RunWhyAsync(string[] args,
