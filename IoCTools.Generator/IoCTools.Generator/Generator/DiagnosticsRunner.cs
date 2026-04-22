@@ -485,6 +485,9 @@ internal static class DiagnosticsRunner
 
         // IOC103: AutoDepsApplyGlob pattern validation
         DiagnosticRules.ValidateAutoDepsApplyGlobPattern(context, compilation, diagnosticConfig);
+
+        // IOC099: AutoDepsApply / AutoDepsApplyGlob rules matching zero services
+        AutoDepsApplyMatchCountValidator.Validate(context, compilation, diagnosticConfig);
     }
 
     private static Dictionary<string, string> CollectLifetimesFromCompilation(Compilation compilation,
