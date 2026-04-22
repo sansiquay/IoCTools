@@ -116,6 +116,11 @@ internal static class AttributeParser
             if (externalValue is bool ext) external = ext;
         }
 
+        // Preserve positional alignment: constructorArgs[4 + i] corresponds to memberName{i+1},
+        // which is the per-slot name for the i-th type argument. A null/default entry means
+        // "no explicit name for this slot" -- fall back to default naming in the analyzer.
+        // Compacting the list would misalign sparse entries (e.g., memberName2: "_x" without
+        // memberName1 would land at slot 0 after compaction).
         var memberNameArgs = new List<string>();
         if (constructorArgs.Length > 4)
         {
@@ -124,8 +129,14 @@ internal static class AttributeParser
                 var arg = constructorArgs[i];
                 if (arg.Kind == TypedConstantKind.Primitive && arg.Value is string s && !string.IsNullOrEmpty(s))
                     memberNameArgs.Add(s);
+                else
+                    memberNameArgs.Add(string.Empty);
             }
         }
+
+        // Trim trailing empty entries for cleanliness; leading/middle empties preserve alignment.
+        while (memberNameArgs.Count > 0 && string.IsNullOrEmpty(memberNameArgs[memberNameArgs.Count - 1]))
+            memberNameArgs.RemoveAt(memberNameArgs.Count - 1);
 
         if (memberNameArgs.Count > 0)
             memberNames = memberNameArgs.ToArray();
