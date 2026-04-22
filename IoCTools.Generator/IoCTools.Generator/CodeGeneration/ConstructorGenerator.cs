@@ -14,10 +14,11 @@ internal static partial class ConstructorGenerator
     public static string GenerateInheritanceAwareConstructorCodeWithContext(TypeDeclarationSyntax classDeclaration,
         InheritanceHierarchyDependencies hierarchyDependencies,
         SemanticModel semanticModel,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        IReadOnlyDictionary<string, string>? autoDepsOptions = null)
     {
         return GenerateInheritanceAwareConstructorCodeCore(classDeclaration, hierarchyDependencies, semanticModel,
-            context.ReportDiagnostic);
+            context.ReportDiagnostic, autoDepsOptions);
     }
 
     /// <summary>
@@ -29,7 +30,7 @@ internal static partial class ConstructorGenerator
         GeneratorExecutionContext context)
     {
         return GenerateInheritanceAwareConstructorCodeCore(classDeclaration, hierarchyDependencies, semanticModel,
-            context.ReportDiagnostic);
+            context.ReportDiagnostic, autoDepsOptions: null);
     }
 
     /// <summary>
@@ -38,7 +39,8 @@ internal static partial class ConstructorGenerator
     private static string GenerateInheritanceAwareConstructorCodeCore(TypeDeclarationSyntax classDeclaration,
         InheritanceHierarchyDependencies hierarchyDependencies,
         SemanticModel semanticModel,
-        Action<Diagnostic> reportDiagnostic)
+        Action<Diagnostic> reportDiagnostic,
+        IReadOnlyDictionary<string, string>? autoDepsOptions)
     {
         try
         {
@@ -294,7 +296,7 @@ internal static partial class ConstructorGenerator
                 return "";
 
             // Generate base constructor call
-            var baseCallStr = GenerateBaseConstructorCall(classSymbol?.BaseType, parametersWithNames, semanticModel, classSymbol);
+            var baseCallStr = GenerateBaseConstructorCall(classSymbol?.BaseType, parametersWithNames, semanticModel, classSymbol, autoDepsOptions);
 
             // Regenerate parameter string
             var allParameters = parametersWithNames.Select(p => $"{p.TypeString} {p.ParamName}");
@@ -493,9 +495,10 @@ internal static partial class ConstructorGenerator
         INamedTypeSymbol? baseClass,
         List<(string TypeString, string ParamName, (ITypeSymbol ServiceType, string FieldName, DependencySource Source) Dependency)> parametersWithNames,
         SemanticModel semanticModel,
-        INamedTypeSymbol? currentClassSymbol)
+        INamedTypeSymbol? currentClassSymbol,
+        IReadOnlyDictionary<string, string>? autoDepsOptions)
     {
-        return BaseConstructorCallBuilder.Build(baseClass, parametersWithNames, semanticModel, currentClassSymbol);
+        return BaseConstructorCallBuilder.Build(baseClass, parametersWithNames, semanticModel, currentClassSymbol, autoDepsOptions);
     }
 
     internal static INamedTypeSymbol? ResolveDeclaredClassSymbol(

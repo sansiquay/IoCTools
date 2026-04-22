@@ -1,6 +1,9 @@
 namespace IoCTools.Generator.CodeGeneration;
 
+using System.Collections.Generic;
+
 using IoCTools.Generator.Analysis;
+using IoCTools.Generator.Generator;
 using IoCTools.Generator.Models;
 
 using Microsoft.CodeAnalysis;
@@ -67,7 +70,8 @@ internal static class BaseConstructorCallBuilder
         INamedTypeSymbol? baseClass,
         List<(string TypeString, string ParamName, (ITypeSymbol ServiceType, string FieldName, DependencySource Source) Dependency)> parametersWithNames,
         SemanticModel semanticModel,
-        INamedTypeSymbol? currentClassSymbol)
+        INamedTypeSymbol? currentClassSymbol,
+        IReadOnlyDictionary<string, string>? autoDepsOptions = null)
     {
         if (baseClass == null)
             return string.Empty;
@@ -80,7 +84,7 @@ internal static class BaseConstructorCallBuilder
 
         // Main IoC path: partial base class with generated constructor
         if (analysis.CanAcceptDIParameters && analysis.IsPartial && analysis.WillHaveConstructor)
-            return BuildIoCBaseCall(baseClass, parametersWithNames, semanticModel);
+            return BuildIoCBaseCall(baseClass, parametersWithNames, semanticModel, autoDepsOptions);
 
         // Non-IoC base class fallback: handle constructors requiring parameters
         return BuildNonIoCBaseCall(baseClass, analysis, currentClassSymbol);
@@ -89,10 +93,24 @@ internal static class BaseConstructorCallBuilder
     private static string BuildIoCBaseCall(
         INamedTypeSymbol baseClass,
         List<(string TypeString, string ParamName, (ITypeSymbol ServiceType, string FieldName, DependencySource Source) Dependency)> parametersWithNames,
-        SemanticModel semanticModel)
+        SemanticModel semanticModel,
+        IReadOnlyDictionary<string, string>? autoDepsOptions)
     {
         var baseHierarchyDependencies =
             DependencyAnalyzer.GetConstructorDependencies(baseClass, semanticModel);
+
+        // Auto-deps are resolved per-class, so the base class's own hierarchy must be
+        // merged against the same resolver configuration as the derived class. Without
+        // this, base(...) forwarding would miss open-generic-closed deps like
+        // ILogger<BaseSvc> that the base's generated ctor actually expects.
+        if (autoDepsOptions is not null)
+        {
+            AutoDepsMerger.MergeAutoDepsIntoHierarchy(
+                baseHierarchyDependencies,
+                semanticModel.Compilation,
+                baseClass,
+                autoDepsOptions);
+        }
 
         if (!baseHierarchyDependencies.AllDependencies.Any())
             return string.Empty;
@@ -201,9 +219,17 @@ internal static class BaseConstructorCallBuilder
             .Any(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr));
         var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(baseClass);
 
+        // A lifetime-only base class ([Scoped]/[Singleton]/[Transient] with no explicit deps)
+        // can still receive a generated constructor once auto-deps resolves deps into its
+        // hierarchy (e.g. the built-in ILogger<TBase>). Treat it as ctor-bearing so
+        // BuildIoCBaseCall runs; if the base still ends up with zero dependencies the
+        // builder returns an empty string and falls back to the implicit default base().
+        var (hasLifetimeAttribute, _, _, _) =
+            Generator.ServiceDiscovery.GetLifetimeAttributes(baseClass);
+
         return hasInjectFields || hasInjectConfigurationFields || hasDependsOnAttribute ||
                hasConditionalServiceAttribute || hasRegisterAsAllAttribute || hasRegisterAsAttribute ||
-               isHostedService;
+               isHostedService || hasLifetimeAttribute;
     }
 
     /// <summary>

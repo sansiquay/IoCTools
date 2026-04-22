@@ -56,7 +56,8 @@ internal static class ConstructorEmitter
                 autoDepsOptions);
 
             var constructorCode = GenerateInheritanceAwareConstructorCodeWithContext(
-                serviceInfo.ClassDeclaration, hierarchyDependencies, serviceInfo.SemanticModel, context);
+                serviceInfo.ClassDeclaration, hierarchyDependencies, serviceInfo.SemanticModel, context,
+                autoDepsOptions);
 
             if (!string.IsNullOrEmpty(constructorCode))
             {
@@ -79,12 +80,13 @@ internal static class ConstructorEmitter
         TypeDeclarationSyntax classDeclaration,
         InheritanceHierarchyDependencies hierarchyDependencies,
         SemanticModel semanticModel,
-        SourceProductionContext context)
+        SourceProductionContext context,
+        ImmutableDictionary<string, string> autoDepsOptions)
     {
         try
         {
             return ConstructorGenerator.GenerateInheritanceAwareConstructorCodeWithContext(
-                classDeclaration, hierarchyDependencies, semanticModel, context);
+                classDeclaration, hierarchyDependencies, semanticModel, context, autoDepsOptions);
         }
         catch (Exception ex)
         {

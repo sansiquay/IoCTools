@@ -153,4 +153,78 @@ namespace TestNs;
         if (ctor is not null)
             ctor.Content.Should().NotContain("ILogger");
     }
+
+    [Fact]
+    public void Open_generic_logger_closes_per_level_for_inheritance()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class BaseSvc { }
+[Scoped] public partial class DerivedSvc : BaseSvc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+
+        var baseCtor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class BaseSvc") && s.Content.Contains("BaseSvc("));
+        var derivedCtor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class DerivedSvc") && s.Content.Contains("DerivedSvc("));
+
+        baseCtor.Content.Should().Contain("ILogger<BaseSvc>");
+        derivedCtor.Content.Should().Contain("ILogger<DerivedSvc>");
+        // The derived class forwards the base's closed logger via base(...).
+        derivedCtor.Content.Should().Contain("ILogger<BaseSvc>");
+        derivedCtor.Content.Should().Contain("base(");
+    }
+
+    [Fact]
+    public void NoAutoDepOpen_on_derived_suppresses_derived_level_only()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class BaseSvc { }
+[Scoped]
+[NoAutoDepOpen(typeof(ILogger<>))]
+public partial class DerivedSvc : BaseSvc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+
+        var derivedCtor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class DerivedSvc") && s.Content.Contains("DerivedSvc("));
+
+        // Derived's OWN logger is suppressed; base's logger is still forwarded via base(...).
+        derivedCtor.Content.Should().NotContain("ILogger<DerivedSvc>");
+        derivedCtor.Content.Should().Contain("ILogger<BaseSvc>");
+    }
+
+    [Fact]
+    public void Three_level_inheritance_threads_all_loggers()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class A { }
+[Scoped] public partial class B : A { }
+[Scoped] public partial class C : B { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+
+        var cCtor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class C") && s.Content.Contains("C("));
+
+        // C's constructor has own logger, plus both ancestors' loggers for base-chaining.
+        cCtor.Content.Should().Contain("ILogger<A>");
+        cCtor.Content.Should().Contain("ILogger<B>");
+        cCtor.Content.Should().Contain("ILogger<C>");
+    }
 }
