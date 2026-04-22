@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-04-22
+
+### Added
+- **Auto-deps feature** — universal, profile-scoped, and transitive dependency injection without per-service declaration
+  - `[assembly: AutoDep<T>]` for universal closed-type auto-deps
+  - `[assembly: AutoDepOpen(typeof(T<>))]` for single-arity open-generic auto-deps
+  - Built-in auto-detection of `Microsoft.Extensions.Logging.ILogger<T>` when referenced — zero-config logger injection
+  - Profile system: `IAutoDepsProfile` marker interface, `[assembly: AutoDepIn<TProfile, T>]`, `[assembly: AutoDepsApply<TProfile, TBase>]`, `[assembly: AutoDepsApplyGlob<TProfile>("pattern")]`, `[AutoDeps<TProfile>]`
+  - Transitive scope via `AutoDepScope.Transitive` — libraries ship opinionated defaults to consumers
+  - Opt-out ladder: `[NoAutoDeps]`, `[NoAutoDep<T>]`, `[NoAutoDepOpen(typeof(T<>))]`
+- **11 new diagnostics (IOC095-IOC105)** covering `[Inject]` deprecation, stale opt-outs, profile validation, constraint violations, invalid glob patterns, and redundant attachments
+- **Roslyn code fix** for IOC095 via new `IoCTools.Generator.Analyzer` package — IDE lightbulb migrates `[Inject]` fields to `[DependsOn<T>]`
+- **`ioc-tools profiles` subcommand** — introspect auto-deps profiles, their contributions, matches, and attachment sources
+- **`ioc-tools migrate-inject` subcommand** — headless bulk `[Inject]` → `[DependsOn<T>]` migration for CI and non-IDE workflows
+- **CLI enhancements** — `graph`/`why`/`explain`/`evidence` support `--hide-auto-deps` / `--only-auto-deps` filters; `doctor` adds three auto-deps preflight checks; source attribution surfaced across all inspection commands
+- **MSBuild properties** — `IoCToolsAutoDepsDisable`, `IoCToolsAutoDepsExcludeGlob`, `IoCToolsAutoDepsReport`, `IoCToolsAutoDetectLogger`, `IoCToolsInjectDeprecationSeverity`
+
+### Changed
+- **`[Inject]` is deprecated** in favor of `[DependsOn<T>]`. The attribute is marked `[Obsolete]` and emits IOC095 (warning severity in 1.6; upgrades to error in 1.7; removed in 2.0). A Roslyn code fix + `ioc-tools migrate-inject` CLI ship alongside the deprecation.
+- `IoCTools.Sample` migrated off `[Inject]` except for a dedicated `InjectDeprecationExamples.cs` demonstrating IOC095 behavior
+
+### Fixed
+- `AttributeParser.GetDependsOnOptionsFromAttribute` now preserves memberName slot alignment for sparse named args. Previously `[DependsOn<T1, T2>(memberName2: "_x")]` misaligned `"_x"` to slot 0 after list compaction.
+
+### Known issues
+- IOC095 diagnostic ID was previously used by `OpenGenericSharedInstanceFallsBackToSeparate` in 1.5.1. The 1.6 reassignment (IOC095 = `[Inject]` deprecation) ships with both descriptors registered under the same ID. Consumers with existing IOC095 suppressions should review — the suppression now applies to the deprecation warning instead of the open-generic fallback notice.
+
 ## [1.5.1] - 2026-04-12
 
 ### Added
