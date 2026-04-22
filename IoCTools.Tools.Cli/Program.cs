@@ -400,7 +400,8 @@ public static class Program
         output.Verbose($"Project loaded: {context.Project.FilePath}");
 
         var diagnostics = await DiagnosticRunner.RunAsync(context, token);
-        DoctorPrinter.Write(diagnostics, options.FixableOnly, output);
+        var preflight = await DoctorPreflight.RunAsync(context, token);
+        DoctorPrinter.Write(diagnostics, options.FixableOnly, output, preflight);
         output.ReportTiming("Command completed");
         return diagnostics.Any(d => d.Severity == "Error") ? 1 : 0;
     }
