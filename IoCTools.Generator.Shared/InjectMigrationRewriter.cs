@@ -82,10 +82,26 @@ public static class InjectMigrationRewriter
             var covered = coveredTypes.Contains(SymbolIdentity.From(f.Type));
             var bareName = IsDefaultFieldName(f.FieldName, f.Type);
             if (covered && bareName && !f.HasExternalService)
+            {
                 fieldsToDelete.Add(f.Field);
+            }
             else
+            {
+                // Branch B/C: converted fields are replaced by the class-level [DependsOn<T>]
+                // attribute. The source field MUST be removed in addition to the attribute
+                // being added -- otherwise the migrated code has both the old [Inject] field
+                // AND the new [DependsOn<T>], which double-injects and fails diagnostics.
+                // (Per the migration plan's expected-output table for "Convert bare" / "Convert
+                // custom name" rows: field removed, attribute added.)
+                fieldsToDelete.Add(f.Field);
                 toConvert.Add(f);
+            }
         }
+
+        // Dedupe: two InjectFieldInfo entries can share a FieldDeclarationSyntax when
+        // multiple variables are declared in one `[Inject] IFoo _a, _b;` statement.
+        // Deleting the same node twice is a no-op but the list should still be unique.
+        fieldsToDelete = fieldsToDelete.Distinct().ToList();
 
         // Branch B+C: coalesce remaining fields into DependsOn attributes.
         // Split by external flag since external is an attribute-wide modifier.

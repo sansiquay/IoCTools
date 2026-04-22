@@ -9,7 +9,13 @@
         <DevelopmentDependency>true</DevelopmentDependency>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
         <NoPackageAnalysis>true</NoPackageAnalysis>
-        <NoWarn>$(NoWarn);RS2008;RS1035</NoWarn>
+        <!--
+            RS1038 warns when an analyzer assembly references Microsoft.CodeAnalysis.Workspaces
+            (not available in command-line build scenarios). We ship the analyzer and its
+            code-fix provider together; the code-fix requires Workspaces. Distributing them
+            in the same assembly is the standard NuGet packaging pattern.
+        -->
+        <NoWarn>$(NoWarn);RS2008;RS1035;RS1038</NoWarn>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
         <RootNamespace>IoCTools.Generator.Analyzer</RootNamespace>

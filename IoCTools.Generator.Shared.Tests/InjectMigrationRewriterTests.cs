@@ -85,7 +85,9 @@ public interface IFoo { }
 ";
         var (fields, resolved) = BuildFixture(source);
         var result = InjectMigrationRewriter.Rewrite(fields, resolved);
-        result.FieldsToDelete.Should().BeEmpty();
+        // Converted fields are replaced -- the original [Inject] field must be removed
+        // in addition to the class-level [DependsOn<T>] attribute being added.
+        result.FieldsToDelete.Should().HaveCount(1);
         result.AttributesToAdd.Should().HaveCount(1);
         var text = result.AttributesToAdd[0].ToFullString();
         text.Should().Contain("DependsOn").And.Contain("IFoo");
