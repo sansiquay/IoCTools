@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 using Xunit;
 
 public sealed class AutoDepsIntegrationTests
@@ -274,6 +277,82 @@ public partial class Svc { }
             ctor.Content.Should().Contain("// Suppressed:");
             ctor.Content.Should().Contain("NoAutoDepOpen");
         }
+    }
+
+    [Fact]
+    public void Non_generic_service_with_auto_logger_resolves_through_MSDI()
+    {
+        // Smoke test: generator emits a constructor for a plain [Scoped] service that takes
+        // ILogger<Svc> as an auto-dep; MS.DI must be able to close that open-generic logger
+        // registration and resolve the service end-to-end.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class Svc { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        result.HasErrors.Should().BeFalse("generated code must compile cleanly");
+
+        var ctor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class Svc") && s.Content.Contains("Svc("));
+        ctor.Content.Should().Contain("ILogger<Svc>");
+
+        var runtime = SourceGeneratorTestHelper.CreateRuntimeContext(result);
+        var svcType = runtime.Assembly.GetType("TestNs.Svc")
+            ?? throw new System.InvalidOperationException("Svc type not found in generated assembly");
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddScoped(svcType);
+        var provider = services.BuildServiceProvider();
+
+        var instance = provider.GetRequiredService(svcType);
+        instance.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Generic_service_with_auto_logger_resolves_through_MSDI()
+    {
+        // Proof that generator-emitted constructors for OPEN-GENERIC services integrate
+        // correctly with MS.DI's open-generic resolution. The generator produces a ctor
+        // that takes ILogger<Repository<TEntity>> -- MS.DI must bind this against the
+        // open ILogger<> registration that AddLogging() installs.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace TestNs;
+
+[Scoped] public partial class Repository<TEntity> { }
+
+public sealed class User { }
+";
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, OptIn());
+        result.HasErrors.Should().BeFalse("generated code must compile cleanly");
+
+        var repoCtor = result.GeneratedSources.First(s =>
+            s.Content.Contains("partial class Repository") && s.Content.Contains("Repository("));
+        repoCtor.Content.Should().Contain("ILogger");
+
+        var runtime = SourceGeneratorTestHelper.CreateRuntimeContext(result);
+
+        // Locate the open generic Repository<> by its reflection-friendly name.
+        var repoType = runtime.Assembly.GetType("TestNs.Repository`1")
+            ?? throw new System.InvalidOperationException("Repository<> type not found in generated assembly");
+        var userType = runtime.Assembly.GetType("TestNs.User")
+            ?? throw new System.InvalidOperationException("User type not found in generated assembly");
+        var closedRepoType = repoType.MakeGenericType(userType);
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddScoped(closedRepoType);
+        var provider = services.BuildServiceProvider();
+
+        var instance = provider.GetRequiredService(closedRepoType);
+        instance.Should().NotBeNull();
     }
 
     [Fact]
