@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.5.1</Version>
-        <PackageVersion>1.5.1</PackageVersion>
-        <AssemblyVersion>1.5.1.0</AssemblyVersion>
-        <FileVersion>1.5.1.0</FileVersion>
+        <Version>1.6.0</Version>
+        <PackageVersion>1.6.0</PackageVersion>
+        <AssemblyVersion>1.6.0.0</AssemblyVersion>
+        <FileVersion>1.6.0.0</FileVersion>
         <Title>IoC Tools FluentValidation Source Generator</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,6 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>v1.6.0: aligned with core 1.6.0 — continues to detect [Inject] fields for anti-pattern diagnostics during the deprecation window. See IoCTools 1.6 migration guide.</PackageReleaseNotes>
         <Description>Source generator for IoCTools FluentValidation integration - discovers validators, refines registrations, detects anti-patterns in validator composition.</Description>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
