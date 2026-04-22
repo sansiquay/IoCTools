@@ -139,6 +139,28 @@ public static partial class AutoDepsResolver
                          unbound.IsUnboundGenericType)
                 {
                     if (unbound.TypeParameters.Length != 1) continue; // IOC100 handled in diagnostics
+
+                    // IOC102: check type-parameter constraints BEFORE constructing/adding the
+                    // closed generic. If a constraint is violated, emit the signal and skip the
+                    // add so the generated code doesn't fail later with an unrelated constraint
+                    // error. Use OriginalDefinition to pick up the source-declared constraints
+                    // reliably (the unbound symbol's TypeParameters view sometimes drops them).
+                    var tp = unbound.OriginalDefinition.TypeParameters[0];
+                    if (!ConstraintsSatisfied(tp, _service, out var violatedConstraint))
+                    {
+                        var openDisplay = unbound.ConstructedFrom
+                            .ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                        var serviceDisplay = _service
+                            .ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                        _signals.Add(new AutoDepDiagnosticSignal(
+                            AutoDepDiagnosticKind.OpenGenericConstraint,
+                            arg0: openDisplay,
+                            arg1: serviceDisplay,
+                            arg2: violatedConstraint,
+                            arg3: unbound.Name));
+                        continue;
+                    }
+
                     var closed = unbound.OriginalDefinition.Construct(_service);
                     AddDepWithAttribution(
                         closed,
@@ -584,6 +606,88 @@ public static partial class AutoDepsResolver
         {
             int lt = displayName.IndexOf('<');
             return lt < 0 ? displayName : displayName.Substring(0, lt);
+        }
+
+        /// <summary>
+        /// IOC102 support: checks whether the service satisfies all constraints declared on the
+        /// open generic's single type parameter. Returns true if all constraints hold; otherwise
+        /// returns false and writes a user-facing description of the first violated constraint
+        /// to <paramref name="violated"/>.
+        /// </summary>
+        private static bool ConstraintsSatisfied(ITypeParameterSymbol tp, INamedTypeSymbol service,
+            out string violated)
+        {
+            violated = string.Empty;
+
+            if (tp.HasReferenceTypeConstraint && service.IsValueType)
+            {
+                violated = "class";
+                return false;
+            }
+
+            if (tp.HasValueTypeConstraint && !service.IsValueType)
+            {
+                violated = "struct";
+                return false;
+            }
+
+            if (tp.HasUnmanagedTypeConstraint && !(service.IsValueType && service.IsUnmanagedType))
+            {
+                violated = "unmanaged";
+                return false;
+            }
+
+            if (tp.HasConstructorConstraint)
+            {
+                // Must have a public parameterless constructor. Abstract types and classes
+                // lacking one fail.
+                bool hasParameterless = false;
+                foreach (var ctor in service.InstanceConstructors)
+                {
+                    if (ctor.DeclaredAccessibility == Accessibility.Public && ctor.Parameters.Length == 0)
+                    {
+                        hasParameterless = true;
+                        break;
+                    }
+                }
+                if (service.IsAbstract || !hasParameterless)
+                {
+                    violated = "new()";
+                    return false;
+                }
+            }
+
+            foreach (var ct in tp.ConstraintTypes)
+            {
+                if (!TypeSatisfiesConstraint(service, ct))
+                {
+                    violated = ct.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TypeSatisfiesConstraint(INamedTypeSymbol candidate, ITypeSymbol constraint)
+        {
+            // Walk base-class chain.
+            INamedTypeSymbol? cur = candidate;
+            while (cur is not null)
+            {
+                if (SymbolEqualityComparer.Default.Equals(cur.OriginalDefinition, constraint.OriginalDefinition))
+                    return true;
+                cur = cur.BaseType;
+            }
+
+            // Walk implemented interfaces.
+            foreach (var iface in candidate.AllInterfaces)
+            {
+                if (SymbolEqualityComparer.Default.Equals(iface.OriginalDefinition, constraint.OriginalDefinition))
+                    return true;
+            }
+
+            return false;
         }
 
         public static bool HasManualConstructor(INamedTypeSymbol service)
