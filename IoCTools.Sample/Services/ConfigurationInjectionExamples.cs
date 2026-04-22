@@ -16,7 +16,7 @@ using Microsoft.Extensions.Options;
 // === 1. BASIC CONFIGURATION INJECTION FOR PRIMITIVES ===
 
 [Scoped]
-public partial class DatabaseConnectionService
+[DependsOn<ILogger<DatabaseConnectionService>>]public partial class DatabaseConnectionService
 {
     // Inject primitive connection string directly from appsettings.json
     [InjectConfiguration("Database:ConnectionString")]
@@ -24,8 +24,6 @@ public partial class DatabaseConnectionService
 
     [InjectConfiguration("Database:EnableRetry")]
     private readonly bool _enableRetry;
-
-    [Inject] private readonly ILogger<DatabaseConnectionService> _logger;
 
     [InjectConfiguration("Database:TimeoutSeconds")]
     private readonly int _timeoutSeconds;
@@ -46,15 +44,13 @@ public partial class DatabaseConnectionService
         $"Connection: {_connectionString[..20]}..., Timeout: {_timeoutSeconds}s, Retry: {_enableRetry}";
 }
 
-public partial class AppInfoService
+[DependsOn<ILogger<AppInfoService>>]public partial class AppInfoService
 {
     // Mix of different primitive types from App section
     [InjectConfiguration("App:Name")] private readonly string _appName;
 
     [InjectConfiguration("App:IsProduction")]
     private readonly bool _isProduction;
-
-    [Inject] private readonly ILogger<AppInfoService> _logger;
     [InjectConfiguration("App:Price")] private readonly decimal _price;
     [InjectConfiguration("App:Version")] private readonly int _version;
 
@@ -68,11 +64,10 @@ public partial class AppInfoService
 // === 2. SECTION BINDING FOR COMPLEX OBJECTS ===
 
 [Scoped]
-public partial class ConfigurationEmailService
+[DependsOn<ILogger<ConfigurationEmailService>>]public partial class ConfigurationEmailService
 {
     // Inject entire Email section as strongly-typed object
     [InjectConfiguration] private readonly EmailSettings _emailSettings;
-    [Inject] private readonly ILogger<ConfigurationEmailService> _logger;
 
     public async Task<bool> SendEmailAsync(string to,
         string subject,
@@ -91,11 +86,10 @@ public partial class ConfigurationEmailService
 }
 
 [Scoped]
-public partial class ConfigurationCacheService
+[DependsOn<ILogger<ConfigurationCacheService>>]public partial class ConfigurationCacheService
 {
     // Inject Cache section with nested Redis settings
     [InjectConfiguration] private readonly CacheSettings _cacheSettings;
-    [Inject] private readonly ILogger<ConfigurationCacheService> _logger;
 
     public void ConfigureCache()
     {
@@ -117,7 +111,7 @@ public partial class ConfigurationCacheService
 // === 3. COLLECTIONS AND ARRAYS BINDING ===
 
 [Scoped]
-public partial class SecurityService
+[DependsOn<ILogger<SecurityService>>]public partial class SecurityService
 {
     // Inject arrays and lists from configuration
     [InjectConfiguration("Security:AllowedHosts")]
@@ -125,8 +119,6 @@ public partial class SecurityService
 
     [InjectConfiguration("Security:FeatureFlags")]
     private readonly List<string> _featureFlags;
-
-    [Inject] private readonly ILogger<SecurityService> _logger;
 
     [InjectConfiguration("Security:SupportedLanguages")]
     private readonly List<string> _supportedLanguages;
@@ -173,13 +165,8 @@ public partial class SecurityService
 // === 4. OPTIONS PATTERN INTEGRATION ===
 
 [Scoped]
-public partial class OptionsPatternService
+[DependsOn<IOptions<AppSettings>,IOptionsMonitor<HotReloadSettings>,ILogger<OptionsPatternService>,IOptionsSnapshot<ValidationSettings>>(memberName1:"_appOptions",memberName2:"_hotReloadMonitor",memberName3:"_logger",memberName4:"_validationSnapshot")]public partial class OptionsPatternService
 {
-    // Demonstrate IOptions<T>, IOptionsSnapshot<T>, and IOptionsMonitor<T> injection
-    [Inject] private readonly IOptions<AppSettings> _appOptions;
-    [Inject] private readonly IOptionsMonitor<HotReloadSettings> _hotReloadMonitor;
-    [Inject] private readonly ILogger<OptionsPatternService> _logger;
-    [Inject] private readonly IOptionsSnapshot<ValidationSettings> _validationSnapshot;
 
     public void DemonstrateOptionsPattern()
     {
@@ -211,12 +198,10 @@ public partial class OptionsPatternService
 // === 5. HOT RELOADING WITH SupportsReloading = true ===
 
 [Scoped]
-public partial class HotReloadableService
+[DependsOn<ILogger<HotReloadableService>>]public partial class HotReloadableService
 {
     [InjectConfiguration("HotReload", SupportsReloading = true)]
     private readonly HotReloadSettings _hotReloadSettings;
-
-    [Inject] private readonly ILogger<HotReloadableService> _logger;
 
     // Configuration injection with hot reloading support
     [InjectConfiguration("Reload:Setting", SupportsReloading = true)]
@@ -242,7 +227,7 @@ public partial class HotReloadableService
 // === 6. DEFAULT VALUES AND REQUIRED CONFIGURATION ===
 
 [Scoped]
-public partial class ConfigurationValidationService
+[DependsOn<ILogger<ConfigurationValidationService>>]public partial class ConfigurationValidationService
 {
     [InjectConfiguration("Validation:DefaultFlag", DefaultValue = "true")]
     private readonly bool _defaultFlag;
@@ -252,8 +237,6 @@ public partial class ConfigurationValidationService
 
     [InjectConfiguration("Validation:EmptySetting", Required = false)]
     private readonly string _emptySetting;
-
-    [Inject] private readonly ILogger<ConfigurationValidationService> _logger;
 
     // Optional with default values
     [InjectConfiguration("Validation:OptionalSetting", Required = false)]
@@ -297,10 +280,9 @@ public interface IConfigurationNotificationProvider
 }
 
 [Scoped]
-public partial class ConfigurationEmailNotificationProvider : IConfigurationNotificationProvider
+[DependsOn<ILogger<ConfigurationEmailNotificationProvider>>]public partial class ConfigurationEmailNotificationProvider : IConfigurationNotificationProvider
 {
     [InjectConfiguration] private readonly EmailSettings _emailSettings;
-    [Inject] private readonly ILogger<ConfigurationEmailNotificationProvider> _logger;
 
     public async Task SendNotificationAsync(string message)
     {
@@ -310,24 +292,16 @@ public partial class ConfigurationEmailNotificationProvider : IConfigurationNoti
 }
 
 [Scoped]
-public partial class ComprehensiveBusinessService
+[DependsOn<ConfigurationCacheService,ConfigurationEmailService,ILogger<ComprehensiveBusinessService>,IConfigurationNotificationProvider>(memberName1:"_cacheService",memberName2:"_emailService",memberName3:"_logger",memberName4:"_notificationProvider")]public partial class ComprehensiveBusinessService
 {
     [InjectConfiguration("App:Name")] private readonly string _appName;
 
-    [Inject] private readonly ConfigurationCacheService _cacheService;
-
     // Mix of configuration injection and regular DI
     [InjectConfiguration] private readonly DatabaseSettings _dbSettings;
-    [Inject] private readonly ConfigurationEmailService _emailService;
     [InjectConfiguration] private readonly FeatureFlags _features;
 
     [InjectConfiguration("App:IsProduction")]
     private readonly bool _isProduction;
-
-    [Inject] private readonly ILogger<ComprehensiveBusinessService> _logger;
-
-    // Regular DI dependencies
-    [Inject] private readonly IConfigurationNotificationProvider _notificationProvider;
 
     public async Task ProcessBusinessOperationAsync(string operationId)
     {
@@ -368,7 +342,7 @@ public partial class ComprehensiveBusinessService
 // === ADVANCED CONFIGURATION PATTERNS ===
 
 [Scoped]
-public partial class NestedConfigurationService
+[DependsOn<ILogger<NestedConfigurationService>>]public partial class NestedConfigurationService
 {
     [InjectConfiguration("Logging:Console:Enabled")]
     private readonly bool _consoleEnabled;
@@ -386,8 +360,6 @@ public partial class NestedConfigurationService
     [InjectConfiguration("Logging:File:Path")]
     private readonly string _logFilePath;
 
-    [Inject] private readonly ILogger<NestedConfigurationService> _logger;
-
     [InjectConfiguration("Logging:File:MaxSizeMB")]
     private readonly int _maxLogSize;
 
@@ -401,12 +373,10 @@ public partial class NestedConfigurationService
 }
 
 [Scoped]
-public partial class ConfigurationArrayService
+[DependsOn<ILogger<ConfigurationArrayService>>]public partial class ConfigurationArrayService
 {
     [InjectConfiguration("Validation:AllowedCharacters")]
     private readonly string _allowedCharacters;
-
-    [Inject] private readonly ILogger<ConfigurationArrayService> _logger;
 
     [InjectConfiguration("Validation:MaxLength")]
     private readonly int _maxLength;
@@ -444,19 +414,8 @@ public partial class ConfigurationArrayService
 // === DEMONSTRATION RUNNER SERVICE ===
 
 [Scoped]
-public partial class ConfigurationDemoRunner
+[DependsOn<ConfigurationArrayService,ComprehensiveBusinessService,ConfigurationCacheService,DatabaseConnectionService,ConfigurationEmailService,HotReloadableService,ILogger<ConfigurationDemoRunner>,NestedConfigurationService,OptionsPatternService,SecurityService,ConfigurationValidationService>(memberName1:"_arrayService",memberName2:"_businessService",memberName3:"_cacheService",memberName4:"_databaseService",memberName5:"_emailService",memberName6:"_hotReloadService",memberName7:"_logger",memberName8:"_nestedService",memberName9:"_optionsService",memberName10:"_securityService",memberName11:"_validationService")]public partial class ConfigurationDemoRunner
 {
-    [Inject] private readonly ConfigurationArrayService _arrayService;
-    [Inject] private readonly ComprehensiveBusinessService _businessService;
-    [Inject] private readonly ConfigurationCacheService _cacheService;
-    [Inject] private readonly DatabaseConnectionService _databaseService;
-    [Inject] private readonly ConfigurationEmailService _emailService;
-    [Inject] private readonly HotReloadableService _hotReloadService;
-    [Inject] private readonly ILogger<ConfigurationDemoRunner> _logger;
-    [Inject] private readonly NestedConfigurationService _nestedService;
-    [Inject] private readonly OptionsPatternService _optionsService;
-    [Inject] private readonly SecurityService _securityService;
-    [Inject] private readonly ConfigurationValidationService _validationService;
 
     public async Task RunAllConfigurationDemosAsync()
     {

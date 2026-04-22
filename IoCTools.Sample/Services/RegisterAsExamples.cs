@@ -41,9 +41,8 @@ public interface IRegisterAsAuditService
 
 // RegisterAs<T1> - Single interface registration
 [RegisterAs<IRegisterAsUserService>] // Only IRegisterAsUserService is registered (defaults to Scoped)
-public partial class BasicUserService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService
+[DependsOn<ILogger<BasicUserService>>]public partial class BasicUserService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService
 {
-    [Inject] private readonly ILogger<BasicUserService> _logger;
 
     public Task SendEmailAsync(string to,
         string subject,
@@ -57,9 +56,8 @@ public partial class BasicUserService : IRegisterAsUserService, IRegisterAsEmail
 
 // RegisterAs<T1, T2> - Two interfaces registration
 [RegisterAs<IRegisterAsUserService, IRegisterAsEmailService>] // Default Scoped lifetime inferred
-public partial class UserEmailService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService
+[DependsOn<ILogger<UserEmailService>>]public partial class UserEmailService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService
 {
-    [Inject] private readonly ILogger<UserEmailService> _logger;
 
     public Task SendEmailAsync(string to,
         string subject,
@@ -73,10 +71,9 @@ public partial class UserEmailService : IRegisterAsUserService, IRegisterAsEmail
 
 // RegisterAs<T1, T2, T3> - Three interfaces registration
 [RegisterAs<IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService>] // All three registered
-public partial class FullUserService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService,
+[DependsOn<ILogger<FullUserService>>]public partial class FullUserService : IRegisterAsUserService, IRegisterAsEmailService, IRegisterAsValidationService,
     IRegisterAsAuditService
 {
-    [Inject] private readonly ILogger<FullUserService> _logger;
 
     public Task LogActionAsync(string action,
         string details) => Task.CompletedTask;
@@ -95,9 +92,8 @@ public partial class FullUserService : IRegisterAsUserService, IRegisterAsEmailS
 
 [Singleton]
 [RegisterAs<IRegisterAsUserService>]
-public partial class SingletonUserService : IRegisterAsUserService, IRegisterAsEmailService
+[DependsOn<ILogger<SingletonUserService>>]public partial class SingletonUserService : IRegisterAsUserService, IRegisterAsEmailService
 {
-    [Inject] private readonly ILogger<SingletonUserService> _logger;
 
     public Task SendEmailAsync(string to,
         string subject,
@@ -110,10 +106,9 @@ public partial class SingletonUserService : IRegisterAsUserService, IRegisterAsE
 
 [Transient]
 [RegisterAs<IRegisterAsEmailService, IRegisterAsValidationService>]
-public partial class TransientEmailValidationService : IRegisterAsEmailService, IRegisterAsValidationService,
+[DependsOn<ILogger<TransientEmailValidationService>>]public partial class TransientEmailValidationService : IRegisterAsEmailService, IRegisterAsValidationService,
     IRegisterAsAuditService
 {
-    [Inject] private readonly ILogger<TransientEmailValidationService> _logger;
 
     public Task LogActionAsync(string action,
         string details) => Task.CompletedTask;
@@ -141,9 +136,8 @@ public interface IRepository
 // ManualService + RegisterAs: Registers only interfaces, not the concrete class
 // Concrete class won't be registered
 [RegisterAs<ITransactionService, IRepository>] // But these interfaces will be
-public partial class DatabaseContext : ITransactionService, IRepository
+[DependsOn<ILogger<DatabaseContext>>]public partial class DatabaseContext : ITransactionService, IRepository
 {
-    [Inject] private readonly ILogger<DatabaseContext> _logger;
     public void SaveChanges() => _logger.LogInformation("Saving changes");
 
     public void BeginTransaction() => _logger.LogInformation("Beginning transaction");
@@ -197,10 +191,9 @@ public interface IService9
 } // This won't be registered
 
 [RegisterAs<IService1, IService2, IService3, IService4, IService5, IService6, IService7, IService8>]
-public partial class MaxInterfaceService : IService1, IService2, IService3, IService4, IService5, IService6, IService7,
+[DependsOn<ILogger<MaxInterfaceService>>]public partial class MaxInterfaceService : IService1, IService2, IService3, IService4, IService5, IService6, IService7,
     IService8, IService9
 {
-    [Inject] private readonly ILogger<MaxInterfaceService> _logger;
 
     public void Method1() => _logger.LogInformation("Method1 called");
     public void Method2() => _logger.LogInformation("Method2 called");
@@ -233,12 +226,10 @@ public class NotificationConfig
 }
 
 [RegisterAs<IRegisterAsConfigurableService, IRegisterAsNotificationService>]
-public partial class ConfigurableNotificationService : IRegisterAsConfigurableService, IRegisterAsNotificationService
+[DependsOn<ILogger<ConfigurableNotificationService>>]public partial class ConfigurableNotificationService : IRegisterAsConfigurableService, IRegisterAsNotificationService
 {
     [InjectConfiguration("Notification")] // Automatic configuration binding
     private readonly NotificationConfig _config;
-
-    [Inject] private readonly ILogger<ConfigurableNotificationService> _logger;
 
     public void ProcessWithConfig() => _logger.LogInformation("Processing with config");
 
@@ -265,9 +256,8 @@ public interface ICompareService3
 
 // RegisterAsAll approach - registers ALL interfaces
 [RegisterAsAll]
-public partial class RegisterAsAllExample : ICompareService1, ICompareService2, ICompareService3
+[DependsOn<ILogger<RegisterAsAllExample>>]public partial class RegisterAsAllExample : ICompareService1, ICompareService2, ICompareService3
 {
-    [Inject] private readonly ILogger<RegisterAsAllExample> _logger;
 
     public void Execute() => _logger.LogInformation("Execute called");
     public void Process() => _logger.LogInformation("Process called");
@@ -278,9 +268,8 @@ public partial class RegisterAsAllExample : ICompareService1, ICompareService2, 
 
 // RegisterAs approach - selective registration
 [RegisterAs<ICompareService1, ICompareService2>] // Only registers these two
-public partial class RegisterAsExample : ICompareService1, ICompareService2, ICompareService3
+[DependsOn<ILogger<RegisterAsExample>>]public partial class RegisterAsExample : ICompareService1, ICompareService2, ICompareService3
 {
-    [Inject] private readonly ILogger<RegisterAsExample> _logger;
 
     public void Execute() => _logger.LogInformation("Selective Execute called");
     public void Process() => _logger.LogInformation("Selective Process called");
@@ -331,10 +320,9 @@ public interface IValidationServiceSeparate
 // InstanceSharing.Separate (default): IRegistrationService and IValidationServiceSeparate each get their
 // own SeparateInstanceService instance when resolved. This is the standard DI behavior.
 [RegisterAs<IRegistrationService, IValidationServiceSeparate>] // Implicit InstanceSharing.Separate
-public partial class SeparateInstanceService : IRegistrationService, IValidationServiceSeparate
+[DependsOn<ILogger<SeparateInstanceService>>]public partial class SeparateInstanceService : IRegistrationService, IValidationServiceSeparate
 {
     private readonly Guid _instanceId = Guid.NewGuid();
-    [Inject] private readonly ILogger<SeparateInstanceService> _logger;
 
     public void Register(string item) =>
         _logger.LogInformation("Registering {Item} in instance {Id}", item, _instanceId);
@@ -345,10 +333,9 @@ public partial class SeparateInstanceService : IRegistrationService, IValidation
 // Explicit InstanceSharing.Separate
 [Transient]
 [RegisterAs<IRegistrationService, IValidationServiceSeparate>]
-public partial class ExplicitSeparateService : IRegistrationService, IValidationServiceSeparate
+[DependsOn<ILogger<ExplicitSeparateService>>]public partial class ExplicitSeparateService : IRegistrationService, IValidationServiceSeparate
 {
     private readonly Guid _instanceId = Guid.NewGuid();
-    [Inject] private readonly ILogger<ExplicitSeparateService> _logger;
 
     public void Register(string item) => _logger.LogInformation("Explicit separate {Item} in {Id}", item, _instanceId);
     public bool Validate(string item) => true;
@@ -380,12 +367,11 @@ public interface ISharedHealthService
 // InstanceSharing.Shared: ALL interfaces get the SAME instance - shared state
 [Singleton] // Explicit lifetime required for shared instances with state
 [RegisterAs<ISharedCacheService, ISharedStatsService, ISharedHealthService>(InstanceSharing.Shared)]
-public partial class SharedStateService : ISharedCacheService, ISharedStatsService, ISharedHealthService
+[DependsOn<ILogger<SharedStateService>>]public partial class SharedStateService : ISharedCacheService, ISharedStatsService, ISharedHealthService
 {
     private readonly Dictionary<string, object> _cache = new();
     private readonly Dictionary<string, int> _counters = new();
     private readonly Guid _instanceId = Guid.NewGuid();
-    [Inject] private readonly ILogger<SharedStateService> _logger;
     private bool _isHealthy = true;
 
     // All three interfaces share this same state
@@ -477,12 +463,11 @@ public interface IConfigurationWatcher
 
 [Singleton] // Explicit non-default lifetime + InstanceSharing.Shared = factory patterns
 [RegisterAs<IMetricsCollector, IEventPublisher, IHealthReporter, IConfigurationWatcher>(InstanceSharing.Shared)]
-public partial class ComprehensiveSharedService : IMetricsCollector, IEventPublisher, IHealthReporter,
+[DependsOn<ILogger<ComprehensiveSharedService>>]public partial class ComprehensiveSharedService : IMetricsCollector, IEventPublisher, IHealthReporter,
     IConfigurationWatcher
 {
     private readonly List<string> _events = new();
     private readonly Dictionary<string, bool> _healthStatus = new();
-    [Inject] private readonly ILogger<ComprehensiveSharedService> _logger;
     private readonly Guid _sharedInstanceId = Guid.NewGuid();
 
     public void WatchConfiguration(string key,

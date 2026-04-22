@@ -43,10 +43,8 @@ using Microsoft.Extensions.DependencyInjection;
 ///     The generator will still create constructor and show diagnostic warnings, but won't register for DI
 /// </summary>
 // [Scoped] // ← Commented out to exclude from DI registration
-public partial class MissingImplementationService
+[DependsOn<IMissingDataService,INonExistentRepository>(memberName1:"_dataService",memberName2:"_repository")]public partial class MissingImplementationService
 {
-    [Inject] private readonly IMissingDataService _dataService;
-    [Inject] private readonly INonExistentRepository _repository;
 }
 
 // These interfaces intentionally have no implementations to trigger IOC001
@@ -70,10 +68,8 @@ public interface INonExistentRepository
 ///     The generator will still create constructor and show diagnostic warnings, but won't register for DI
 /// </summary>
 // [Scoped] // ← Commented out to exclude from DI registration
-public partial class UnregisteredDependencyService
+[DependsOn<IUnregisteredCalculator,IUnregisteredLogger>(memberName1:"_calculator",memberName2:"_logger")]public partial class UnregisteredDependencyService
 {
-    [Inject] private readonly IUnregisteredCalculator _calculator;
-    [Inject] private readonly IUnregisteredLogger _logger;
 }
 
 // Interfaces with implementations that are NOT marked with Service attributes
@@ -119,9 +115,8 @@ public class UnregisteredLogger : IUnregisteredLogger
 ///     IOC012: Helper scoped service that the singleton incorrectly depends on
 /// </summary>
 [Scoped]
-public partial class ScopedDatabaseService : IScopedDatabaseService
+[DependsOn<ILogger<ScopedDatabaseService>>]public partial class ScopedDatabaseService : IScopedDatabaseService
 {
-    [Inject] private readonly ILogger<ScopedDatabaseService> _logger;
 
     public async Task<string> GetUserDataAsync(int userId)
     {
@@ -144,10 +139,8 @@ public interface IScopedDatabaseService
 ///     IOC013: This Singleton service depends on Transient services (potential issue)
 /// </summary>
 [Singleton]
-public partial class SingletonWithTransientDependencies
+[DependsOn<ITransientNotificationService,ITransientUtility>(memberName1:"_notifications",memberName2:"_utility")]public partial class SingletonWithTransientDependencies
 {
-    [Inject] private readonly ITransientNotificationService _notifications;
-    [Inject] private readonly ITransientUtility _utility;
 }
 
 /// <summary>
@@ -197,10 +190,8 @@ public interface ITransientUtility
 ///     IOC015: Base class with scoped dependencies (creates inheritance lifetime violation)
 /// </summary>
 [Scoped]
-public partial class BaseServiceWithScopedDependencies
+[DependsOn<IScopedDatabaseService,ILogger<BaseServiceWithScopedDependencies>>(memberName1:"_baseDatabase",memberName2:"_baseLogger")]public partial class BaseServiceWithScopedDependencies
 {
-    [Inject] private readonly IScopedDatabaseService _baseDatabase;
-    [Inject] private readonly ILogger<BaseServiceWithScopedDependencies> _baseLogger;
 
     protected virtual void DoBaseWork()
     {
@@ -221,10 +212,8 @@ public partial class BaseServiceWithScopedDependencies
 [DependsOn<IMemoryCache>]
 [DependsOn<ILogger<ConflictingDependenciesService>>] // IOC006: Duplicate across attributes
 [DependsOn<IMemoryCache, IMemoryCache>] // IOC008: Duplicate within single attribute
-public partial class ConflictingDependenciesService
+[DependsOn<ILogger<ConflictingDependenciesService>>]public partial class ConflictingDependenciesService
 {
-    // IOC040: This will conflict with DependsOn<ILogger<ConflictingDependenciesService>>
-    [Inject] private readonly ILogger<ConflictingDependenciesService> _logger;
 }
 
 /// <summary>
@@ -262,9 +251,8 @@ public partial class RedundantSkipRegistrationService : ICloneable
 ///     The analyzer suggests removing [RegisterAs] unless you need selective registration.
 /// </summary>
 [RegisterAs<IRedundantSerializer>]
-public partial class RedundantRegisterAsService : IRedundantSerializer
+[DependsOn<ILogger<RedundantRegisterAsService>>]public partial class RedundantRegisterAsService : IRedundantSerializer
 {
-    [Inject] private readonly ILogger<RedundantRegisterAsService> _logger;
 
     public void Serialize(string payload) => _logger.LogInformation("Serializing {Payload}", payload);
 }
@@ -280,9 +268,8 @@ public interface IRedundantSerializer
 /// </summary>
 [Scoped]
 [DependsOn<IRedundantDependency>]
-public partial class RedundantScopedWithDependsOnService : IRedundantScopedWithDependsOnService
+[DependsOn<ILogger<RedundantScopedWithDependsOnService>>]public partial class RedundantScopedWithDependsOnService : IRedundantScopedWithDependsOnService
 {
-    [Inject] private readonly ILogger<RedundantScopedWithDependsOnService> _logger;
 
     public void Execute() => _logger.LogInformation("Executing redundant scoped service");
 }
@@ -331,9 +318,8 @@ public interface IRedundantAllService
 ///     IOC014: Background service with correct lifetime (fixed to be Singleton)
 /// </summary>
 [Singleton] // IOC014: Fixed - Background services should be Singleton  
-public partial class IncorrectLifetimeBackgroundService : BackgroundService
+[DependsOn<ILogger<IncorrectLifetimeBackgroundService>>]public partial class IncorrectLifetimeBackgroundService : BackgroundService
 {
-    [Inject] private readonly ILogger<IncorrectLifetimeBackgroundService> _logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -417,9 +403,8 @@ public interface ISameLifetimeInterface
 ///     Has [Scoped] attribute, but typeof() registration duplicates it - triggers IOC091
 ///     </summary>
 [Scoped]
-public partial class SameLifetimeService : ISameLifetimeInterface
+[DependsOn<ILogger<SameLifetimeService>>]public partial class SameLifetimeService : ISameLifetimeInterface
 {
-    [Inject] private readonly ILogger<SameLifetimeService> _logger;
 
     public void DoWork() => _logger.LogInformation("Working");
 }
@@ -433,9 +418,8 @@ public interface IScopedInterface
 ///     Registered as [Scoped] by IoCTools, but typeof() uses Transient - triggers IOC092
 ///     </summary>
 [Scoped]
-public partial class ScopedService : IScopedInterface
+[DependsOn<ILogger<ScopedService>>]public partial class ScopedService : IScopedInterface
 {
-    [Inject] private readonly ILogger<ScopedService> _logger;
 
     public void DoWork() => _logger.LogInformation("Scoped service working");
 }
@@ -475,9 +459,8 @@ public class TypeOfRepository<T> : ITypeOfRepository<T>
 ///     This class has //[ConditionalService] but no Environment, ConfigValue, or condition properties
 /// </summary>
 //[ConditionalService] // No conditions specified - triggers IOC022
-public partial class EmptyConditionalService
+[DependsOn<ILogger<EmptyConditionalService>>]public partial class EmptyConditionalService
 {
-    [Inject] private readonly ILogger<EmptyConditionalService> _logger;
 }
 
 /// <summary>
@@ -485,9 +468,8 @@ public partial class EmptyConditionalService
 ///     This class has ConfigValue but no comparison condition
 /// </summary>
 //[ConditionalService(ConfigValue = "Features:SomeFeature")] // Missing Equals/NotEquals - triggers IOC023
-public partial class ConfigValueWithoutComparisonService
+[DependsOn<ILogger<ConfigValueWithoutComparisonService>>]public partial class ConfigValueWithoutComparisonService
 {
-    [Inject] private readonly ILogger<ConfigValueWithoutComparisonService> _logger;
 }
 
 /// <summary>
@@ -495,9 +477,8 @@ public partial class ConfigValueWithoutComparisonService
 ///     This class has comparison conditions but no ConfigValue
 /// </summary>
 //[ConditionalService(Equals = "true")] // Missing ConfigValue - triggers IOC024
-public partial class ComparisonWithoutConfigValueService
+[DependsOn<ILogger<ComparisonWithoutConfigValueService>>]public partial class ComparisonWithoutConfigValueService
 {
-    [Inject] private readonly ILogger<ComparisonWithoutConfigValueService> _logger;
 }
 
 /// <summary>
@@ -505,18 +486,16 @@ public partial class ComparisonWithoutConfigValueService
 ///     This class has empty ConfigValue
 /// </summary>
 //[ConditionalService(ConfigValue = "", Equals = "true")] // Empty ConfigValue - triggers IOC025
-public partial class EmptyConfigValueService
+[DependsOn<ILogger<EmptyConfigValueService>>]public partial class EmptyConfigValueService
 {
-    [Inject] private readonly ILogger<EmptyConfigValueService> _logger;
 }
 
 /// <summary>
 ///     Another IOC025 example with whitespace-only ConfigValue
 /// </summary>
 //[ConditionalService(ConfigValue = "   ", Equals = "true")] // Whitespace ConfigValue - triggers IOC025
-public partial class WhitespaceConfigValueService
+[DependsOn<ILogger<WhitespaceConfigValueService>>]public partial class WhitespaceConfigValueService
 {
-    [Inject] private readonly ILogger<WhitespaceConfigValueService> _logger;
 }
 
 /// <summary>
@@ -526,9 +505,8 @@ public partial class WhitespaceConfigValueService
 /// </summary>
 //[ConditionalService(Environment = "Development")]
 // //[ConditionalService(ConfigValue = "Features:EnableDev", Equals = "true")] // Multiple attributes - triggers IOC026
-public partial class MultipleConditionalAttributesService
+[DependsOn<ILogger<MultipleConditionalAttributesService>>]public partial class MultipleConditionalAttributesService
 {
-    [Inject] private readonly ILogger<MultipleConditionalAttributesService> _logger;
 }
 
 /// <summary>
@@ -537,23 +515,20 @@ public partial class MultipleConditionalAttributesService
 /// </summary>
 
 // Base service with inheritance chain that could lead to duplicate registrations
-public partial class BaseServiceForDuplication
+[DependsOn<ILogger<BaseServiceForDuplication>>]public partial class BaseServiceForDuplication
 {
-    [Inject] private readonly ILogger<BaseServiceForDuplication> _logger;
 }
 
 // Derived service that might cause duplicate registration warnings  
 
-public partial class DerivedServiceCausingDuplication : BaseServiceForDuplication
+[DependsOn<IMemoryCache>(memberName1:"_cache")]public partial class DerivedServiceCausingDuplication : BaseServiceForDuplication
 {
-    [Inject] private readonly IMemoryCache _cache;
 }
 
 // Service with complex registration patterns that could trigger IOC027
 [RegisterAsAll] // Complex registration pattern might trigger IOC027 
-public partial class ComplexRegistrationPatternService : IDisposable, ICloneable
+[DependsOn<ILogger<ComplexRegistrationPatternService>>]public partial class ComplexRegistrationPatternService : IDisposable, ICloneable
 {
-    [Inject] private readonly ILogger<ComplexRegistrationPatternService> _logger;
 
     /// <summary>
     ///     ICloneable implementation - maintains interface contract by throwing exception.
@@ -610,9 +585,8 @@ public static class AdditionalDiagnosticScenarios
 ///     Service that demonstrates how to properly handle diagnostic examples
 /// </summary>
 [Scoped]
-public partial class DiagnosticDemonstrationService
+[DependsOn<ILogger<DiagnosticDemonstrationService>>]public partial class DiagnosticDemonstrationService
 {
-    [Inject] private readonly ILogger<DiagnosticDemonstrationService> _logger;
 
     public void RunDiagnosticExamples()
     {

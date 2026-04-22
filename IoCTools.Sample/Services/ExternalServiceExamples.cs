@@ -26,11 +26,8 @@ using Microsoft.Extensions.Logging;
 ///     This suppresses all IoCTools diagnostics since the service is managed externally.
 /// </summary>
 [ExternalService]
-public partial class HttpClientService : IHttpClientService
+[DependsOn<IConfiguration,IHttpClientFactory,ILogger<HttpClientService>>]public partial class HttpClientService : IHttpClientService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly IHttpClientFactory _httpClientFactory;
-    [Inject] private readonly ILogger<HttpClientService> _logger;
 
     public async Task<ApiResponse<T>> GetAsync<T>(string clientName,
         string endpoint) where T : class
@@ -97,11 +94,8 @@ public partial class HttpClientService : IHttpClientService
 ///     Uses [ExternalService] to indicate this is manually registered and managed.
 /// </summary>
 [ExternalService]
-public partial class DatabaseContextService : IDatabaseContextService
+[DependsOn<IConfiguration,ILogger<DatabaseContextService>>]public partial class DatabaseContextService : IDatabaseContextService
 {
-    [Inject] private readonly IConfiguration _configuration;
-
-    [Inject] private readonly ILogger<DatabaseContextService> _logger;
 
     public async Task<T?> FindByIdAsync<T>(int id) where T : class
     {
@@ -159,10 +153,8 @@ public partial class DatabaseContextService : IDatabaseContextService
 ///     All dependencies marked as external to suppress diagnostics.
 /// </summary>
 [ExternalService]
-public partial class ExternalRedisCacheService : IDistributedCacheService
+[DependsOn<IConfiguration,ILogger<ExternalRedisCacheService>>]public partial class ExternalRedisCacheService : IDistributedCacheService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<ExternalRedisCacheService> _logger;
 
     public async Task<T?> GetAsync<T>(string key) where T : class
     {
@@ -204,11 +196,8 @@ public partial class ExternalRedisCacheService : IDistributedCacheService
 ///     Uses [ExternalService] to indicate external management and suppress validation.
 /// </summary>
 [ExternalService]
-public partial class ThirdPartyApiService : IThirdPartyApiService
+[DependsOn<IConfiguration,IHttpClientService,ILogger<ThirdPartyApiService>>]public partial class ThirdPartyApiService : IThirdPartyApiService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly IHttpClientService _httpClientService;
-    [Inject] private readonly ILogger<ThirdPartyApiService> _logger;
 
     public async Task<PaymentProcessingResult> ProcessPaymentAsync(ExternalPaymentRequest request)
     {
@@ -283,12 +272,8 @@ public partial class ThirdPartyApiService : IThirdPartyApiService
 ///     This shows how IoCTools services can depend on manually configured external services.
 /// </summary>
 [Scoped]
-public partial class OrderProcessingBusinessService : IOrderProcessingBusinessService
+[DependsOn<IDistributedCacheService,IDatabaseContextService,ILogger<OrderProcessingBusinessService>,IThirdPartyApiService>(memberName1:"_cacheService",memberName2:"_databaseContext",memberName3:"_logger",memberName4:"_thirdPartyApi")]public partial class OrderProcessingBusinessService : IOrderProcessingBusinessService
 {
-    [Inject] private readonly IDistributedCacheService _cacheService;
-    [Inject] private readonly IDatabaseContextService _databaseContext;
-    [Inject] private readonly ILogger<OrderProcessingBusinessService> _logger;
-    [Inject] private readonly IThirdPartyApiService _thirdPartyApi;
 
     public async Task<OrderProcessingResult> ProcessOrderAsync(ExternalOrder order)
     {
@@ -371,12 +356,8 @@ public partial class OrderProcessingBusinessService : IOrderProcessingBusinessSe
 ///     Shows how IoCTools services can depend on framework services like IMemoryCache, ILogger, etc.
 /// </summary>
 [Scoped]
-public partial class FrameworkIntegrationService : IFrameworkIntegrationService
+[DependsOn<IConfiguration,ILogger<FrameworkIntegrationService>,IMemoryCache,IServiceProvider>]public partial class FrameworkIntegrationService : IFrameworkIntegrationService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<FrameworkIntegrationService> _logger;
-    [Inject] private readonly IMemoryCache _memoryCache;
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     public async Task<CacheOperationResult> CacheDataWithMemoryCacheAsync<T>(string key,
         T data,
@@ -455,20 +436,8 @@ public partial class FrameworkIntegrationService : IFrameworkIntegrationService
 ///     Shows the hybrid pattern where some dependencies are automatic and others are manual.
 /// </summary>
 [Scoped]
-public partial class HybridIntegrationService : IHybridIntegrationService
+[DependsOn<IDatabaseContextService,IEmailService,IHttpClientService,ILogger<HybridIntegrationService>,IPaymentService,IServiceProvider,IThirdPartyApiService>(memberName1:"_databaseContext",memberName2:"_emailService",memberName3:"_httpClientService",memberName4:"_logger",memberName5:"_paymentService",memberName6:"_serviceProvider",memberName7:"_thirdPartyApiService")]public partial class HybridIntegrationService : IHybridIntegrationService
 {
-    [Inject] private readonly IDatabaseContextService _databaseContext; // External service
-    [Inject] private readonly IEmailService _emailService; // IoCTools registered service
-
-    // These need to be manually registered
-    [Inject] private readonly IHttpClientService _httpClientService; // External service
-
-    [Inject] private readonly ILogger<HybridIntegrationService> _logger; // Framework service
-
-    // These are automatically resolved by IoCTools
-    [Inject] private readonly IPaymentService _paymentService; // IoCTools registered service
-    [Inject] private readonly IServiceProvider _serviceProvider; // For health checks
-    [Inject] private readonly IThirdPartyApiService _thirdPartyApiService; // External service
 
     public async Task<IntegrationResult> ProcessBusinessWorkflowAsync(BusinessWorkflowRequest request)
     {
@@ -573,9 +542,8 @@ public partial class HybridIntegrationService : IHybridIntegrationService
 ///     This would typically be called from Program.cs during application startup.
 /// </summary>
 [Singleton]
-public partial class ExternalServiceRegistrationHelper : IExternalServiceRegistrationHelper
+[DependsOn<ILogger<ExternalServiceRegistrationHelper>>]public partial class ExternalServiceRegistrationHelper : IExternalServiceRegistrationHelper
 {
-    [Inject] private readonly ILogger<ExternalServiceRegistrationHelper> _logger;
 
     public void ConfigureExternalServices(IServiceCollection services,
         IConfiguration configuration)

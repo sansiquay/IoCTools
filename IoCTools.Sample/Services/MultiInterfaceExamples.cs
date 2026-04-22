@@ -41,9 +41,8 @@ public interface IMultiUserValidator
 
 // Example 1: RegisterAsAll with All mode (default) - registers concrete type AND all interfaces
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
-public partial class UserService : IMultiUserService, IMultiUserRepository, IMultiUserValidator
+[DependsOn<ILogger<UserService>>]public partial class UserService : IMultiUserService, IMultiUserRepository, IMultiUserValidator
 {
-    [Inject] private readonly ILogger<UserService> _logger;
     private readonly ConcurrentDictionary<int, User> _users = new();
     private int _nextId = 1;
 
@@ -120,9 +119,8 @@ public interface IMultiPaymentLogger
 
 // Example 2: DirectOnly mode - registers only the concrete type, not interfaces
 [RegisterAsAll(RegistrationMode.DirectOnly)]
-public partial class DirectOnlyPaymentProcessor : IMultiPaymentService, IMultiPaymentValidator, IMultiPaymentLogger
+[DependsOn<ILogger<DirectOnlyPaymentProcessor>>]public partial class DirectOnlyPaymentProcessor : IMultiPaymentService, IMultiPaymentValidator, IMultiPaymentLogger
 {
-    [Inject] private readonly ILogger<DirectOnlyPaymentProcessor> _logger;
 
     public void LogPayment(Payment payment,
         PaymentResult result) => _logger.LogInformation("Payment {Amount:C} - {Status}", payment.Amount,
@@ -150,9 +148,8 @@ public partial class DirectOnlyPaymentProcessor : IMultiPaymentService, IMultiPa
 
 // Example 3: Exclusionary mode - registers only interfaces, not the concrete type
 [RegisterAsAll(RegistrationMode.Exclusionary, InstanceSharing.Shared)]
-public partial class InterfaceOnlyPaymentProcessor : IMultiPaymentService, IMultiPaymentValidator, IMultiPaymentLogger
+[DependsOn<ILogger<InterfaceOnlyPaymentProcessor>>]public partial class InterfaceOnlyPaymentProcessor : IMultiPaymentService, IMultiPaymentValidator, IMultiPaymentLogger
 {
-    [Inject] private readonly ILogger<InterfaceOnlyPaymentProcessor> _logger;
 
     public void LogPayment(Payment payment,
         PaymentResult result)
@@ -209,11 +206,10 @@ public interface IMultiCacheValidator
 
 // Example 4: Separate instances for each interface
 [RegisterAsAll]
-public partial class SeparateInstanceCacheManager : IMultiCacheService, IMultiCacheProvider, IMultiCacheValidator
+[DependsOn<ILogger<SeparateInstanceCacheManager>>]public partial class SeparateInstanceCacheManager : IMultiCacheService, IMultiCacheProvider, IMultiCacheValidator
 {
     private readonly ConcurrentDictionary<string, object> _cache = new();
     private readonly Guid _instanceId = Guid.NewGuid();
-    [Inject] private readonly ILogger<SeparateInstanceCacheManager> _logger;
 
     public bool Exists(string key) => _cache.ContainsKey(key);
 
@@ -242,11 +238,10 @@ public partial class SeparateInstanceCacheManager : IMultiCacheService, IMultiCa
 
 // Example 5: Shared instance across all interfaces
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
-public partial class SharedInstanceCacheManager : IMultiCacheService, IMultiCacheProvider, IMultiCacheValidator
+[DependsOn<ILogger<SharedInstanceCacheManager>>]public partial class SharedInstanceCacheManager : IMultiCacheService, IMultiCacheProvider, IMultiCacheValidator
 {
     private readonly ConcurrentDictionary<string, object> _cache = new();
     private readonly Guid _instanceId = Guid.NewGuid();
-    [Inject] private readonly ILogger<SharedInstanceCacheManager> _logger;
 
     public bool Exists(string key) => _cache.ContainsKey(key);
 
@@ -296,9 +291,8 @@ public interface IDataCacheService
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
 [SkipRegistration<IDataLogger>] // Skip IDataLogger interface registration
 [SkipRegistration<IDataCacheService>] // Skip IDataCacheService interface registration
-public partial class SelectiveDataService : IDataService, IDataValidator, IDataLogger, IDataCacheService
+[DependsOn<ILogger<SelectiveDataService>>]public partial class SelectiveDataService : IDataService, IDataValidator, IDataLogger, IDataCacheService
 {
-    [Inject] private readonly ILogger<SelectiveDataService> _logger;
 
     public void CacheData(string id,
         string data)
@@ -414,10 +408,9 @@ public interface INotificationLogger
 
 // Example 8: Multi-interface service (simplified without inheritance)
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
-public partial class CompositeNotificationService : IEmailNotificationService, ISmsNotificationService,
+[DependsOn<ILogger<CompositeNotificationService>>]public partial class CompositeNotificationService : IEmailNotificationService, ISmsNotificationService,
     INotificationLogger
 {
-    [Inject] private readonly ILogger<CompositeNotificationService> _logger;
 
     public async Task SendEmailAsync(string to,
         string subject,
@@ -461,9 +454,8 @@ public interface IPerformanceBenchmark
 
 // Example 9: Performance-focused service with detailed metrics
 [RegisterAsAll(RegistrationMode.All, InstanceSharing.Shared)]
-public partial class PerformanceTestService : IPerformanceTestService, IPerformanceMetrics, IPerformanceBenchmark
+[DependsOn<ILogger<PerformanceTestService>>]public partial class PerformanceTestService : IPerformanceTestService, IPerformanceMetrics, IPerformanceBenchmark
 {
-    [Inject] private readonly ILogger<PerformanceTestService> _logger;
     private readonly ConcurrentBag<TimeSpan> _processingTimes = new();
     private long _totalProcessed;
 
@@ -519,10 +511,8 @@ public interface IMultiInterfaceDemoService
 
 // Example 10: Service that demonstrates all the multi-interface patterns
 [Scoped]
-public partial class MultiInterfaceDemonstrationService : IMultiInterfaceDemoService
+[DependsOn<ILogger<MultiInterfaceDemonstrationService>,IServiceProvider>]public partial class MultiInterfaceDemonstrationService : IMultiInterfaceDemoService
 {
-    [Inject] private readonly ILogger<MultiInterfaceDemonstrationService> _logger;
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     public async Task RunDemonstrationAsync()
     {
@@ -651,9 +641,8 @@ public interface ISelectiveService3
 
 // Example 1: Register as only two specific interfaces (Scoped by default)
 [RegisterAs<ISelectiveService1, ISelectiveService2>]
-public partial class SelectiveRegistrationService : ISelectiveService1, ISelectiveService2, ISelectiveService3
+[DependsOn<ILogger<SelectiveRegistrationService>>]public partial class SelectiveRegistrationService : ISelectiveService1, ISelectiveService2, ISelectiveService3
 {
-    [Inject] private readonly ILogger<SelectiveRegistrationService> _logger;
 
     public async Task<string> ProcessAsync(string input)
     {
@@ -670,9 +659,8 @@ public partial class SelectiveRegistrationService : ISelectiveService1, ISelecti
 // Example 2: Register as single interface only
 [Transient]
 [RegisterAs<ISelectiveService1>] // Only registers for this one interface
-public partial class SingleInterfaceService : ISelectiveService1, ISelectiveService2, ISelectiveService3
+[DependsOn<ILogger<SingleInterfaceService>>]public partial class SingleInterfaceService : ISelectiveService1, ISelectiveService2, ISelectiveService3
 {
-    [Inject] private readonly ILogger<SingleInterfaceService> _logger;
 
     public async Task<string> ProcessAsync(string input)
     {
@@ -702,12 +690,10 @@ public interface ISelectiveAuditService
 
 [Singleton]
 [RegisterAs<IConfigurableService, ISelectiveAuditService>]
-public partial class ConfigurableSelectiveService : IConfigurableService, ISelectiveAuditService, ISelectiveService3
+[DependsOn<ILogger<ConfigurableSelectiveService>>]public partial class ConfigurableSelectiveService : IConfigurableService, ISelectiveAuditService, ISelectiveService3
 {
     [InjectConfiguration("Features:SelectiveService")]
     private readonly string _configValue;
-
-    [Inject] private readonly ILogger<ConfigurableSelectiveService> _logger;
 
     public async Task<string> ExecuteAsync(string data)
     {

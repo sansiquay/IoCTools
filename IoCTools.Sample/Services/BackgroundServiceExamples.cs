@@ -71,9 +71,8 @@ public class FileWatcherSettings
 ///     Basic background service example that inherits from BackgroundService
 /// </summary>
 // Background services are automatically detected by intelligent inference
-public partial class SimpleBackgroundWorker : BackgroundService
+[DependsOn<ILogger<SimpleBackgroundWorker>>]public partial class SimpleBackgroundWorker : BackgroundService
 {
-    [Inject] private readonly ILogger<SimpleBackgroundWorker> _logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -106,10 +105,8 @@ public partial class SimpleBackgroundWorker : BackgroundService
 /// <summary>
 ///     Background service that processes email queue with full dependency injection
 /// </summary>
-public partial class EmailQueueProcessor : BackgroundService
+[DependsOn<ILogger<EmailQueueProcessor>,IServiceScopeFactory>(memberName1:"_logger",memberName2:"_scopeFactory")]public partial class EmailQueueProcessor : BackgroundService
 {
-    [Inject] private readonly ILogger<EmailQueueProcessor> _logger;
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     [InjectConfiguration("BackgroundServices:EmailProcessor")]
     private readonly EmailProcessorSettings _settings;
@@ -188,16 +185,13 @@ public partial class EmailQueueProcessor : BackgroundService
 /// <summary>
 ///     Background service that performs periodic data cleanup operations
 /// </summary>
-public partial class DataCleanupService : BackgroundService
+[DependsOn<ILogger<DataCleanupService>,IServiceScopeFactory>(memberName1:"_logger",memberName2:"_scopeFactory")]public partial class DataCleanupService : BackgroundService
 {
     [InjectConfiguration("DataCleanupSettings")]
     private readonly DataCleanupSettings _cleanupSettings;
 
     [InjectConfiguration("Database:ConnectionString")]
     private readonly string _connectionString;
-
-    [Inject] private readonly ILogger<DataCleanupService> _logger;
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     [InjectConfiguration("Database:DefaultTimeout", DefaultValue = 30)]
     private readonly int _timeoutSeconds;
@@ -285,16 +279,12 @@ public partial class DataCleanupService : BackgroundService
 /// <summary>
 ///     Background service that monitors application health endpoints
 /// </summary>
-public partial class HealthCheckService : BackgroundService
+[DependsOn<IHttpClientFactory,ILogger<HealthCheckService>,IServiceScopeFactory>(memberName1:"_httpClientFactory",memberName2:"_logger",memberName3:"_scopeFactory")]public partial class HealthCheckService : BackgroundService
 {
     [InjectConfiguration("Api:BaseUrl")] private readonly string _baseUrl;
 
     [InjectConfiguration("HealthMonitorSettings")]
     private readonly HealthMonitorSettings _healthSettings;
-
-    [Inject] private readonly IHttpClientFactory _httpClientFactory;
-    [Inject] private readonly ILogger<HealthCheckService> _logger;
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -406,12 +396,10 @@ public partial class HealthCheckService : BackgroundService
 /// <summary>
 ///     Background service that monitors file system changes and processes new files
 /// </summary>
-public partial class FileWatcherService : BackgroundService
+[DependsOn<ILogger<FileWatcherService>,IServiceScopeFactory>(memberName1:"_logger",memberName2:"_scopeFactory")]public partial class FileWatcherService : BackgroundService
 {
     private readonly ConcurrentQueue<string> _filesToProcess = new();
-    [Inject] private readonly ILogger<FileWatcherService> _logger;
     private readonly SemaphoreSlim _processingLock = new(1, 1);
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     [InjectConfiguration("FileWatcherSettings")]
     private readonly FileWatcherSettings _watcherSettings;
@@ -581,17 +569,14 @@ public partial class FileWatcherService : BackgroundService
 ///     Background service that sends scheduled notifications with conditional registration
 /// </summary>
 [ConditionalService(ConfigValue = "Features:EnableNotifications", Equals = "true")]
-public partial class NotificationSchedulerService : BackgroundService
+[DependsOn<ILogger<NotificationSchedulerService>,IServiceScopeFactory>(memberName1:"_logger",memberName2:"_scopeFactory")]public partial class NotificationSchedulerService : BackgroundService
 {
-    [Inject] private readonly ILogger<NotificationSchedulerService> _logger;
 
     [InjectConfiguration("Features:EnableNotifications", DefaultValue = "false")]
     private readonly string _notificationsEnabled;
 
     [InjectConfiguration("NotificationSchedulerSettings")]
     private readonly NotificationSchedulerSettings _schedulerSettings;
-
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -709,9 +694,8 @@ public partial class NotificationSchedulerService : BackgroundService
 /// <summary>
 ///     Complex background service demonstrating multiple dependency types and patterns
 /// </summary>
-public partial class ComplexBackgroundService : BackgroundService
+[DependsOn<ICacheService,ILogger<ComplexBackgroundService>,IServiceScopeFactory>(memberName1:"_cacheService",memberName2:"_logger",memberName3:"_scopeFactory")]public partial class ComplexBackgroundService : BackgroundService
 {
-    [Inject] private readonly ICacheService _cacheService;
 
     // Options pattern injection - Use IOptions<T> (Singleton) instead of IOptionsSnapshot<T> (Scoped) for BackgroundServices
     [InjectConfiguration] private readonly IOptions<DataCleanupSettings> _cleanupOptions;
@@ -727,9 +711,6 @@ public partial class ComplexBackgroundService : BackgroundService
 
     [InjectConfiguration("Email:FromAddress")]
     private readonly string _fromAddress;
-
-    [Inject] private readonly ILogger<ComplexBackgroundService> _logger;
-    [Inject] private readonly IServiceScopeFactory _scopeFactory;
 
     [InjectConfiguration("BackgroundServices:DataSync:IntervalMinutes", DefaultValue = 15)]
     private readonly int _syncInterval;
@@ -813,9 +794,8 @@ public record ScheduledNotification(int Id, string Message, string Recipient, Da
 ///     Custom IHostedService implementation that directly implements the interface
 ///     This tests the refactored unified IHostedService detection logic
 /// </summary>
-public partial class CustomHostedService : IHostedService
+[DependsOn<ILogger<CustomHostedService>>]public partial class CustomHostedService : IHostedService
 {
-    [Inject] private readonly ILogger<CustomHostedService> _logger;
     private Timer? _timer;
 
     public Task StartAsync(CancellationToken cancellationToken)

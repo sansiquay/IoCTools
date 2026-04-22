@@ -14,12 +14,8 @@ public interface IAdvancedPatternsService
     Task DemonstrateFutureEnhancementsAsync();
 }
 
-public partial class AdvancedPatternsService : IAdvancedPatternsService
+[DependsOn<ILogger<AdvancedPatternsService>,IServiceProvider>]public partial class AdvancedPatternsService : IAdvancedPatternsService
 {
-    [Inject] private readonly ILogger<AdvancedPatternsService> _logger;
-
-    // Current IoCTools capabilities - these work perfectly
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     // Future enhancements - these would need additional DI container configuration
     // [Inject] private readonly Lazy<ICacheService> _lazyCacheService;

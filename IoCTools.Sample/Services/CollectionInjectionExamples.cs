@@ -30,9 +30,8 @@ public interface ICollectionNotificationService
 ///     Email notification implementation
 /// </summary>
 [Scoped]
-public partial class CollectionEmailNotificationService : ICollectionNotificationService
+[DependsOn<ILogger<CollectionEmailNotificationService>>]public partial class CollectionEmailNotificationService : ICollectionNotificationService
 {
-    [Inject] private readonly ILogger<CollectionEmailNotificationService> _logger;
 
     public string NotificationType => "Email";
     public int Priority => 1; // High priority
@@ -56,9 +55,8 @@ public partial class CollectionEmailNotificationService : ICollectionNotificatio
 ///     SMS notification implementation
 /// </summary>
 [Scoped]
-public partial class CollectionSmsNotificationService : ICollectionNotificationService
+[DependsOn<ILogger<CollectionSmsNotificationService>>]public partial class CollectionSmsNotificationService : ICollectionNotificationService
 {
-    [Inject] private readonly ILogger<CollectionSmsNotificationService> _logger;
 
     public string NotificationType => "SMS";
     public int Priority => 2; // Medium priority
@@ -82,9 +80,8 @@ public partial class CollectionSmsNotificationService : ICollectionNotificationS
 ///     Push notification implementation
 /// </summary>
 [Scoped]
-public partial class CollectionPushNotificationService : ICollectionNotificationService
+[DependsOn<ILogger<CollectionPushNotificationService>>]public partial class CollectionPushNotificationService : ICollectionNotificationService
 {
-    [Inject] private readonly ILogger<CollectionPushNotificationService> _logger;
 
     public string NotificationType => "Push";
     public int Priority => 3; // Low priority
@@ -108,9 +105,8 @@ public partial class CollectionPushNotificationService : ICollectionNotification
 ///     Slack notification implementation
 /// </summary>
 [Scoped]
-public partial class CollectionSlackNotificationService : ICollectionNotificationService
+[DependsOn<ILogger<CollectionSlackNotificationService>>]public partial class CollectionSlackNotificationService : ICollectionNotificationService
 {
-    [Inject] private readonly ILogger<CollectionSlackNotificationService> _logger;
 
     public string NotificationType => "Slack";
     public int Priority => 4; // Lowest priority
@@ -135,10 +131,8 @@ public partial class CollectionSlackNotificationService : ICollectionNotificatio
 ///     <INotificationService> to send notifications through all available channels
 /// </summary>
 [Scoped]
-public partial class NotificationManager
+[DependsOn<ILogger<NotificationManager>,IEnumerable<ICollectionNotificationService>>(memberName1:"_logger",memberName2:"_notificationServices")]public partial class NotificationManager
 {
-    [Inject] private readonly ILogger<NotificationManager> _logger;
-    [Inject] private readonly IEnumerable<ICollectionNotificationService> _notificationServices;
 
     /// <summary>
     ///     Sends notification through all available services
@@ -256,9 +250,8 @@ public interface IProcessor
 ///     First processor in the chain
 /// </summary>
 [Transient]
-public partial class ValidationProcessor : IProcessor
+[DependsOn<ILogger<ValidationProcessor>>]public partial class ValidationProcessor : IProcessor
 {
-    [Inject] private readonly ILogger<ValidationProcessor> _logger;
 
     public string ProcessorName => "Validation";
     public int Order => 1;
@@ -281,9 +274,8 @@ public partial class ValidationProcessor : IProcessor
 ///     Second processor in the chain
 /// </summary>
 [Transient]
-public partial class TransformationProcessor : IProcessor
+[DependsOn<ILogger<TransformationProcessor>>]public partial class TransformationProcessor : IProcessor
 {
-    [Inject] private readonly ILogger<TransformationProcessor> _logger;
 
     public string ProcessorName => "Transformation";
     public int Order => 2;
@@ -304,9 +296,8 @@ public partial class TransformationProcessor : IProcessor
 ///     Third processor in the chain
 /// </summary>
 [Transient]
-public partial class EnrichmentProcessor : IProcessor
+[DependsOn<ILogger<EnrichmentProcessor>>]public partial class EnrichmentProcessor : IProcessor
 {
-    [Inject] private readonly ILogger<EnrichmentProcessor> _logger;
 
     public string ProcessorName => "Enrichment";
     public int Order => 3;
@@ -327,10 +318,8 @@ public partial class EnrichmentProcessor : IProcessor
 ///     Processing chain service that uses IList<IProcessor> for ordered processing
 /// </summary>
 [Scoped]
-public partial class ProcessorChain
+[DependsOn<ILogger<ProcessorChain>,IList<IProcessor>>(memberName1:"_logger",memberName2:"_processors")]public partial class ProcessorChain
 {
-    [Inject] private readonly ILogger<ProcessorChain> _logger;
-    [Inject] private readonly IList<IProcessor> _processors;
 
     /// <summary>
     ///     Processes data through the entire chain in order
@@ -387,10 +376,8 @@ public partial class ProcessorChain
 ///     Read-only aggregator service that uses IReadOnlyList<IProcessor> for analysis
 /// </summary>
 [Singleton]
-public partial class ProcessorAnalyzer
+[DependsOn<ILogger<ProcessorAnalyzer>,IReadOnlyList<IProcessor>>(memberName1:"_logger",memberName2:"_processors")]public partial class ProcessorAnalyzer
 {
-    [Inject] private readonly ILogger<ProcessorAnalyzer> _logger;
-    [Inject] private readonly IReadOnlyList<IProcessor> _processors;
 
     /// <summary>
     ///     Analyzes all processors without modifying them
@@ -466,9 +453,8 @@ public interface IValidator<T> where T : class
 ///     User validator implementation
 /// </summary>
 [Transient]
-public partial class UserValidator : IValidator<User>
+[DependsOn<ILogger<UserValidator>>]public partial class UserValidator : IValidator<User>
 {
-    [Inject] private readonly ILogger<UserValidator> _logger;
 
     public string ValidatorName => "User Validator";
     public int Severity => 1; // Error level
@@ -494,9 +480,8 @@ public partial class UserValidator : IValidator<User>
 ///     User business rules validator
 /// </summary>
 [Transient]
-public partial class UserBusinessValidator : IValidator<User>
+[DependsOn<ILogger<UserBusinessValidator>>]public partial class UserBusinessValidator : IValidator<User>
 {
-    [Inject] private readonly ILogger<UserBusinessValidator> _logger;
 
     public string ValidatorName => "User Business Rules";
     public int Severity => 2; // Warning level
@@ -522,9 +507,8 @@ public partial class UserBusinessValidator : IValidator<User>
 ///     Order validator implementation
 /// </summary>
 [Transient]
-public partial class OrderValidator : IValidator<Order>
+[DependsOn<ILogger<OrderValidator>>]public partial class OrderValidator : IValidator<Order>
 {
-    [Inject] private readonly ILogger<OrderValidator> _logger;
 
     public string ValidatorName => "Order Validator";
     public int Severity => 1; // Error level
@@ -550,11 +534,8 @@ public partial class OrderValidator : IValidator<Order>
 ///     Comprehensive validation service that uses IEnumerable<IValidator<T>> for each entity type
 /// </summary>
 [Scoped]
-public partial class ValidationService
+[DependsOn<ILogger<ValidationService>,IEnumerable<IValidator<Order>>,IEnumerable<IValidator<User>>>(memberName1:"_logger",memberName2:"_orderValidators",memberName3:"_userValidators")]public partial class ValidationService
 {
-    [Inject] private readonly ILogger<ValidationService> _logger;
-    [Inject] private readonly IEnumerable<IValidator<Order>> _orderValidators;
-    [Inject] private readonly IEnumerable<IValidator<User>> _userValidators;
 
     /// <summary>
     ///     Validates a user entity using all available user validators
@@ -638,9 +619,8 @@ public interface IAggregator<T>
 ///     Sum aggregator for numeric data
 /// </summary>
 [Transient]
-public partial class SumAggregator : IAggregator<decimal>
+[DependsOn<ILogger<SumAggregator>>]public partial class SumAggregator : IAggregator<decimal>
 {
-    [Inject] private readonly ILogger<SumAggregator> _logger;
 
     public string AggregatorName => "Sum";
     public int Priority => 1;
@@ -657,9 +637,8 @@ public partial class SumAggregator : IAggregator<decimal>
 ///     Average aggregator for numeric data
 /// </summary>
 [Transient]
-public partial class AverageAggregator : IAggregator<decimal>
+[DependsOn<ILogger<AverageAggregator>>]public partial class AverageAggregator : IAggregator<decimal>
 {
-    [Inject] private readonly ILogger<AverageAggregator> _logger;
 
     public string AggregatorName => "Average";
     public int Priority => 2;
@@ -677,10 +656,8 @@ public partial class AverageAggregator : IAggregator<decimal>
 ///     Multi-aggregator service that uses all available aggregators
 /// </summary>
 [Scoped]
-public partial class AggregatorService
+[DependsOn<IReadOnlyList<IAggregator<decimal>>,ILogger<AggregatorService>>(memberName1:"_aggregators",memberName2:"_logger")]public partial class AggregatorService
 {
-    [Inject] private readonly IReadOnlyList<IAggregator<decimal>> _aggregators;
-    [Inject] private readonly ILogger<AggregatorService> _logger;
 
     /// <summary>
     ///     Performs all available aggregations on the data
@@ -733,9 +710,8 @@ public interface IDataProvider
 ///     Singleton data provider (shared instance)
 /// </summary>
 [Singleton]
-public partial class CachedDataProvider : IDataProvider
+[DependsOn<ILogger<CachedDataProvider>>]public partial class CachedDataProvider : IDataProvider
 {
-    [Inject] private readonly ILogger<CachedDataProvider> _logger;
 
     public string ProviderName => "Cached";
     public string InstanceId { get; } = Guid.NewGuid().ToString("N")[..8];
@@ -752,9 +728,8 @@ public partial class CachedDataProvider : IDataProvider
 ///     Scoped data provider (per-request instance)
 /// </summary>
 [Scoped]
-public partial class DatabaseDataProvider : IDataProvider
+[DependsOn<ILogger<DatabaseDataProvider>>]public partial class DatabaseDataProvider : IDataProvider
 {
-    [Inject] private readonly ILogger<DatabaseDataProvider> _logger;
 
     public string ProviderName => "Database";
     public string InstanceId { get; } = Guid.NewGuid().ToString("N")[..8];
@@ -771,9 +746,8 @@ public partial class DatabaseDataProvider : IDataProvider
 ///     Transient data provider (new instance each time)
 /// </summary>
 [Transient]
-public partial class ApiDataProvider : IDataProvider
+[DependsOn<ILogger<ApiDataProvider>>]public partial class ApiDataProvider : IDataProvider
 {
-    [Inject] private readonly ILogger<ApiDataProvider> _logger;
 
     public string ProviderName => "API";
     public string InstanceId { get; } = Guid.NewGuid().ToString("N")[..8];
@@ -790,10 +764,8 @@ public partial class ApiDataProvider : IDataProvider
 ///     Service that demonstrates how different lifetime services work together in collections
 /// </summary>
 [Scoped]
-public partial class MultiProviderService
+[DependsOn<IEnumerable<IDataProvider>,ILogger<MultiProviderService>>(memberName1:"_dataProviders",memberName2:"_logger")]public partial class MultiProviderService
 {
-    [Inject] private readonly IEnumerable<IDataProvider> _dataProviders;
-    [Inject] private readonly ILogger<MultiProviderService> _logger;
 
     /// <summary>
     ///     Retrieves data from all providers and shows lifetime behavior

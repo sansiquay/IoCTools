@@ -15,9 +15,8 @@ public interface IGreetingService
 }
 
 // ← Service registration inferred from [Inject] attribute
-public partial class GreetingService : IGreetingService
+[DependsOn<ILogger<GreetingService>>]public partial class GreetingService : IGreetingService
 {
-    [Inject] private readonly ILogger<GreetingService> _logger; // ← Auto-injected dependency
 
     public string GetGreeting(string name)
     {
@@ -46,11 +45,8 @@ public interface IEmailService
         string body);
 }
 
-public partial class OrderService : IOrderService
+[DependsOn<IEmailService,ILogger<OrderService>,IPaymentService>]public partial class OrderService : IOrderService
 {
-    [Inject] private readonly IEmailService _emailService;
-    [Inject] private readonly ILogger<OrderService> _logger;
-    [Inject] private readonly IPaymentService _paymentService;
 
     public async Task ProcessOrderAsync(Order order)
     {
@@ -62,9 +58,8 @@ public partial class OrderService : IOrderService
 }
 
 [Scoped]
-public partial class PaymentService : IPaymentService
+[DependsOn<ILogger<PaymentService>>]public partial class PaymentService : IPaymentService
 {
-    [Inject] private readonly ILogger<PaymentService> _logger;
 
     public async Task<PaymentResult> ProcessPaymentAsync(Payment payment)
     {
@@ -75,9 +70,8 @@ public partial class PaymentService : IPaymentService
 }
 
 [Scoped]
-public partial class EmailService : IEmailService
+[DependsOn<ILogger<EmailService>>]public partial class EmailService : IEmailService
 {
-    [Inject] private readonly ILogger<EmailService> _logger;
 
     public async Task SendConfirmationAsync(string email)
     {
@@ -102,9 +96,8 @@ public interface ICacheService
 }
 
 [Singleton] // ← Override default Scoped lifetime
-public partial class CacheService : ICacheService
+[DependsOn<IMemoryCache>(memberName1:"_cache")]public partial class CacheService : ICacheService
 {
-    [Inject] private readonly IMemoryCache _cache;
 
     public T GetOrSet<T>(string key,
         Func<T> factory) => _cache.GetOrCreate(key, _ => factory());
@@ -112,9 +105,8 @@ public partial class CacheService : ICacheService
 
 // === 4. SERVICE WITHOUT INTERFACE ===
 // ← Registers as concrete type only, inferred from [Inject] attribute
-public partial class BackgroundTaskService
+[DependsOn<IServiceProvider>]public partial class BackgroundTaskService
 {
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     public async Task ProcessTasksAsync()
     {
@@ -129,9 +121,8 @@ public interface INotificationService
     Task SendNotificationAsync(string message);
 }
 
-public partial class EmailNotificationService : INotificationService
+[DependsOn<ILogger<EmailNotificationService>>]public partial class EmailNotificationService : INotificationService
 {
-    [Inject] private readonly ILogger<EmailNotificationService> _logger;
 
     public async Task SendNotificationAsync(string message)
     {
@@ -140,9 +131,8 @@ public partial class EmailNotificationService : INotificationService
     }
 }
 
-public partial class SmsNotificationService : INotificationService
+[DependsOn<ILogger<SmsNotificationService>>]public partial class SmsNotificationService : INotificationService
 {
-    [Inject] private readonly ILogger<SmsNotificationService> _logger;
 
     public async Task SendNotificationAsync(string message)
     {
@@ -156,21 +146,8 @@ public interface IAdvancedInjectionService
     Task DemonstrateAdvancedPatternsAsync();
 }
 
-public partial class AdvancedInjectionService : IAdvancedInjectionService
+[DependsOn<ICacheService,IGreetingService,ILogger<AdvancedInjectionService>,IEnumerable<INotificationService>,IServiceProvider>(memberName1:"_cacheService",memberName2:"_greetingService",memberName3:"_logger",memberName4:"_notificationServices",memberName5:"_serviceProvider")]public partial class AdvancedInjectionService : IAdvancedInjectionService
 {
-    // Cache service for demonstration
-    [Inject] private readonly ICacheService _cacheService;
-
-    // Direct service injection (for factory pattern demo)
-    [Inject] private readonly IGreetingService _greetingService;
-
-    [Inject] private readonly ILogger<AdvancedInjectionService> _logger;
-
-    // Collection injection - gets all registered INotificationService implementations
-    [Inject] private readonly IEnumerable<INotificationService> _notificationServices;
-
-    // Service provider for manual service resolution
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     public async Task DemonstrateAdvancedPatternsAsync()
     {

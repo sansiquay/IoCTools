@@ -21,9 +21,8 @@ using Microsoft.Extensions.Logging;
 ///     Demonstrates clean lifetime specification
 /// </summary>
 [Scoped]
-public partial class ModernScopedService
+[DependsOn<ILogger<ModernScopedService>>]public partial class ModernScopedService
 {
-    [Inject] private readonly ILogger<ModernScopedService> _logger;
 
     public void ProcessRequest(string requestId) =>
         _logger.LogInformation("Processing request {RequestId} in scoped service", requestId);
@@ -34,10 +33,9 @@ public partial class ModernScopedService
 ///     Perfect for services that maintain state across the application
 /// </summary>
 [Singleton]
-public partial class ModernSingletonService
+[DependsOn<ILogger<ModernSingletonService>>]public partial class ModernSingletonService
 {
     private readonly Dictionary<string, int> _counters = new();
-    [Inject] private readonly ILogger<ModernSingletonService> _logger;
 
     public int GetAndIncrement(string key)
     {
@@ -55,10 +53,9 @@ public partial class ModernSingletonService
 ///     Fresh instance on every injection
 /// </summary>
 [Transient]
-public partial class ModernTransientService
+[DependsOn<ILogger<ModernTransientService>>]public partial class ModernTransientService
 {
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
-    [Inject] private readonly ILogger<ModernTransientService> _logger;
 
     public string GetInstanceId()
     {
@@ -83,9 +80,8 @@ public interface IAutomaticService
 ///     Service with ONLY [Inject] fields → automatically registered as IAutomaticService
 ///     Demonstrates intelligent service registration for interface implementations
 /// </summary>
-public partial class AutoDetectedService : IAutomaticService
+[DependsOn<ILogger<AutoDetectedService>>]public partial class AutoDetectedService : IAutomaticService
 {
-    [Inject] private readonly ILogger<AutoDetectedService> _logger;
 
     public string ServiceName => "AutoDetected";
 
@@ -100,9 +96,8 @@ public partial class AutoDetectedService : IAutomaticService
 /// <summary>
 ///     Another service implementing the same interface for collection injection
 /// </summary>
-public partial class SmartRegistrationService : IAutomaticService
+[DependsOn<ILogger<SmartRegistrationService>>]public partial class SmartRegistrationService : IAutomaticService
 {
-    [Inject] private readonly ILogger<SmartRegistrationService> _logger;
 
     public string ServiceName => "SmartRegistration";
 
@@ -121,10 +116,8 @@ public partial class SmartRegistrationService : IAutomaticService
 ///         Automatically gets all IAutomaticService implementations
 /// </summary>
 [Scoped]
-public partial class CollectionAwareService
+[DependsOn<IEnumerable<IAutomaticService>,ILogger<CollectionAwareService>>(memberName1:"_automaticServices",memberName2:"_logger")]public partial class CollectionAwareService
 {
-    [Inject] private readonly IEnumerable<IAutomaticService> _automaticServices;
-    [Inject] private readonly ILogger<CollectionAwareService> _logger;
 
     public async Task<ArchitecturalProcessingResult> ProcessWithAllServicesAsync(string input)
     {
@@ -167,14 +160,10 @@ public class ProcessingConfiguration
 ///     Requires explicit lifetime attribute as per new intelligent logic
 /// </summary>
 [Scoped] // Explicit lifetime required for mixed scenarios
-public partial class MixedDependencyService
+[DependsOn<ILogger<MixedDependencyService>,ModernSingletonService>(memberName1:"_logger",memberName2:"_singletonService")]public partial class MixedDependencyService
 {
     // Configuration injection
     [InjectConfiguration("Processing")] private readonly ProcessingConfiguration _config;
-
-    // Field injection
-    [Inject] private readonly ILogger<MixedDependencyService> _logger;
-    [Inject] private readonly ModernSingletonService _singletonService;
 
     public async Task<ProcessingResult> ProcessDataAsync(IEnumerable<string> data)
     {
@@ -278,12 +267,10 @@ public class AdvancedProcessingConfig
 ///     Service demonstrating enhanced configuration integration with validation
 /// </summary>
 [Singleton] // Explicit lifetime for configuration-heavy service
-public partial class EnhancedConfigurationService
+[DependsOn<ILogger<EnhancedConfigurationService>>]public partial class EnhancedConfigurationService
 {
     [InjectConfiguration("AdvancedProcessing")]
     private readonly AdvancedProcessingConfig _config;
-
-    [Inject] private readonly ILogger<EnhancedConfigurationService> _logger;
 
     public ConfigurationValidationResult ValidateConfiguration()
     {
@@ -345,9 +332,8 @@ public interface IEventHandler
 ///     First event handler - automatically registered for IEnumerable<IEventHandler>
 /// </summary>
 [Transient] // Fresh instance per event
-public partial class EmailEventHandler : IEventHandler
+[DependsOn<ILogger<EmailEventHandler>>]public partial class EmailEventHandler : IEventHandler
 {
-    [Inject] private readonly ILogger<EmailEventHandler> _logger;
 
     public string HandlerName => "Email";
     public int Priority => 1;
@@ -371,9 +357,8 @@ public partial class EmailEventHandler : IEventHandler
 ///     Second event handler - also automatically registered
 /// </summary>
 [Transient]
-public partial class AuditEventHandler : IEventHandler
+[DependsOn<ILogger<AuditEventHandler>>]public partial class AuditEventHandler : IEventHandler
 {
-    [Inject] private readonly ILogger<AuditEventHandler> _logger;
 
     public string HandlerName => "Audit";
     public int Priority => 2;
@@ -398,10 +383,8 @@ public partial class AuditEventHandler : IEventHandler
 ///     Demonstrates enhanced collection injection
 /// </summary>
 [Scoped]
-public partial class EventProcessingService
+[DependsOn<IEnumerable<IEventHandler>,ILogger<EventProcessingService>>(memberName1:"_eventHandlers",memberName2:"_logger")]public partial class EventProcessingService
 {
-    [Inject] private readonly IEnumerable<IEventHandler> _eventHandlers;
-    [Inject] private readonly ILogger<EventProcessingService> _logger;
 
     public async Task<EventProcessingResult> ProcessEventAsync(string eventType,
         object eventData)

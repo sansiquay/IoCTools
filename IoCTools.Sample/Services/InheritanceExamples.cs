@@ -88,13 +88,8 @@ public interface IInheritanceUserRepository
 }
 
 [Scoped]
-public partial class UserRepository : BaseRepository<InheritanceUser>, IInheritanceUserRepository
+[DependsOn<ICacheService,ILogger<UserRepository>>(memberName1:"_cacheService",memberName2:"_specificLogger")]public partial class UserRepository : BaseRepository<InheritanceUser>, IInheritanceUserRepository
 {
-    // Demonstrates multiple dependency types in inheritance
-    [Inject] private readonly ICacheService _cacheService;
-
-    // Additional specific dependencies for UserRepository
-    [Inject] private readonly ILogger<UserRepository> _specificLogger;
 
     public Task<InheritanceUser?> GetUserByIdAsync(int id)
     {
@@ -182,12 +177,8 @@ public abstract partial class BaseService<T> where T : class
 /// <summary>
 ///     Business service layer extending base service
 /// </summary>
-public abstract partial class BusinessService : BaseService<InheritanceUser>
+[DependsOn<IConfiguration,IInheritanceUserRepository>(memberName1:"Configuration",memberName2:"UserRepository")]public abstract partial class BusinessService : BaseService<InheritanceUser>
 {
-    [Inject] protected readonly IConfiguration Configuration;
-
-    // Mixed dependency injection patterns - using Inject instead of DependsOn for fields
-    [Inject] protected readonly IInheritanceUserRepository UserRepository;
 
     protected virtual async Task<bool> ValidateBusinessRulesAsync(InheritanceUser user)
     {
@@ -223,15 +214,8 @@ public interface IInheritanceOrderProcessingService
 }
 
 [Scoped]
-public partial class InheritanceOrderProcessingService : BusinessService, IInheritanceOrderProcessingService
+[DependsOn<IEmailService,ILogger<InheritanceOrderProcessingService>,IPaymentService>(memberName1:"_emailService",memberName2:"_orderLogger",memberName3:"_paymentService")]public partial class InheritanceOrderProcessingService : BusinessService, IInheritanceOrderProcessingService
 {
-    // Multiple injection patterns using Inject for fields
-    [Inject] private readonly IEmailService _emailService;
-
-    // Service-specific dependencies
-    [Inject] private readonly ILogger<InheritanceOrderProcessingService> _orderLogger;
-
-    [Inject] private readonly IPaymentService _paymentService;
 
     public async Task<bool> ProcessUserOrderAsync(int userId,
         decimal orderAmount)
@@ -290,10 +274,8 @@ public partial class InheritanceOrderProcessingService : BusinessService, IInher
 /// <summary>
 ///     Base processor providing common processing infrastructure
 /// </summary>
-public abstract partial class BaseProcessor
+[DependsOn<ILogger<BaseProcessor>,IServiceProvider>(memberName1:"Logger",memberName2:"ServiceProvider")]public abstract partial class BaseProcessor
 {
-    [Inject] protected readonly ILogger<BaseProcessor> Logger;
-    [Inject] protected readonly IServiceProvider ServiceProvider;
 
     protected virtual async Task<InheritanceExampleProcessingResult> PreProcessAsync(string input)
     {
@@ -317,11 +299,8 @@ public abstract partial class BaseProcessor
 /// <summary>
 ///     Payment processor extending base processor
 /// </summary>
-public abstract partial class PaymentProcessor : BaseProcessor
+[DependsOn<ICacheService,IConfiguration>(memberName1:"CacheService",memberName2:"Configuration")]public abstract partial class PaymentProcessor : BaseProcessor
 {
-    // Configuration injection in inheritance chain using Inject for fields
-    [Inject] protected readonly ICacheService CacheService;
-    [Inject] protected readonly IConfiguration Configuration;
 
     protected virtual async Task<decimal> CalculateFeesAsync(decimal amount)
     {
@@ -360,12 +339,8 @@ public interface ICreditCardProcessor
 }
 
 [Scoped]
-public partial class CreditCardProcessor : PaymentProcessor, ICreditCardProcessor
+[DependsOn<ILogger<CreditCardProcessor>,IEmailService>(memberName1:"_creditCardLogger",memberName2:"_emailService")]public partial class CreditCardProcessor : PaymentProcessor, ICreditCardProcessor
 {
-    [Inject] private readonly ILogger<CreditCardProcessor> _creditCardLogger;
-
-    // Complex dependency injection at final level using Inject for fields
-    [Inject] private readonly IEmailService _emailService;
 
     public async Task<InheritanceExampleProcessingResult> ProcessCreditCardPaymentAsync(decimal amount,
         string cardNumber)
@@ -468,9 +443,8 @@ public abstract partial class BaseValidator<T> where T : class
 /// <summary>
 ///     Entity validator extending base validator with entity-specific logic
 /// </summary>
-public abstract partial class EntityValidator<T> : BaseValidator<T> where T : BaseEntity
+[DependsOn<IConfiguration>(memberName1:"Configuration")]public abstract partial class EntityValidator<T> : BaseValidator<T> where T : BaseEntity
 {
-    [Inject] protected readonly IConfiguration Configuration;
 
     protected virtual async Task<InheritanceExampleValidationResult> ValidateEntityPropertiesAsync(T entity)
     {
@@ -501,12 +475,8 @@ public interface IInheritanceUserValidator
 }
 
 [Scoped]
-public partial class InheritanceUserValidator : EntityValidator<InheritanceUser>, IInheritanceUserValidator
+[DependsOn<ILogger<InheritanceUserValidator>,IInheritanceUserRepository>(memberName1:"_userLogger",memberName2:"_userRepository")]public partial class InheritanceUserValidator : EntityValidator<InheritanceUser>, IInheritanceUserValidator
 {
-    [Inject] private readonly ILogger<InheritanceUserValidator> _userLogger;
-
-    // Complex dependency chain in validation using Inject for fields
-    [Inject] private readonly IInheritanceUserRepository _userRepository;
 
     public async Task<InheritanceExampleValidationResult> ValidateUserAsync(InheritanceUser user)
     {
@@ -577,10 +547,8 @@ public partial class InheritanceUserValidator : EntityValidator<InheritanceUser>
 /// <summary>
 ///     Base configuration service demonstrating configuration injection in inheritance
 /// </summary>
-public abstract partial class BaseConfigurationService
+[DependsOn<IConfiguration,ILogger<BaseConfigurationService>>(memberName1:"Configuration",memberName2:"Logger")]public abstract partial class BaseConfigurationService
 {
-    [Inject] protected readonly IConfiguration Configuration;
-    [Inject] protected readonly ILogger<BaseConfigurationService> Logger;
 
     protected virtual string GetConnectionString(string name)
     {
@@ -601,9 +569,8 @@ public abstract partial class BaseConfigurationService
 /// <summary>
 ///     Database configuration service extending base configuration
 /// </summary>
-public abstract partial class DatabaseConfigurationService : BaseConfigurationService
+[DependsOn<ICacheService>(memberName1:"CacheService")]public abstract partial class DatabaseConfigurationService : BaseConfigurationService
 {
-    [Inject] protected readonly ICacheService CacheService;
 
     protected virtual Task<InheritanceDatabaseSettings> GetDatabaseSettingsAsync()
     {
@@ -633,9 +600,8 @@ public interface IApplicationSettingsService
     Task<bool> ValidateConfigurationAsync();
 }
 
-public partial class ApplicationSettingsService : DatabaseConfigurationService, IApplicationSettingsService
+[DependsOn<ILogger<ApplicationSettingsService>>(memberName1:"_appLogger")]public partial class ApplicationSettingsService : DatabaseConfigurationService, IApplicationSettingsService
 {
-    [Inject] private readonly ILogger<ApplicationSettingsService> _appLogger;
 
     public async Task<InheritanceApplicationSettings> GetApplicationSettingsAsync()
     {

@@ -16,9 +16,8 @@ using Microsoft.Extensions.Logging;
 ///     Simple unregistered service - generates constructor but no registration
 ///     Must be manually registered if needed
 /// </summary>
-public partial class ManualRegistrationService : IManualRegistrationService
+[DependsOn<ILogger<ManualRegistrationService>>]public partial class ManualRegistrationService : IManualRegistrationService
 {
-    [Inject] private readonly ILogger<ManualRegistrationService> _logger;
 
     public async Task ProcessAsync(string message)
     {
@@ -31,9 +30,8 @@ public partial class ManualRegistrationService : IManualRegistrationService
 ///     Legacy service that's been replaced but still needs constructor generation
 ///     Not registered to prevent accidental use
 /// </summary>
-public partial class UnregisteredLegacyPaymentProcessor : ILegacyPaymentProcessor
+[DependsOn<ILogger<UnregisteredLegacyPaymentProcessor>>]public partial class UnregisteredLegacyPaymentProcessor : ILegacyPaymentProcessor
 {
-    [Inject] private readonly ILogger<UnregisteredLegacyPaymentProcessor> _logger;
 
     public async Task<PaymentResult> ProcessLegacyPaymentAsync(Payment payment)
     {
@@ -49,9 +47,8 @@ public partial class UnregisteredLegacyPaymentProcessor : ILegacyPaymentProcesso
 ///     Test helper service - generates constructor but not registered
 ///     Used for testing without affecting production DI container
 /// </summary>
-public partial class TestHelperService : ITestHelperService
+[DependsOn<ILogger<TestHelperService>>]public partial class TestHelperService : ITestHelperService
 {
-    [Inject] private readonly ILogger<TestHelperService> _logger;
 
     public async Task<bool> ValidateAndCreateUserAsync(string name)
     {
@@ -75,9 +72,8 @@ public partial class TestHelperService : ITestHelperService
 ///     Base service that provides common functionality but shouldn't be registered
 ///     Derived classes decide their registration strategy
 /// </summary>
-public partial class BasePaymentProcessor
+[DependsOn<ILogger<BasePaymentProcessor>>(memberName1:"Logger")]public partial class BasePaymentProcessor
 {
-    [Inject] protected readonly ILogger<BasePaymentProcessor> Logger;
 
     protected async Task LogPaymentAttemptAsync(string paymentMethod,
         decimal amount)
@@ -91,9 +87,8 @@ public partial class BasePaymentProcessor
 ///     New payment processor - inherits from unregistered base but is registered
 ///     This demonstrates that registered classes can inherit from  bases
 /// </summary>
-public partial class UnregisteredNewPaymentProcessor : BasePaymentProcessor, INewPaymentProcessor
+[DependsOn<ILogger<UnregisteredNewPaymentProcessor>>(memberName1:"_specificLogger")]public partial class UnregisteredNewPaymentProcessor : BasePaymentProcessor, INewPaymentProcessor
 {
-    [Inject] private readonly ILogger<UnregisteredNewPaymentProcessor> _specificLogger;
 
     public async Task<PaymentResult> ProcessNewPaymentAsync(Payment payment)
     {
@@ -110,9 +105,8 @@ public partial class UnregisteredNewPaymentProcessor : BasePaymentProcessor, INe
 ///     Another unregistered service in the inheritance chain
 ///     Demonstrates complex inheritance scenarios
 /// </summary>
-public partial class AdvancedPaymentBase : BasePaymentProcessor
+[DependsOn<ILogger<AdvancedPaymentBase>>(memberName1:"_advancedLogger")]public partial class AdvancedPaymentBase : BasePaymentProcessor
 {
-    [Inject] private readonly ILogger<AdvancedPaymentBase> _advancedLogger;
 
     protected Task<bool> ValidatePaymentAsync(decimal amount)
     {
@@ -129,9 +123,8 @@ public partial class AdvancedPaymentBase : BasePaymentProcessor
 /// <summary>
 ///     Final registered service in complex inheritance chain
 /// </summary>
-public partial class EnterprisePaymentProcessor : AdvancedPaymentBase, IEnterprisePaymentProcessor
+[DependsOn<ILogger<EnterprisePaymentProcessor>>(memberName1:"_enterpriseLogger")]public partial class EnterprisePaymentProcessor : AdvancedPaymentBase, IEnterprisePaymentProcessor
 {
-    [Inject] private readonly ILogger<EnterprisePaymentProcessor> _enterpriseLogger;
 
     public async Task<PaymentResult> ProcessEnterprisePaymentAsync(Payment payment,
         int orderId)
@@ -158,10 +151,8 @@ public partial class EnterprisePaymentProcessor : AdvancedPaymentBase, IEnterpri
 ///     Demonstrates controlled instantiation of unregistered services
 /// </summary>
 [Singleton]
-public partial class ManualServiceFactory : IManualServiceFactory
+[DependsOn<ILogger<ManualServiceFactory>,IServiceProvider>]public partial class ManualServiceFactory : IManualServiceFactory
 {
-    [Inject] private readonly ILogger<ManualServiceFactory> _logger;
-    [Inject] private readonly IServiceProvider _serviceProvider;
 
     public ManualRegistrationService CreateManualRegistrationService()
     {

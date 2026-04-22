@@ -21,10 +21,9 @@ public interface IEmailValidator
 }
 
 [Transient]
-public partial class EmailValidator : IEmailValidator
+[DependsOn<ILogger<EmailValidator>>]public partial class EmailValidator : IEmailValidator
 {
     private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
-    [Inject] private readonly ILogger<EmailValidator> _logger;
 
     public bool IsValid(string email)
     {
@@ -73,9 +72,8 @@ public interface IDataTransformer
 }
 
 [Transient]
-public partial class DataTransformer : IDataTransformer
+[DependsOn<ILogger<DataTransformer>>]public partial class DataTransformer : IDataTransformer
 {
-    [Inject] private readonly ILogger<DataTransformer> _logger;
 
     public T Transform<T>(T input,
         Func<T, T> transformer)
@@ -136,11 +134,8 @@ public interface IRequestProcessor
 }
 
 [Transient]
-public partial class RequestProcessor : IRequestProcessor
+[DependsOn<IDataTransformer,IEmailValidator,ILogger<RequestProcessor>>]public partial class RequestProcessor : IRequestProcessor
 {
-    [Inject] private readonly IDataTransformer _dataTransformer;
-    [Inject] private readonly IEmailValidator _emailValidator;
-    [Inject] private readonly ILogger<RequestProcessor> _logger;
 
     public async Task<RequestProcessingResult> ProcessAsync(ProcessingRequest request)
     {
@@ -209,9 +204,8 @@ public interface IGuidGenerator
 }
 
 [Transient]
-public partial class GuidGenerator : IGuidGenerator
+[DependsOn<ILogger<GuidGenerator>>]public partial class GuidGenerator : IGuidGenerator
 {
-    [Inject] private readonly ILogger<GuidGenerator> _logger;
 
     public Guid NewGuid()
     {
@@ -266,13 +260,10 @@ public interface ILifetimeComparisonService
 }
 
 [Transient]
-public partial class LifetimeComparisonService : ILifetimeComparisonService
+[DependsOn<ICacheService,IGuidGenerator,ILogger<LifetimeComparisonService>>]public partial class LifetimeComparisonService : ILifetimeComparisonService
 {
-    [Inject] private readonly ICacheService _cacheService; // Transient -> Singleton
-    [Inject] private readonly IGuidGenerator _guidGenerator; // Transient -> Transient
 
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
-    [Inject] private readonly ILogger<LifetimeComparisonService> _logger;
 
     public async Task DemonstrateTransientBehaviorAsync()
     {

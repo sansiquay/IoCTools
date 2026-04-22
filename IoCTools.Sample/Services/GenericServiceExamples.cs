@@ -399,12 +399,11 @@ public partial class EnhancedGenericProcessor<T> where T : class, IEntity, new()
 
     [Inject] private readonly ICache<T> _cache;
     [Inject] private readonly IConfiguration _configuration;
+    [Inject] private readonly ILogger<EnhancedGenericProcessor<T>> _logger;
+    [Inject] private readonly IRepository<T> _repository;
 
     [InjectConfiguration("Processing:EnableCaching", DefaultValue = "true")]
     private readonly bool _enableCaching;
-
-    [Inject] private readonly ILogger<EnhancedGenericProcessor<T>> _logger;
-    [Inject] private readonly IRepository<T> _repository;
 
     [InjectConfiguration("Processing:TimeoutSeconds", DefaultValue = "30")]
     private readonly int _timeoutSeconds;
@@ -485,18 +484,8 @@ public partial class EnhancedGenericProcessor<T> where T : class, IEntity, new()
 ///     Example 8: Service that demonstrates all generic patterns
 ///     Shows how to use all the generic services together
 /// </summary>
-public partial class GenericServiceDemonstrator
+[DependsOn<ILogger<GenericServiceDemonstrator>,AdvancedBusinessService<User>,ICache<User>,EnhancedGenericProcessor<User>,IFactory<User>,IProcessor<User, User>,IRepository<User>,IGenericValidator<User>>(memberName1:"_logger",memberName2:"_userBusinessService",memberName3:"_userCache",memberName4:"_userEnhancedProcessor",memberName5:"_userFactory",memberName6:"_userProcessor",memberName7:"_userRepository",memberName8:"_userValidator")]public partial class GenericServiceDemonstrator
 {
-    [Inject] private readonly ILogger<GenericServiceDemonstrator> _logger;
-    [Inject] private readonly AdvancedBusinessService<User> _userBusinessService;
-    [Inject] private readonly ICache<User> _userCache;
-    [Inject] private readonly EnhancedGenericProcessor<User> _userEnhancedProcessor;
-    [Inject] private readonly IFactory<User> _userFactory;
-    [Inject] private readonly IProcessor<User, User> _userProcessor;
-
-    // Inject specific generic services
-    [Inject] private readonly IRepository<User> _userRepository;
-    [Inject] private readonly IGenericValidator<User> _userValidator;
 
     public async Task DemonstrateGenericPatternsAsync()
     {

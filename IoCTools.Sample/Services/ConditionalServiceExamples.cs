@@ -23,10 +23,8 @@ public interface IEnvironmentEmailService
 
 // Production SMTP email service
 //[ConditionalService(Environment = "Production")]
-public partial class SmtpEmailService : IEnvironmentEmailService
+[DependsOn<IConfiguration,ILogger<SmtpEmailService>>]public partial class SmtpEmailService : IEnvironmentEmailService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<SmtpEmailService> _logger;
 
     public async Task<bool> SendEmailAsync(string to,
         string subject,
@@ -45,9 +43,8 @@ public partial class SmtpEmailService : IEnvironmentEmailService
 
 // Development console email service
 //[ConditionalService(Environment = "Development")]
-public partial class ConsoleEmailService : IEnvironmentEmailService
+[DependsOn<ILogger<ConsoleEmailService>>]public partial class ConsoleEmailService : IEnvironmentEmailService
 {
-    [Inject] private readonly ILogger<ConsoleEmailService> _logger;
 
     public async Task<bool> SendEmailAsync(string to,
         string subject,
@@ -79,11 +76,8 @@ public interface IConfigurableCacheService
 
 // Memory cache implementation
 //[ConditionalService(ConfigValue = "Cache:Provider", Equals = "Memory")]
-public partial class MemoryCacheService : IConfigurableCacheService
+[DependsOn<IConfiguration,ILogger<MemoryCacheService>,IMemoryCache>]public partial class MemoryCacheService : IConfigurableCacheService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<MemoryCacheService> _logger;
-    [Inject] private readonly IMemoryCache _memoryCache;
 
     public Task<T?> GetAsync<T>(string key)
     {
@@ -112,10 +106,8 @@ public partial class MemoryCacheService : IConfigurableCacheService
 
 // Redis cache implementation (mock for demonstration)
 //[ConditionalService(ConfigValue = "Cache:Provider", Equals = "Redis")]
-public partial class RedisCacheService : IConfigurableCacheService
+[DependsOn<IConfiguration,ILogger<RedisCacheService>>]public partial class RedisCacheService : IConfigurableCacheService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<RedisCacheService> _logger;
 
     public Task<T?> GetAsync<T>(string key)
     {
@@ -160,10 +152,8 @@ public interface IAdvancedLoggingService
 
 // Enhanced logging service with advanced features
 //[ConditionalService(ConfigValue = "Features:EnableAdvancedLogging", Equals = "true")]
-public partial class EnhancedLoggingService : IAdvancedLoggingService
+[DependsOn<IConfiguration,ILogger<EnhancedLoggingService>>]public partial class EnhancedLoggingService : IAdvancedLoggingService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<EnhancedLoggingService> _logger;
 
     public async Task LogWithContextAsync(string message,
         object? context = null)
@@ -191,9 +181,8 @@ public partial class EnhancedLoggingService : IAdvancedLoggingService
 
 // Basic logging service fallback
 //[ConditionalService(ConfigValue = "Features:EnableAdvancedLogging", NotEquals = "true")]
-public partial class BasicLoggingService : IAdvancedLoggingService
+[DependsOn<ILogger<BasicLoggingService>>]public partial class BasicLoggingService : IAdvancedLoggingService
 {
-    [Inject] private readonly ILogger<BasicLoggingService> _logger;
 
     public Task LogWithContextAsync(string message,
         object? context = null)
@@ -220,10 +209,8 @@ public interface IPaymentProcessor
 
 // New payment processor implementation
 //[ConditionalService(ConfigValue = "Features:NewPaymentProcessor", Equals = "enabled")]
-public partial class NewPaymentProcessor : IPaymentProcessor
+[DependsOn<IConfiguration,ILogger<NewPaymentProcessor>>]public partial class NewPaymentProcessor : IPaymentProcessor
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<NewPaymentProcessor> _logger;
 
     public async Task<PaymentProcessorResult> ProcessPaymentAsync(decimal amount,
         string method)
@@ -244,9 +231,8 @@ public partial class NewPaymentProcessor : IPaymentProcessor
 
 // Legacy payment processor
 //[ConditionalService(ConfigValue = "Features:NewPaymentProcessor", NotEquals = "enabled")]
-public partial class LegacyPaymentProcessor : IPaymentProcessor
+[DependsOn<ILogger<LegacyPaymentProcessor>>]public partial class LegacyPaymentProcessor : IPaymentProcessor
 {
-    [Inject] private readonly ILogger<LegacyPaymentProcessor> _logger;
 
     public async Task<PaymentProcessorResult> ProcessPaymentAsync(decimal amount,
         string method)
@@ -276,10 +262,8 @@ public interface IDatabaseService
 
 // SQL Server implementation
 //[ConditionalService(ConfigValue = "Database:Provider", Equals = "SqlServer")]
-public partial class SqlServerDatabaseService : IDatabaseService
+[DependsOn<IConfiguration,ILogger<SqlServerDatabaseService>>]public partial class SqlServerDatabaseService : IDatabaseService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<SqlServerDatabaseService> _logger;
 
     public async Task<T?> GetByIdAsync<T>(int id) where T : class
     {
@@ -311,10 +295,8 @@ public partial class SqlServerDatabaseService : IDatabaseService
 
 // SQLite implementation (for development/testing)
 //[ConditionalService(ConfigValue = "Database:Provider", Equals = "SQLite")]
-public partial class SqliteDatabaseService : IDatabaseService
+[DependsOn<IConfiguration,ILogger<SqliteDatabaseService>>]public partial class SqliteDatabaseService : IDatabaseService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<SqliteDatabaseService> _logger;
 
     public async Task<T?> GetByIdAsync<T>(int id) where T : class
     {
@@ -348,10 +330,8 @@ public interface IOptionalFeatureService
 
 // Premium features service
 //[ConditionalService(ConfigValue = "Features:EnableOptionalService", Equals = "true")]
-public partial class PremiumFeaturesService : IOptionalFeatureService
+[DependsOn<IConfiguration,ILogger<PremiumFeaturesService>>]public partial class PremiumFeaturesService : IOptionalFeatureService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<PremiumFeaturesService> _logger;
 
     public bool IsFeatureEnabled => true;
 
@@ -371,9 +351,8 @@ public partial class PremiumFeaturesService : IOptionalFeatureService
 
 // Fallback service when optional features are disabled
 //[ConditionalService(ConfigValue = "Features:EnableOptionalService", NotEquals = "true")]
-public partial class StandardFeaturesService : IOptionalFeatureService
+[DependsOn<ILogger<StandardFeaturesService>>]public partial class StandardFeaturesService : IOptionalFeatureService
 {
-    [Inject] private readonly ILogger<StandardFeaturesService> _logger;
 
     public bool IsFeatureEnabled => false;
 
@@ -403,10 +382,8 @@ public interface IStorageService
 
 // Cloud storage for production
 //[ConditionalService(Environment = "Production", ConfigValue = "Features:EnableDistributedCache", Equals = "true")]
-public partial class CloudStorageService : IStorageService
+[DependsOn<IConfiguration,ILogger<CloudStorageService>>]public partial class CloudStorageService : IStorageService
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<CloudStorageService> _logger;
 
     public async Task<bool> StoreFileAsync(string fileName,
         byte[] content)
@@ -433,9 +410,8 @@ public partial class CloudStorageService : IStorageService
 
 // Local file storage for development
 //[ConditionalService(NotEnvironment = "Production")]
-public partial class LocalFileStorageService : IStorageService
+[DependsOn<ILogger<LocalFileStorageService>>]public partial class LocalFileStorageService : IStorageService
 {
-    [Inject] private readonly ILogger<LocalFileStorageService> _logger;
 
     public async Task<bool> StoreFileAsync(string fileName,
         byte[] content)
@@ -493,10 +469,8 @@ public enum NotificationPriority
 }
 
 // Base notification service that coordinates multiple providers
-public partial class ConditionalCompositeNotificationService
+[DependsOn<ILogger<ConditionalCompositeNotificationService>,IEnumerable<INotificationProvider>>(memberName1:"_logger",memberName2:"_providers")]public partial class ConditionalCompositeNotificationService
 {
-    [Inject] private readonly ILogger<ConditionalCompositeNotificationService> _logger;
-    [Inject] private readonly IEnumerable<INotificationProvider> _providers;
 
     public async Task SendNotificationToAllAsync(string recipient,
         string message,
@@ -532,10 +506,8 @@ public partial class ConditionalCompositeNotificationService
 }
 
 // Email notification provider
-public partial class EmailNotificationProvider : INotificationProvider
+[DependsOn<IEnvironmentEmailService,ILogger<EmailNotificationProvider>>(memberName1:"_emailService",memberName2:"_logger")]public partial class EmailNotificationProvider : INotificationProvider
 {
-    [Inject] private readonly IEnvironmentEmailService _emailService;
-    [Inject] private readonly ILogger<EmailNotificationProvider> _logger;
 
     public string ProviderName => "Email";
 
@@ -552,10 +524,8 @@ public partial class EmailNotificationProvider : INotificationProvider
 
 // SMS notification provider (conditional on configuration)
 //[ConditionalService(ConfigValue = "Notification:Settings:Provider", Equals = "SMS")]
-public partial class SmsNotificationProvider : INotificationProvider
+[DependsOn<IConfiguration,ILogger<SmsNotificationProvider>>]public partial class SmsNotificationProvider : INotificationProvider
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<SmsNotificationProvider> _logger;
 
     public string ProviderName => "SMS";
 
@@ -574,10 +544,8 @@ public partial class SmsNotificationProvider : INotificationProvider
 
 // Push notification provider (conditional on premium features)
 //[ConditionalService(ConfigValue = "Features:EnablePremiumFeatures", Equals = "true")]
-public partial class PushNotificationProvider : INotificationProvider
+[DependsOn<IConfiguration,ILogger<PushNotificationProvider>>]public partial class PushNotificationProvider : INotificationProvider
 {
-    [Inject] private readonly IConfiguration _configuration;
-    [Inject] private readonly ILogger<PushNotificationProvider> _logger;
 
     public string ProviderName => "Push";
 
@@ -596,17 +564,8 @@ public partial class PushNotificationProvider : INotificationProvider
 
 // === DEMONSTRATION SERVICE ===
 
-public partial class ConditionalServicesDemonstrationService
+[DependsOn<IConfigurableCacheService,IDatabaseService,IEnvironmentEmailService,ILogger<ConditionalServicesDemonstrationService>,IAdvancedLoggingService,ConditionalCompositeNotificationService,IOptionalFeatureService,IPaymentProcessor,IStorageService>(memberName1:"_cacheService",memberName2:"_databaseService",memberName3:"_emailService",memberName4:"_logger",memberName5:"_loggingService",memberName6:"_notificationService",memberName7:"_optionalFeatureService",memberName8:"_paymentProcessor",memberName9:"_storageService")]public partial class ConditionalServicesDemonstrationService
 {
-    [Inject] private readonly IConfigurableCacheService _cacheService;
-    [Inject] private readonly IDatabaseService _databaseService;
-    [Inject] private readonly IEnvironmentEmailService _emailService;
-    [Inject] private readonly ILogger<ConditionalServicesDemonstrationService> _logger;
-    [Inject] private readonly IAdvancedLoggingService _loggingService;
-    [Inject] private readonly ConditionalCompositeNotificationService _notificationService;
-    [Inject] private readonly IOptionalFeatureService _optionalFeatureService;
-    [Inject] private readonly IPaymentProcessor _paymentProcessor;
-    [Inject] private readonly IStorageService _storageService;
 
     public async Task DemonstrateConditionalServicesAsync()
     {

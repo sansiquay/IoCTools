@@ -76,9 +76,8 @@ public interface IDependsOnGenericRepository<T> where T : class
 ///     Generated fields: _paymentService, _emailService, _inventoryService
 /// </summary>
 [DependsOn<IPaymentService, IEmailService, IInventoryService>]
-public partial class OrderProcessingService
+[DependsOn<ILogger<OrderProcessingService>>]public partial class OrderProcessingService
 {
-    [Inject] private readonly ILogger<OrderProcessingService> _logger;
 
     public async Task<bool> ProcessOrderAsync(Order order)
     {
@@ -114,9 +113,8 @@ public partial class OrderProcessingService
 ///     Generated fields: _userManagementService, _auditService
 /// </summary>
 [DependsOn<IUserManagementService, IAuditService>(NamingConvention.CamelCase)]
-public partial class CamelCaseExampleService
+[DependsOn<ILogger<CamelCaseExampleService>>]public partial class CamelCaseExampleService
 {
-    [Inject] private readonly ILogger<CamelCaseExampleService> _logger;
 
     public async Task ProcessUserActionAsync(int userId,
         string action)
@@ -133,9 +131,8 @@ public partial class CamelCaseExampleService
 ///     Generated fields: _UserManagementService, _AuditService
 /// </summary>
 [DependsOn<IUserManagementService, IAuditService>(NamingConvention.PascalCase)]
-public partial class PascalCaseExampleService
+[DependsOn<ILogger<PascalCaseExampleService>>]public partial class PascalCaseExampleService
 {
-    [Inject] private readonly ILogger<PascalCaseExampleService> _logger;
 
     public async Task ProcessUserActionAsync(int userId,
         string action)
@@ -152,9 +149,8 @@ public partial class PascalCaseExampleService
 ///     Generated fields: _user_management_service, _audit_service
 /// </summary>
 [DependsOn<IUserManagementService, IAuditService>(NamingConvention.SnakeCase)]
-public partial class SnakeCaseExampleService
+[DependsOn<ILogger<SnakeCaseExampleService>>]public partial class SnakeCaseExampleService
 {
-    [Inject] private readonly ILogger<SnakeCaseExampleService> _logger;
 
     public async Task ProcessUserActionAsync(int userId,
         string action)
@@ -173,9 +169,8 @@ public partial class SnakeCaseExampleService
 ///     Generated fields: svc_paymentService, svc_emailService (I is stripped from interface names)
 /// </summary>
 [DependsOn<IPaymentService, IEmailService>(prefix: "svc_", stripI: true)]
-public partial class CustomPrefixService
+[DependsOn<ILogger<CustomPrefixService>>]public partial class CustomPrefixService
 {
-    [Inject] private readonly ILogger<CustomPrefixService> _logger;
 
     public async Task ProcessPaymentWithEmailAsync(Payment payment,
         string email)
@@ -192,9 +187,8 @@ public partial class CustomPrefixService
 ///     Generated fields: paymentService, emailService (semantic camelCase naming even with stripI=false)
 /// </summary>
 [DependsOn<IPaymentService, IEmailService>(prefix: "", stripI: false)]
-public partial class NoStripIService
+[DependsOn<ILogger<NoStripIService>>]public partial class NoStripIService
 {
-    [Inject] private readonly ILogger<NoStripIService> _logger;
 
     public async Task ProcessPaymentPreservingInterfaceNameAsync(Payment payment,
         string email)
@@ -212,9 +206,8 @@ public partial class NoStripIService
 /// </summary>
 [DependsOn<IPaymentService>(prefix: "payment_", stripI: true, namingConvention: NamingConvention.SnakeCase)]
 [DependsOn<IEmailService>(prefix: "notification_", stripI: true, namingConvention: NamingConvention.CamelCase)]
-public partial class MixedConfigurationService
+[DependsOn<ILogger<MixedConfigurationService>>]public partial class MixedConfigurationService
 {
-    [Inject] private readonly ILogger<MixedConfigurationService> _logger;
 
     public async Task ProcessWithMixedConfigurationsAsync(Payment payment,
         string email)
@@ -237,9 +230,8 @@ public partial class MixedConfigurationService
 ///     Generated fields: _auditService, _securityService
 /// </summary>
 [DependsOn<IAuditService, ISecurityService>]
-public abstract partial class BaseSecureService
+[DependsOn<ILogger<BaseSecureService>>]public abstract partial class BaseSecureService
 {
-    [Inject] protected readonly ILogger<BaseSecureService> _logger;
 
     protected virtual async Task<bool> ValidateAndAuditAsync(int userId,
         string action)
@@ -281,10 +273,8 @@ public partial class EnhancedSecureService : BaseSecureService
 /// <summary>
 ///     Example 4c: Deep inheritance with DependsOn at multiple levels
 /// </summary>
-public abstract partial class ConfigurableBaseService
+[DependsOn<IConfiguration,ILogger<ConfigurableBaseService>>]public abstract partial class ConfigurableBaseService
 {
-    [Inject] protected readonly IConfiguration _configuration;
-    [Inject] protected readonly ILogger<ConfigurableBaseService> _logger;
 
     protected string GetConfigValue(string key) => _configuration[key] ?? "";
 }
@@ -306,12 +296,8 @@ public partial class ConfigurableAuditService : ConfigurableBaseService
 ///     Shows how both approaches can coexist in the same service
 /// </summary>
 [DependsOn<IPaymentService, IInventoryService>]
-public partial class MixedDependencyPatternService
+[DependsOn<IConfiguration,ILogger<MixedDependencyPatternService>>]public partial class MixedDependencyPatternService
 {
-    [Inject] private readonly IConfiguration _configuration;
-
-    // Manual inject fields
-    [Inject] private readonly ILogger<MixedDependencyPatternService> _logger;
 
     // DependsOn generates: _paymentService, _inventoryService
 
@@ -384,11 +370,8 @@ public partial class GenericRepositoryService<T> where T : class
 ///     Example 7b: Service using generic dependencies
 ///     Note: Multiple generic repositories may require manual disambiguation
 /// </summary>
-public partial class MultiGenericRepositoryService
+[DependsOn<ILogger<MultiGenericRepositoryService>,IDependsOnGenericRepository<Order>,IDependsOnGenericRepository<DependsOnUser>>(memberName1:"_logger",memberName2:"_orderRepository",memberName3:"_userRepository")]public partial class MultiGenericRepositoryService
 {
-    [Inject] private readonly ILogger<MultiGenericRepositoryService> _logger;
-    [Inject] private readonly IDependsOnGenericRepository<Order> _orderRepository;
-    [Inject] private readonly IDependsOnGenericRepository<DependsOnUser> _userRepository;
 
     public Task<string> GenerateUserOrderReportAsync(int userId)
     {
@@ -403,9 +386,8 @@ public partial class MultiGenericRepositoryService
 
 // ===== IMPLEMENTATION SERVICES FOR DEMO =====
 
-public partial class InventoryService : IInventoryService
+[DependsOn<ILogger<InventoryService>>]public partial class InventoryService : IInventoryService
 {
-    [Inject] private readonly ILogger<InventoryService> _logger;
 
     public async Task<bool> CheckStockAsync(int productId,
         int quantity)
@@ -423,9 +405,8 @@ public partial class InventoryService : IInventoryService
     }
 }
 
-public partial class ShippingService : IShippingService
+[DependsOn<ILogger<ShippingService>>]public partial class ShippingService : IShippingService
 {
-    [Inject] private readonly ILogger<ShippingService> _logger;
 
     public async Task<string> CalculateShippingCostAsync(string address,
         double weight)
@@ -445,9 +426,8 @@ public partial class ShippingService : IShippingService
     }
 }
 
-public partial class UserManagementService : IUserManagementService
+[DependsOn<ILogger<UserManagementService>>]public partial class UserManagementService : IUserManagementService
 {
-    [Inject] private readonly ILogger<UserManagementService> _logger;
 
     public async Task<User> GetUserAsync(int userId)
     {
@@ -463,9 +443,8 @@ public partial class UserManagementService : IUserManagementService
     }
 }
 
-public partial class ReportGenerator : IReportGenerator
+[DependsOn<ILogger<ReportGenerator>>]public partial class ReportGenerator : IReportGenerator
 {
-    [Inject] private readonly ILogger<ReportGenerator> _logger;
 
     public async Task<string> GenerateOrderReportAsync(int orderId)
     {
@@ -482,9 +461,8 @@ public partial class ReportGenerator : IReportGenerator
     }
 }
 
-public partial class AuditService : IAuditService
+[DependsOn<ILogger<AuditService>>]public partial class AuditService : IAuditService
 {
-    [Inject] private readonly ILogger<AuditService> _logger;
 
     public async Task LogActionAsync(string action,
         string details)
@@ -494,9 +472,8 @@ public partial class AuditService : IAuditService
     }
 }
 
-public partial class DemoSecurityService : ISecurityService
+[DependsOn<ILogger<DemoSecurityService>>]public partial class DemoSecurityService : ISecurityService
 {
-    [Inject] private readonly ILogger<DemoSecurityService> _logger;
 
     public async Task<bool> ValidatePermissionsAsync(int userId,
         string action)
@@ -515,9 +492,8 @@ public partial class DemoSecurityService : ISecurityService
 }
 
 // Repository implementations for generic examples
-public partial class DependsOnUserRepository : IDependsOnGenericRepository<DependsOnUser>
+[DependsOn<ILogger<DependsOnUserRepository>>]public partial class DependsOnUserRepository : IDependsOnGenericRepository<DependsOnUser>
 {
-    [Inject] private readonly ILogger<DependsOnUserRepository> _logger;
 
     public async Task<DependsOnUser?> GetByIdAsync(int id)
     {
@@ -555,9 +531,8 @@ public partial class DependsOnUserRepository : IDependsOnGenericRepository<Depen
     }
 }
 
-public partial class DependsOnOrderRepository : IDependsOnGenericRepository<Order>
+[DependsOn<ILogger<DependsOnOrderRepository>>]public partial class DependsOnOrderRepository : IDependsOnGenericRepository<Order>
 {
-    [Inject] private readonly ILogger<DependsOnOrderRepository> _logger;
 
     public async Task<Order?> GetByIdAsync(int id)
     {
