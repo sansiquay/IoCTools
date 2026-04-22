@@ -17,6 +17,13 @@ public static partial class AutoDepsResolver
         private readonly Dictionary<SymbolIdentity, List<AutoDepAttribution>> _entries =
             new Dictionary<SymbolIdentity, List<AutoDepAttribution>>();
 
+        // Parallel: remember the actual ITypeSymbol seen first for each SymbolIdentity key so
+        // BuildWithSymbols() can hand ITypeSymbol refs back to the generator without re-walking
+        // the resolver logic. The Build() path that returns the equatable AutoDepsResolverOutput
+        // ignores this dictionary.
+        private readonly Dictionary<SymbolIdentity, ITypeSymbol> _entrySymbols =
+            new Dictionary<SymbolIdentity, ITypeSymbol>();
+
         private readonly HashSet<SymbolIdentity> _optOutClosedTypes = new HashSet<SymbolIdentity>();
         private readonly HashSet<SymbolIdentity> _optOutOpenShapes = new HashSet<SymbolIdentity>();
         private bool _blanketOptOut;
@@ -71,7 +78,8 @@ public static partial class AutoDepsResolver
             var closed = ilogger.Construct(_service);
             AddEntry(
                 SymbolIdentity.From(closed),
-                new AutoDepAttribution(AutoDepSourceKind.AutoBuiltinILogger, sourceName: null, assemblyName: null));
+                new AutoDepAttribution(AutoDepSourceKind.AutoBuiltinILogger, sourceName: null, assemblyName: null),
+                closed);
         }
 
         public void AddUniversalFromAttributes()
@@ -205,6 +213,7 @@ public static partial class AutoDepsResolver
             if (_blanketOptOut)
             {
                 _entries.Clear();
+                _entrySymbols.Clear();
                 return;
             }
 
@@ -212,6 +221,7 @@ public static partial class AutoDepsResolver
             foreach (var id in _optOutClosedTypes.ToList())
             {
                 _entries.Remove(id);
+                _entrySymbols.Remove(id);
             }
 
             // Step 3b: [NoAutoDepOpen(typeof(T<>))] removes entries whose open-generic shape
@@ -224,7 +234,11 @@ public static partial class AutoDepsResolver
                     if (EntryMatchesOpenShape(kv.Key, _optOutOpenShapes))
                         toRemove.Add(kv.Key);
                 }
-                foreach (var r in toRemove) _entries.Remove(r);
+                foreach (var r in toRemove)
+                {
+                    _entries.Remove(r);
+                    _entrySymbols.Remove(r);
+                }
             }
         }
 
@@ -320,6 +334,7 @@ public static partial class AutoDepsResolver
                         (memberNames.TryGetValue(i + 1, out var mn) && !string.IsNullOrEmpty(mn));
 
                     _entries.Remove(slotId);
+                    _entrySymbols.Remove(slotId);
                 }
             }
         }
@@ -330,6 +345,23 @@ public static partial class AutoDepsResolver
                 .Select(kv => new AutoDepResolvedEntry(kv.Key, kv.Value.ToImmutableArray()))
                 .ToImmutableArray();
             return new AutoDepsResolverOutput(entries);
+        }
+
+        /// <summary>
+        /// Variant of <see cref="Build"/> that returns <see cref="ITypeSymbol"/> references for
+        /// each resolved dep. Consumers (the generator emit path) need actual symbols to feed
+        /// into <c>InheritanceHierarchyDependencies</c>; the equatable <see cref="Build"/> path
+        /// is kept for tests and diagnostic pipelines that rely on value-equality for caching.
+        /// </summary>
+        public ImmutableArray<AutoDepResolvedSymbolEntry> BuildWithSymbols()
+        {
+            var b = ImmutableArray.CreateBuilder<AutoDepResolvedSymbolEntry>(_entries.Count);
+            foreach (var kv in _entries)
+            {
+                if (!_entrySymbols.TryGetValue(kv.Key, out var sym)) continue;
+                b.Add(new AutoDepResolvedSymbolEntry(sym, kv.Value.ToImmutableArray()));
+            }
+            return b.ToImmutable();
         }
 
         private void AddDepWithAttribution(
@@ -361,23 +393,23 @@ public static partial class AutoDepsResolver
                     AddEntry(id, new AutoDepAttribution(
                         AutoDepSourceKind.AutoTransitive,
                         sourceName,
-                        id.ContainingAssemblyName));
+                        id.ContainingAssemblyName), depType);
                 }
                 else
                 {
                     AddEntry(id, new AutoDepAttribution(
                         AutoDepSourceKind.AutoTransitive,
                         sourceName,
-                        sourceName));
+                        sourceName), depType);
                 }
             }
             else
             {
-                AddEntry(id, new AutoDepAttribution(kind, sourceName, null));
+                AddEntry(id, new AutoDepAttribution(kind, sourceName, null), depType);
             }
         }
 
-        private void AddEntry(SymbolIdentity id, AutoDepAttribution attribution)
+        private void AddEntry(SymbolIdentity id, AutoDepAttribution attribution, ITypeSymbol depType)
         {
             if (!_entries.TryGetValue(id, out var list))
             {
@@ -386,6 +418,8 @@ public static partial class AutoDepsResolver
             }
             // Dedup by attribution equality
             if (!list.Contains(attribution)) list.Add(attribution);
+            if (!_entrySymbols.ContainsKey(id))
+                _entrySymbols[id] = depType;
         }
 
         private bool ServiceMatchesBase(ITypeSymbol tbase)

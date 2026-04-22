@@ -1,5 +1,6 @@
 namespace IoCTools.Generator.Generator;
 
+using System.Collections.Immutable;
 using System.Text;
 
 using CodeGeneration;
@@ -11,7 +12,8 @@ using Microsoft.CodeAnalysis.Text;
 internal static class ConstructorEmitter
 {
     public static void EmitSingleConstructor(SourceProductionContext context,
-        ServiceClassInfo serviceInfo)
+        ServiceClassInfo serviceInfo,
+        ImmutableDictionary<string, string> autoDepsOptions)
     {
         try
         {
