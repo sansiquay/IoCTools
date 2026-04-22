@@ -352,6 +352,101 @@ namespace Consumer
         output.Entries[0].Sources[0].SourceName.Should().Contain("WebProfile");
     }
 
+    // --- 14. [NoAutoDeps] kills everything ---
+    [Fact]
+    public void NoAutoDeps_attribute_wipes_all_entries()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+namespace Consumer
+{
+    public interface IFoo { }
+    [NoAutoDeps]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 15. [NoAutoDep<T>] removes a specific closed entry ---
+    [Fact]
+    public void NoAutoDep_T_removes_specific_closed_entry_and_keeps_others()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDep<Consumer.IFoo>]
+[assembly: AutoDep<Consumer.IBar>]
+namespace Consumer
+{
+    public interface IFoo { }
+    public interface IBar { }
+    [NoAutoDep<IFoo>]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.Should().HaveCount(1);
+        output.Entries[0].DepType.MetadataName.Should().Contain("IBar");
+    }
+
+    // --- 16. [NoAutoDepOpen(typeof(ILogger<>))] removes built-in ILogger entry ---
+    [Fact]
+    public void NoAutoDepOpen_ILogger_removes_builtin_entry()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+namespace Consumer
+{
+    [NoAutoDepOpen(typeof(ILogger<>))]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source, includeLogging: true);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, EmptyProps);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
+    // --- 17. [NoAutoDepOpen] removes declared open-generic entry ---
+    [Fact]
+    public void NoAutoDepOpen_removes_declared_open_generic_entry()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+[assembly: AutoDepOpen(typeof(ILogger<>))]
+namespace Consumer
+{
+    [NoAutoDepOpen(typeof(ILogger<>))]
+    public class Svc { }
+}
+";
+        var compilation = CreateCompilation("ConsumerAsm", source, includeLogging: true);
+        AssertNoCompileErrors(compilation);
+        var svc = GetType(compilation, "Consumer.Svc");
+
+        var props = Props(("build_property.IoCToolsAutoDetectLogger", "false"));
+        var output = AutoDepsResolver.ResolveForService(compilation, svc, props);
+
+        output.Entries.IsEmpty.Should().BeTrue();
+    }
+
     // --- 9. Manual constructor skips resolution ---
     [Fact]
     public void Manual_constructor_skips_resolution()

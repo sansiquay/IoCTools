@@ -201,7 +201,31 @@ public static partial class AutoDepsResolver
 
         public void ApplyOptOuts()
         {
-            // Stub: implemented in Increment C (steps 3-4 of the resolution order).
+            // Step 4 first: [NoAutoDeps] wipes everything.
+            if (_blanketOptOut)
+            {
+                _entries.Clear();
+                return;
+            }
+
+            // Step 3a: [NoAutoDep<T>] removes matching closed-type entries.
+            foreach (var id in _optOutClosedTypes.ToList())
+            {
+                _entries.Remove(id);
+            }
+
+            // Step 3b: [NoAutoDepOpen(typeof(T<>))] removes entries whose open-generic shape
+            // matches, regardless of the closure.
+            if (_optOutOpenShapes.Count > 0)
+            {
+                var toRemove = new List<SymbolIdentity>();
+                foreach (var kv in _entries)
+                {
+                    if (EntryMatchesOpenShape(kv.Key, _optOutOpenShapes))
+                        toRemove.Add(kv.Key);
+                }
+                foreach (var r in toRemove) _entries.Remove(r);
+            }
         }
 
         public void ReconcileAgainstDependsOn()
