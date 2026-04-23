@@ -29,7 +29,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.6.0: adds auto-deps feature — universal and profile-scoped auto-injected dependencies, built-in ILogger&lt;T&gt; detection, transitive-scope policy across assemblies, [Inject] deprecation diagnostic (IOC095), 11 new diagnostics (IOC095-IOC105), and full CLI inspection support.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.6.0: adds auto-deps feature — universal and profile-scoped auto-injected dependencies, built-in ILogger&lt;T&gt; detection, transitive-scope policy across assemblies, [Inject] deprecation diagnostic (IOC095), 11 new diagnostics (IOC095-IOC099, IOC103-IOC108), and full CLI inspection support.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

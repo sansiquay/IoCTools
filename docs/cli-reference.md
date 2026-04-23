@@ -301,7 +301,7 @@ ioc-tools suppress --project MyProject.csproj --codes IOC035,IOC092 --json
 
 **Output:** `.editorconfig` entries plus structured rule metadata in JSON mode (`selectionReason`, `isErrorByDefault`, `riskNote`, `suppressedSeverity`).
 
-In 1.6.0+, `suppress` is aware of the new IOC095-IOC105 auto-deps diagnostics
+In 1.6.0+, `suppress` is aware of the new IOC095-IOC099 and IOC103-IOC108 auto-deps diagnostics
 so generated suppressions cover the expanded diagnostic surface.
 
 ### `validators`

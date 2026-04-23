@@ -77,7 +77,7 @@ named distinctly so the `typeof()` exception is obvious and narrowly scoped —
 it is the only place in the auto-deps surface where `typeof()` appears.
 
 Multi-arity unbound generics (`typeof(IFoo<,>)`) are rejected at build time
-with `IOC100` because no universal "close with self" convention exists for
+with `IOC106` because no universal "close with self" convention exists for
 them.
 
 ---
@@ -236,7 +236,7 @@ public enum AutoDepScope
   *consuming* assembly, not the declaring one. Library authors should prefer
   broad, convention-based patterns (e.g. `"*.Controllers.*"`) over
   assembly-specific ones.
-- **Diagnostics fire across the boundary.** `IOC097`, `IOC099`, `IOC102`, and
+- **Diagnostics fire across the boundary.** `IOC097`, `IOC099`, `IOC108`, and
   `IOC104` still surface in the consumer's compilation when a transitive
   attribute is invalid.
 
@@ -502,8 +502,8 @@ This diagnostic does not fire when the auto-dep source is inactive — e.g.
 services in the assembly. Often a stale rule, a typo in the glob pattern, or
 a base class that moved.
 
-<a id="ioc100"></a>
-### IOC100 — `AutoDepOpen` on multi-arity generic
+<a id="ioc106"></a>
+### IOC106 — `AutoDepOpen` on multi-arity generic
 
 **Severity:** Error
 
@@ -513,16 +513,16 @@ multi-arity generics — domain multi-arity generics
 (`IRequestHandler<TRequest, TResponse>`, `IValidator<TSource, TDest>`) use
 their type parameters for domain entities, not for the service type.
 
-<a id="ioc101"></a>
-### IOC101 — `AutoDepOpen` on non-generic
+<a id="ioc107"></a>
+### IOC107 — `AutoDepOpen` on non-generic
 
 **Severity:** Error
 
 `AutoDepOpen` was given a non-generic type. Use `AutoDep<T>` for closed
 types.
 
-<a id="ioc102"></a>
-### IOC102 — `AutoDepOpen` closure violates constraints
+<a id="ioc108"></a>
+### IOC108 — `AutoDepOpen` closure violates constraints
 
 **Severity:** Error
 

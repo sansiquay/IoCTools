@@ -2,7 +2,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
 /// <summary>
 ///     Validates the <c>Type</c> constructor argument of <see cref="IoCTools.Abstractions.Annotations.AutoDepOpenAttribute" />.
-///     Emits IOC100 when the type is a multi-arity unbound generic, and IOC101 when the type is not generic.
+///     Emits IOC106 when the type is a multi-arity unbound generic, and IOC107 when the type is not generic.
 /// </summary>
 internal static class AutoDepOpenArgumentValidator
 {
@@ -26,7 +26,7 @@ internal static class AutoDepOpenArgumentValidator
 
             if (!namedType.IsGenericType)
             {
-                // IOC101: AutoDepOpen on a non-generic type
+                // IOC107: AutoDepOpen on a non-generic type
                 var diagnostic = Diagnostic.Create(
                     DiagnosticDescriptors.AutoDepOpenNonGeneric,
                     location,

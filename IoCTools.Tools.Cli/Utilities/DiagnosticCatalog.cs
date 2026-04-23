@@ -147,12 +147,12 @@ internal static class DiagnosticCatalog
             new("IOC097", "Profile type does not implement IAutoDepsProfile", "IoCTools.AutoDeps", "Warning"),
             new("IOC098", "[DependsOn<T>] overlaps with an active auto-dep", "IoCTools.AutoDeps", "Info"),
             new("IOC099", "Profile attachment rule matches zero services", "IoCTools.AutoDeps", "Info"),
-            new("IOC100", "AutoDepOpen requires single-arity unbound generic", "IoCTools.AutoDeps", "Error"),
-            new("IOC101", "AutoDepOpen requires an unbound generic type", "IoCTools.AutoDeps", "Error"),
-            new("IOC102", "AutoDepOpen closure violates type parameter constraint", "IoCTools.AutoDeps", "Error"),
             new("IOC103", "AutoDepsApplyGlob pattern is invalid", "IoCTools.AutoDeps", "Error"),
             new("IOC104", "Profile type is generic", "IoCTools.AutoDeps", "Error"),
             new("IOC105", "Redundant profile attachment", "IoCTools.AutoDeps", "Info"),
+            new("IOC106", "AutoDepOpen requires single-arity unbound generic", "IoCTools.AutoDeps", "Error"),
+            new("IOC107", "AutoDepOpen requires an unbound generic type", "IoCTools.AutoDeps", "Error"),
+            new("IOC108", "AutoDepOpen closure violates type parameter constraint", "IoCTools.AutoDeps", "Error"),
 
             // IoCTools.Usage (1.6 — [Inject] deprecation)
             new("IOC095", "[Inject] is deprecated; use [DependsOn<T>]", "IoCTools.Usage", "Warning"),

@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Profile system: `IAutoDepsProfile` marker interface, `[assembly: AutoDepIn<TProfile, T>]`, `[assembly: AutoDepsApply<TProfile, TBase>]`, `[assembly: AutoDepsApplyGlob<TProfile>("pattern")]`, `[AutoDeps<TProfile>]`
   - Transitive scope via `AutoDepScope.Transitive` — libraries ship opinionated defaults to consumers
   - Opt-out ladder: `[NoAutoDeps]`, `[NoAutoDep<T>]`, `[NoAutoDepOpen(typeof(T<>))]`
-- **11 new diagnostics (IOC095-IOC105)** covering `[Inject]` deprecation, stale opt-outs, profile validation, constraint violations, invalid glob patterns, and redundant attachments
+- **11 new diagnostics** covering `[Inject]` deprecation, stale opt-outs, profile validation, constraint violations, invalid glob patterns, and redundant attachments. IDs: IOC095-IOC099, IOC103-IOC108 (IOC100-IOC102 remained assigned to `IoCTools.FluentValidation`; the three `AutoDepOpen`-validation diagnostics that were originally planned for those IDs were renumbered to IOC106-IOC108 to avoid a suppression collision).
 - **Roslyn code fix** for IOC095 via new `IoCTools.Generator.Analyzer` package — IDE lightbulb migrates `[Inject]` fields to `[DependsOn<T>]`
 - **`ioc-tools profiles` subcommand** — introspect auto-deps profiles, their contributions, matches, and attachment sources
 - **`ioc-tools migrate-inject` subcommand** — headless bulk `[Inject]` → `[DependsOn<T>]` migration for CI and non-IDE workflows

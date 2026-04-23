@@ -234,7 +234,7 @@ internal static class DiagnosticsRunner
             allRegisteredServices,
             allImplementations, serviceLifetimes, diagnosticConfig, classSymbol, implicitLifetime);
 
-        // IOC096/IOC098/IOC102/IOC105: resolver-integrated per-service diagnostics.
+        // IOC096/IOC098/IOC108/IOC105: resolver-integrated per-service diagnostics.
         if (compilation is not null && autoDepsOptions is not null)
             AutoDepsDiagnosticsValidator.Validate(context, compilation, classSymbol, classDeclaration,
                 autoDepsOptions, diagnosticConfig);
@@ -480,7 +480,7 @@ internal static class DiagnosticsRunner
         // IOC097: Profile missing IAutoDepsProfile marker (defensive check)
         DiagnosticRules.ValidateProfileMarker(context, compilation, diagnosticConfig);
 
-        // IOC100 + IOC101: AutoDepOpen type-argument validation
+        // IOC106 + IOC107: AutoDepOpen type-argument validation
         DiagnosticRules.ValidateAutoDepOpenArguments(context, compilation, diagnosticConfig);
 
         // IOC103: AutoDepsApplyGlob pattern validation

@@ -7,7 +7,7 @@ using IoCTools.Generator.Shared;
 
 /// <summary>
 /// Per-service validator that materializes resolver-internal diagnostic signals
-/// (IOC096, IOC098, IOC102, IOC105) into <see cref="Diagnostic"/> instances with proper
+/// (IOC096, IOC098, IOC108, IOC105) into <see cref="Diagnostic"/> instances with proper
 /// Locations. The resolver emits string-typed signals; this validator re-walks the service's
 /// attributes to locate the right syntax nodes.
 /// </summary>

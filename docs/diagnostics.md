@@ -11,9 +11,9 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 - [Configuration Diagnostics](#configuration-diagnostics) - IOC016-IOC019, IOC043-IOC046, IOC056-IOC057, IOC079, IOC088-IOC089
 - [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094 *(IOC095 moved to Auto-Deps in 1.6 — legacy open-generic fallback descriptor retained under the same ID)*
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
-- [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC105
+- [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC099, IOC103-IOC108
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
-- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102 *(IDs shared with Auto-Deps — see the ID-collision note in that section)*
+- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
 
 ## Severity Legend
 
@@ -952,16 +952,13 @@ services.AddScoped(typeof(ILookup<>), typeof(Repository<>));
 
 ## Auto-Deps Diagnostics (1.6.0+)
 
-The auto-deps feature introduced in 1.6.0 ships diagnostics IOC095 through
-IOC105. For concept documentation see [docs/auto-deps.md](auto-deps.md);
-every descriptor's `HelpLinkUri` points at the `#iocXXX` anchor on that page.
-
-> **ID-collision disclosure.** IOC100, IOC101, and IOC102 are **also** used
-> by `IoCTools.FluentValidation` (see the FluentValidation Diagnostics
-> section below). In a project that references both packages, a suppression
-> of any of these three IDs applies to both meanings. This is a known
-> overlap carried into 1.6.0; consumers with IOC100-IOC102 suppressions
-> should review them.
+The auto-deps feature introduced in 1.6.0 ships diagnostics IOC095-IOC099
+and IOC103-IOC108. (IOC100-IOC102 remained assigned to
+`IoCTools.FluentValidation` from 1.5.1; the three `AutoDepOpen`-validation
+diagnostics that were originally planned for those IDs were re-numbered to
+IOC106-IOC108 before the 1.6.0 release to avoid a suppression collision.)
+For concept documentation see [docs/auto-deps.md](auto-deps.md); every
+descriptor's `HelpLinkUri` points at the `#iocXXX` anchor on that page.
 
 <a id="ioc095-inject-deprecated"></a>
 ### IOC095 (primary, 1.6.0+) — `[Inject]` is deprecated
@@ -1031,8 +1028,8 @@ glob pattern.
 **Fix:** Remove the unused rule, fix the glob pattern, or confirm the base
 class match still holds.
 
-<a id="ioc100-autodeps"></a>
-### IOC100 — `AutoDepOpen` on multi-arity generic
+<a id="ioc106"></a>
+### IOC106 — `AutoDepOpen` on multi-arity generic
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
 
@@ -1043,8 +1040,8 @@ multi-arity generics.
 **Fix:** Use `AutoDep<T>` with an explicitly closed type, or redesign the
 dependency so the service-type parameter is a single unbound.
 
-<a id="ioc101-autodeps"></a>
-### IOC101 — `AutoDepOpen` on non-generic
+<a id="ioc107"></a>
+### IOC107 — `AutoDepOpen` on non-generic
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
 
@@ -1052,8 +1049,8 @@ dependency so the service-type parameter is a single unbound.
 
 **Fix:** Use `AutoDep<T>` for closed types.
 
-<a id="ioc102-autodeps"></a>
-### IOC102 — `AutoDepOpen` closure violates constraints
+<a id="ioc108"></a>
+### IOC108 — `AutoDepOpen` closure violates constraints
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
 
@@ -1420,8 +1417,6 @@ Diagnostics for FluentValidation validator composition, lifetime management, and
 
 ### IOC100
 
-> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC100 — `AutoDepOpen` on multi-arity generic](#ioc100--autodepopen-on-multi-arity-generic). A `.editorconfig` suppression of `IOC100` silences both descriptors.
-
 **Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
 
 **Cause:** A validator directly instantiates a DI-managed child validator using `new`, bypassing dependency injection. The child validator's own dependencies won't be resolved.
@@ -1460,8 +1455,6 @@ public partial class OrderValidator : AbstractValidator<Order>
 
 ### IOC101
 
-> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC101 — `AutoDepOpen` on non-generic](#ioc101--autodepopen-on-non-generic). A `.editorconfig` suppression of `IOC101` silences both descriptors.
-
 **Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
 
 **Cause:** A validator composition creates a captive dependency — a parent validator with a longer lifetime captures a child validator with a shorter lifetime. For example, a `[Singleton]` parent composing a `[Scoped]` child.
@@ -1490,8 +1483,6 @@ public partial class OrderValidator : AbstractValidator<Order>
 ---
 
 ### IOC102
-
-> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC102 — `AutoDepOpen` closure violates constraints](#ioc102--autodepopen-closure-violates-constraints). A `.editorconfig` suppression of `IOC102` silences both descriptors.
 
 **Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
 

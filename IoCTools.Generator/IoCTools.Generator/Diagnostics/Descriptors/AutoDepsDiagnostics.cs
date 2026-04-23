@@ -55,35 +55,39 @@ internal static partial class DiagnosticDescriptors
         "Remove the stale AutoDepsApply/AutoDepsApplyGlob attribute, or adjust the target type / glob pattern.",
         AutoDepsHelpBase + "ioc099");
 
+    // Note: IOC100-IOC102 were originally planned for these descriptors but collided with
+    // IoCTools.FluentValidation's IOC100-IOC102 (released in 1.5.1). Moved to IOC106-IOC108
+    // prior to the 1.6.0 release so a `.editorconfig` suppression of IOC10X does not
+    // silence both families at once.
     public static readonly DiagnosticDescriptor AutoDepOpenMultiArity = new(
-        "IOC100",
+        "IOC106",
         "AutoDepOpen requires single-arity unbound generic",
         "AutoDepOpen requires a single-arity unbound generic. '{0}' has arity {1}. Multi-arity open generics have no universal closing rule.",
         "IoCTools.AutoDeps",
         DiagnosticSeverity.Error,
         true,
         "Use AutoDep<T> with a fully-closed type instead, or declare per-service dependencies via [DependsOn<T>].",
-        AutoDepsHelpBase + "ioc100");
+        AutoDepsHelpBase + "ioc106");
 
     public static readonly DiagnosticDescriptor AutoDepOpenNonGeneric = new(
-        "IOC101",
+        "IOC107",
         "AutoDepOpen requires an unbound generic type",
         "AutoDepOpen requires an unbound generic type. '{0}' is not generic. Use AutoDep<T> for closed types.",
         "IoCTools.AutoDeps",
         DiagnosticSeverity.Error,
         true,
         "Change [AutoDepOpen(typeof(T))] to [AutoDep<T>] for non-generic closed types.",
-        AutoDepsHelpBase + "ioc101");
+        AutoDepsHelpBase + "ioc107");
 
     public static readonly DiagnosticDescriptor AutoDepOpenConstraintViolation = new(
-        "IOC102",
+        "IOC108",
         "AutoDepOpen closure violates type parameter constraint",
         "AutoDepOpen closure of '{0}' to service '{1}' violates type parameter constraint '{2}'. Consider suppressing on this service via [NoAutoDepOpen(typeof({3}))].",
         "IoCTools.AutoDeps",
         DiagnosticSeverity.Error,
         true,
         "The service type does not satisfy the open generic's constraint. Add [NoAutoDepOpen(typeof(T<>))] to the service, or change the open generic to a compatible one.",
-        AutoDepsHelpBase + "ioc102");
+        AutoDepsHelpBase + "ioc108");
 
     public static readonly DiagnosticDescriptor AutoDepsApplyGlobInvalid = new(
         "IOC103",

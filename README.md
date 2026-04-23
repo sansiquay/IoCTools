@@ -52,7 +52,7 @@ Or directly in your project file:
   removed in 2.0. A Roslyn code fix (new `IoCTools.Generator.Analyzer`
   package) and [`ioc-tools migrate-inject`](docs/cli-reference.md) do the
   conversion.
-- **11 new diagnostics** — IOC095-IOC105 covering `[Inject]` deprecation,
+- **11 new diagnostics** — IOC095-IOC099 and IOC103-IOC108 covering `[Inject]` deprecation,
   stale opt-outs, profile validation, glob correctness, and redundant
   attachments. See [diagnostics.md](docs/diagnostics.md).
 - **CLI upgrades** — `graph`/`why`/`explain`/`evidence` gain source
@@ -225,7 +225,7 @@ Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[De
 
 ## Diagnostics Reference
 
-IoCTools provides core diagnostics through `IOC105`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100` through `IOC102`). IOC100-IOC102 are shared between the auto-deps and FluentValidation surfaces; see [diagnostics.md](docs/diagnostics.md) for the full list.
+IoCTools provides core diagnostics through `IOC108`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100`-`IOC102`). See [diagnostics.md](docs/diagnostics.md) for the full list.
 
 ### Error-Severity Diagnostics
 

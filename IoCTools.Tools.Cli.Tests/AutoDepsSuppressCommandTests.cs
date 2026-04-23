@@ -51,11 +51,11 @@ public sealed class AutoDepsSuppressCommandTests
         var result = await CliTestHost.RunAsync(
             "suppress",
             "--project", AutoDepsProjectPath,
-            "--codes", "IOC100,IOC101,IOC102,IOC103,IOC104");
+            "--codes", "IOC103,IOC104,IOC106,IOC107,IOC108");
 
         result.ExitCode.Should().Be(0);
-        result.Stdout.Should().Contain("dotnet_diagnostic.IOC100");
-        result.Stdout.Should().Contain("dotnet_diagnostic.IOC104");
+        result.Stdout.Should().Contain("dotnet_diagnostic.IOC103");
+        result.Stdout.Should().Contain("dotnet_diagnostic.IOC108");
         // Error-severity codes selected via --codes must render the verify-this-is-intentional
         // risk note so suppressing an error-level rule is a deliberate action.
         result.Stdout.Should().Contain("suppressed explicitly");

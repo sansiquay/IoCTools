@@ -333,7 +333,7 @@ unbound type with the concrete service type at codegen — applied to
 The `typeof()` is the unavoidable exception to "generics all the way down"
 because C# does not permit unbound generics as type arguments to generic
 attributes. Multi-arity (`typeof(IFoo<,>)`) is rejected with
-[IOC100](diagnostics.md#ioc100-autodeps).
+[IOC106](diagnostics.md#ioc106).
 
 **Built-in `ILogger<T>` detection.** When
 `Microsoft.Extensions.Logging.ILogger<T>` is discoverable in the compilation,
