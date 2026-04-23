@@ -570,7 +570,7 @@ escape hatches). Declarations live in assembly attributes.
 | Property | Purpose |
 |---|---|
 | `IoCToolsAutoDepsDisable` | Boolean kill switch. When `true`, the entire auto-deps feature is a no-op. |
-| `IoCToolsAutoDepsExcludeGlob` | Namespace glob. Services matching are treated as if they had `[NoAutoDeps]`. |
+| `IoCToolsAutoDepsExcludeGlob` | Namespace glob (e.g. `*.Legacy.*`). Services in matching namespaces are treated as if they had `[NoAutoDeps]`. |
 | `IoCToolsAutoDepsReport` | Boolean. When `true`, every generated constructor file includes a leading comment block listing resolved auto-deps and sources. |
 | `IoCToolsAutoDetectLogger` | Boolean, default `true`. When `false`, disables built-in `ILogger<T>` auto-detection. Does not affect universal `AutoDep<T>` / `AutoDepOpen` declarations. |
 | `IoCToolsInjectDeprecationSeverity` | Modulates `IOC095` severity (`Error`, `Warning`, `Info`, `Hidden`) within its allowed band. 1.6 permits lowering; 1.7 is raise-only. |

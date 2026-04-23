@@ -23,9 +23,6 @@ using Microsoft.CodeAnalysis.Editing;
 /// </remarks>
 internal static class MigrateInjectRunner
 {
-    private const string InjectAttributeMetadataName = "IoCTools.Abstractions.Annotations.InjectAttribute";
-    private const string ExternalServiceAttributeMetadataName = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
-
     public static async Task<int> RunAsync(MigrateInjectCommandOptions opts, CancellationToken token)
     {
         var path = string.IsNullOrWhiteSpace(opts.Path) ? Environment.CurrentDirectory : opts.Path!;
@@ -307,30 +304,8 @@ internal static class MigrateInjectRunner
     private static IReadOnlyList<InjectMigrationRewriter.InjectFieldInfo> CollectInjectFields(
         ClassDeclarationSyntax classDecl,
         SemanticModel semanticModel,
-        CancellationToken ct)
-    {
-        // Mirrors InjectDeprecationCodeFixProvider.CollectInjectFields; kept in sync so
-        // the CLI and IDE paths emit byte-identical output from the shared rewriter.
-        var result = new List<InjectMigrationRewriter.InjectFieldInfo>();
-        foreach (var fieldDecl in classDecl.Members.OfType<FieldDeclarationSyntax>())
-        {
-            ct.ThrowIfCancellationRequested();
-            foreach (var variable in fieldDecl.Declaration.Variables)
-            {
-                if (semanticModel.GetDeclaredSymbol(variable, ct) is not IFieldSymbol fieldSymbol) continue;
-                var attrs = fieldSymbol.GetAttributes();
-                var hasInject = attrs.Any(a => a.AttributeClass?.ToDisplayString() == InjectAttributeMetadataName);
-                if (!hasInject) continue;
-                var hasExternal = attrs.Any(a =>
-                    a.AttributeClass?.ToDisplayString() == ExternalServiceAttributeMetadataName);
-                result.Add(new InjectMigrationRewriter.InjectFieldInfo(
-                    fieldDecl, fieldSymbol.Type, fieldSymbol.Name, hasExternal));
-                break;
-            }
-        }
-
-        return result;
-    }
+        CancellationToken ct) =>
+        InjectMigrationRewriter.CollectInjectFields(classDecl, semanticModel, ct);
 
     private static HashSet<string> CollectExistingDependsOnTypes(
         ClassDeclarationSyntax classDecl,

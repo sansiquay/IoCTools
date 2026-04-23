@@ -23,9 +23,6 @@ using Microsoft.CodeAnalysis.Editing;
 [Shared]
 public sealed class InjectDeprecationCodeFixProvider : CodeFixProvider
 {
-    private const string InjectAttributeMetadataName = "IoCTools.Abstractions.Annotations.InjectAttribute";
-    private const string ExternalServiceAttributeMetadataName = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
-
     public override ImmutableArray<string> FixableDiagnosticIds =>
         ImmutableArray.Create(AnalyzerDiagnosticDescriptors.InjectDeprecated.Id);
 
@@ -112,39 +109,8 @@ public sealed class InjectDeprecationCodeFixProvider : CodeFixProvider
     private static IReadOnlyList<InjectMigrationRewriter.InjectFieldInfo> CollectInjectFields(
         ClassDeclarationSyntax classDecl,
         SemanticModel semanticModel,
-        CancellationToken ct)
-    {
-        var result = new List<InjectMigrationRewriter.InjectFieldInfo>();
-
-        foreach (var fieldDecl in classDecl.Members.OfType<FieldDeclarationSyntax>())
-        {
-            ct.ThrowIfCancellationRequested();
-
-            foreach (var variable in fieldDecl.Declaration.Variables)
-            {
-                if (semanticModel.GetDeclaredSymbol(variable, ct) is not IFieldSymbol fieldSymbol)
-                    continue;
-
-                var attrs = fieldSymbol.GetAttributes();
-                var hasInject = attrs.Any(a => a.AttributeClass?.ToDisplayString() == InjectAttributeMetadataName);
-                if (!hasInject) continue;
-
-                var hasExternal = attrs.Any(a =>
-                    a.AttributeClass?.ToDisplayString() == ExternalServiceAttributeMetadataName);
-
-                result.Add(new InjectMigrationRewriter.InjectFieldInfo(
-                    fieldDecl,
-                    fieldSymbol.Type,
-                    fieldSymbol.Name,
-                    hasExternal));
-
-                // One InjectFieldInfo per declaration; the rewriter deletes/keeps the whole declaration.
-                break;
-            }
-        }
-
-        return result;
-    }
+        CancellationToken ct) =>
+        InjectMigrationRewriter.CollectInjectFields(classDecl, semanticModel, ct);
 
     /// <summary>
     ///     Builds the MSBuild-property dictionary in the shape

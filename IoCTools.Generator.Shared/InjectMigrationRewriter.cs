@@ -15,6 +15,48 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 /// </summary>
 public static class InjectMigrationRewriter
 {
+    private const string InjectAttributeMetadataName = "IoCTools.Abstractions.Annotations.InjectAttribute";
+    private const string ExternalServiceAttributeMetadataName = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
+
+    /// <summary>
+    ///     Walk a class declaration and collect every <c>[Inject]</c>-annotated field as
+    ///     an <see cref="InjectFieldInfo"/>. Used by both the IDE code-fix provider and the
+    ///     headless <c>migrate-inject</c> CLI — keeping the two call paths on one helper
+    ///     ensures they emit byte-identical output.
+    /// </summary>
+    public static IReadOnlyList<InjectFieldInfo> CollectInjectFields(
+        ClassDeclarationSyntax classDecl,
+        SemanticModel semanticModel,
+        System.Threading.CancellationToken ct = default)
+    {
+        if (classDecl == null) throw new ArgumentNullException(nameof(classDecl));
+        if (semanticModel == null) throw new ArgumentNullException(nameof(semanticModel));
+
+        var result = new List<InjectFieldInfo>();
+        foreach (var fieldDecl in classDecl.Members.OfType<FieldDeclarationSyntax>())
+        {
+            ct.ThrowIfCancellationRequested();
+
+            foreach (var variable in fieldDecl.Declaration.Variables)
+            {
+                if (semanticModel.GetDeclaredSymbol(variable, ct) is not IFieldSymbol fieldSymbol) continue;
+
+                var attrs = fieldSymbol.GetAttributes();
+                var hasInject = attrs.Any(a => a.AttributeClass?.ToDisplayString() == InjectAttributeMetadataName);
+                if (!hasInject) continue;
+
+                var hasExternal = attrs.Any(a =>
+                    a.AttributeClass?.ToDisplayString() == ExternalServiceAttributeMetadataName);
+
+                result.Add(new InjectFieldInfo(fieldDecl, fieldSymbol.Type, fieldSymbol.Name, hasExternal));
+                // One InjectFieldInfo per declaration; the rewriter deletes/keeps the whole declaration.
+                break;
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>
     ///     Describes a single <c>[Inject]</c> field candidate for migration.
     /// </summary>

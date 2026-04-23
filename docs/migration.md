@@ -27,8 +27,11 @@ canonical upgrade path.
 ### Recommended upgrade sequence
 
 1. **Bump the IoCTools packages** to 1.6.0 across `IoCTools.Abstractions`,
-   `IoCTools.Generator`, `IoCTools.Generator.Analyzer` (new in 1.6),
-   `IoCTools.Testing`, `IoCTools.FluentValidation`, and `IoCTools.Tools.Cli`.
+   `IoCTools.Generator`, `IoCTools.Generator.Analyzer` (new package in 1.6 —
+   ships the Roslyn analyzer and the `[Inject]` → `[DependsOn<T>]` IDE
+   code fix; reference it as an analyzer in your csproj to get the
+   light-bulb experience), `IoCTools.Testing`, `IoCTools.FluentValidation`,
+   and `IoCTools.Tools.Cli`.
 2. **(Optional) Silence `IOC095` during the migration window.** For a large
    codebase with many `[Inject]` usages, add a temporary severity override so
    the upgrade build stays readable:
@@ -59,8 +62,16 @@ canonical upgrade path.
 
 4. **Commit the mechanical conversion as one diff** so code review stays
    manageable.
-5. **Remove the severity override** from the csproj.
-6. **(Optional) Promote cross-cutting repeats to auto-deps.** `ILogger<T>`
+5. **Audit existing `IOC095` suppressions.** In 1.5.1, `IOC095` flagged an
+   open-generic `InstanceSharing.Shared` fallback. In 1.6.0+, `IOC095` is
+   primarily the `[Inject]` deprecation warning; the 1.5 fallback
+   descriptor is retained under the same ID as a secondary descriptor. A
+   `.editorconfig` entry like `dotnet_diagnostic.IOC095.severity = none`
+   now silences *both* descriptors — review suppressions carried over from
+   1.5.x and scope them appropriately (e.g. move them to the specific
+   service files or replace with `IoCToolsInjectDeprecationSeverity`).
+6. **Remove the severity override** from the csproj.
+7. **(Optional) Promote cross-cutting repeats to auto-deps.** `ILogger<T>`
    is already auto-detected. If your codebase has repeated `TimeProvider`,
    `IMetrics`, or `ITracer` declarations, promote them once:
 
@@ -106,7 +117,7 @@ narrow to broad:
 
 | Need | How |
 |---|---|
-| Suppress the implicit `ILogger<T>` on one service | `[NoAutoDepOpen(typeof(ILogger<>))]` on the class |
+| Suppress the implicit `ILogger<T>` on one service | `[NoAutoDepOpen(typeof(ILogger<>))]` on the class *(rename-safe — does not mention the service type, unlike `[NoAutoDep<ILogger<MyService>>]`)* |
 | Suppress one specific auto-dep type on one service | `[NoAutoDep<T>]` on the class |
 | Suppress all auto-deps on one service | `[NoAutoDeps]` on the class |
 | Disable `ILogger<T>` auto-detection project-wide | `<IoCToolsAutoDetectLogger>false</IoCToolsAutoDetectLogger>` |

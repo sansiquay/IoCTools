@@ -692,4 +692,55 @@ namespace Consumer
 
         output.Entries.IsEmpty.Should().BeTrue();
     }
+
+    // --- 26. Transitive AutoDepsApplyGlob evaluates against the CONSUMER's namespace ---
+    // This is the most footgun-prone cross-assembly case: library authors write globs that
+    // describe consumer-side namespaces they've never seen, and the rule must evaluate in
+    // the consuming compilation, not the declaring one. Regression anchor for H-2.
+    [Fact]
+    public void Transitive_AutoDepsApplyGlob_matches_consumer_namespace_not_library_namespace()
+    {
+        var librarySource = @"
+using IoCTools.Abstractions.Annotations;
+[assembly: AutoDepIn<Library.Profiles.ControllerDefaults, Library.IMediator>(Scope = AutoDepScope.Transitive)]
+[assembly: AutoDepsApplyGlob<Library.Profiles.ControllerDefaults>(""Consumer.Controllers.*"", Scope = AutoDepScope.Transitive)]
+namespace Library.Profiles
+{
+    public sealed class ControllerDefaults : IAutoDepsProfile { }
+}
+namespace Library { public interface IMediator { } }
+";
+        var libraryCompilation = CreateCompilation("LibraryAsm", librarySource);
+        AssertNoCompileErrors(libraryCompilation);
+        var libraryRef = EmitToReference(libraryCompilation, "LibraryAsm");
+
+        var consumerSource = @"
+namespace Consumer.Controllers.Orders
+{
+    public class OrderController { }
+}
+namespace Consumer.Services
+{
+    public class ReportService { }
+}
+";
+        var consumerCompilation = CreateCompilation("ConsumerAsm", consumerSource, new[] { libraryRef });
+        AssertNoCompileErrors(consumerCompilation);
+
+        var controller = GetType(consumerCompilation, "Consumer.Controllers.Orders.OrderController");
+        var service = GetType(consumerCompilation, "Consumer.Services.ReportService");
+
+        var controllerOutput = AutoDepsResolver.ResolveForService(consumerCompilation, controller, EmptyProps);
+        var serviceOutput = AutoDepsResolver.ResolveForService(consumerCompilation, service, EmptyProps);
+
+        // Controller's namespace matches the glob → profile attaches → IMediator appears.
+        // Attribution is AutoTransitive because the contribution originates in a referenced
+        // assembly; that AutoTransitive tag is the correct primary attribution for
+        // cross-assembly profile contributions.
+        controllerOutput.Entries.Should().HaveCount(1);
+        controllerOutput.Entries[0].Sources.Select(s => s.Kind).Should()
+            .Contain(new[] { AutoDepSourceKind.AutoTransitive });
+        // Service's namespace (Consumer.Services) does NOT match → no entries.
+        serviceOutput.Entries.IsEmpty.Should().BeTrue();
+    }
 }
