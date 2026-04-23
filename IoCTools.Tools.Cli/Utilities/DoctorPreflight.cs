@@ -172,9 +172,9 @@ internal static class DoctorPreflight
     private static HashSet<string> FindReferencedProfileNames(Compilation compilation)
     {
         // Scan for [AutoDepsApply(typeof(X))] or [AutoDepsApplyGlob(..., typeof(X))] attributes
-        // and collect the referenced profile type names. Conservative: any attribute whose
-        // name starts with "AutoDepsApply" and whose first typeof() argument resolves to a
-        // class-type is treated as a profile reference.
+        // and collect the referenced profile type names. The 1.6 attributes
+        // (AutoDepsApply<TProfile, TBase>, AutoDepsApplyGlob<TProfile>, AutoDeps<TProfile>,
+        // AutoDepIn<TProfile, T>) encode the profile as the first generic type argument.
         var referenced = new HashSet<string>(System.StringComparer.Ordinal);
         foreach (var tree in compilation.SyntaxTrees)
         {
@@ -182,16 +182,14 @@ internal static class DoctorPreflight
             var root = tree.GetRoot();
             foreach (var attr in root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.AttributeSyntax>())
             {
-                var name = attr.Name.ToString();
-                if (!name.Contains("AutoDepsApply", System.StringComparison.Ordinal)) continue;
-                if (attr.ArgumentList is null) continue;
-                foreach (var arg in attr.ArgumentList.Arguments)
-                {
-                    if (arg.Expression is not Microsoft.CodeAnalysis.CSharp.Syntax.TypeOfExpressionSyntax typeOf) continue;
-                    var typeInfo = model.GetTypeInfo(typeOf.Type).Type;
-                    if (typeInfo is INamedTypeSymbol named)
-                        referenced.Add(named.Name);
-                }
+                if (attr.Name is not Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax generic) continue;
+                var name = generic.Identifier.ValueText;
+                if (!name.StartsWith("AutoDeps", System.StringComparison.Ordinal) &&
+                    !name.StartsWith("AutoDepIn", System.StringComparison.Ordinal)) continue;
+                if (generic.TypeArgumentList.Arguments.Count < 1) continue;
+                var profileType = model.GetTypeInfo(generic.TypeArgumentList.Arguments[0]).Type;
+                if (profileType is INamedTypeSymbol named)
+                    referenced.Add(named.Name);
             }
         }
         return referenced;

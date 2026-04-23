@@ -162,8 +162,11 @@ public sealed class InjectDeprecationCodeFixProvider : CodeFixProvider
     {
         var result = new Dictionary<string, string>();
 
-        // Document-side options (file-scoped overrides in .editorconfig/.globalconfig).
-        var options = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GetOptions(tree);
+        // MSBuild `build_property.*` values are surfaced through GlobalOptions, not the
+        // tree-scoped GetOptions(tree) API — those are .editorconfig-style per-file options.
+        // Using the wrong one silently produces an empty map and the resolver falls back to
+        // defaults, losing the user's kill-switch/exclude-glob/auto-detect configuration.
+        var options = document.Project.AnalyzerOptions.AnalyzerConfigOptionsProvider.GlobalOptions;
 
         AddIfPresent(options, "IoCToolsAutoDepsDisable", result);
         AddIfPresent(options, "IoCToolsAutoDepsExcludeGlob", result);

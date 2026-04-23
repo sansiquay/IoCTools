@@ -69,7 +69,3 @@ public partial class UserController : ControllerBase
 {
 }
 
-[Scoped]
-public partial class BackgroundWorker
-{
-}

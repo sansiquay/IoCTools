@@ -89,19 +89,18 @@ public static partial class AutoDepsResolver
             || name == "AutoDepsApplyGlobAttribute";
     }
 
+    // Matches IoCTools.Abstractions.Annotations.AutoDepScope.Transitive underlying value.
+    // Shared project is netstandard2.0 and does not take a dependency on the Abstractions
+    // assembly at build time; any change to the enum must be mirrored here, and the
+    // AutoDepScopeEnumValuesAreStableTest pins the contract.
+    private const int AutoDepScopeTransitive = 1;
+
     private static bool HasTransitiveScope(AttributeData attr)
     {
         foreach (var named in attr.NamedArguments)
         {
-            if (named.Key != "Scope")
-            {
-                continue;
-            }
-
-            if (named.Value.Value is int i)
-            {
-                return i == 1; // AutoDepScope.Transitive underlying value
-            }
+            if (named.Key != "Scope") continue;
+            if (named.Value.Value is int i) return i == AutoDepScopeTransitive;
         }
 
         return false;

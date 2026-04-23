@@ -270,8 +270,12 @@ internal static class ProfilesPrinter
                     sources.Add($"[assembly: AutoDepsApplyGlob<{profile.Name}>(\"{pattern}\")]");
                     foreach (var cls in allClasses)
                     {
+                        // Match the generator's behavior: glob is evaluated against the service's
+                        // namespace, not its fully-qualified name. Using the FQN here causes the
+                        // CLI's profile-match list to diverge from what the generator actually wires up.
+                        var ns = cls.ContainingNamespace?.ToDisplayString() ?? string.Empty;
                         var fqn = FullyQualifiedName(cls);
-                        if (GlobMatch(fqn, pattern) && seen.Add(fqn))
+                        if (IoCTools.Generator.Shared.AutoDepsResolver.GlobMatch(ns, pattern, out _) && seen.Add(fqn))
                             matches.Add(cls.Name);
                     }
                 }
@@ -328,19 +332,6 @@ internal static class ProfilesPrinter
         return null;
     }
 
-    private static bool GlobMatch(string text, string pattern)
-    {
-        // Translate a simple glob ('*' = any run of chars) into a regex anchored end-to-end.
-        var regex = "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*") + "$";
-        try
-        {
-            return System.Text.RegularExpressions.Regex.IsMatch(text, regex);
-        }
-        catch
-        {
-            return false;
-        }
-    }
 
     private static bool IsAssignableTo(INamedTypeSymbol candidate, INamedTypeSymbol target)
     {

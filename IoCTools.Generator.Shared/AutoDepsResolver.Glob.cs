@@ -20,7 +20,7 @@ public static partial class AutoDepsResolver
     /// ("unterminated character classes") can fire. The <c>.</c> character remains regex-escaped so
     /// it matches a literal dot, which is the common case for namespace glob patterns.
     /// </remarks>
-    internal static bool GlobMatch(string input, string pattern, out bool patternIsInvalid)
+    public static bool GlobMatch(string input, string pattern, out bool patternIsInvalid)
     {
         patternIsInvalid = false;
         if (string.IsNullOrEmpty(pattern))

@@ -31,12 +31,14 @@ internal static class InjectDeprecationValidator
         }
     }
 
+    private const string InjectAttributeMetadataName = "IoCTools.Abstractions.Annotations.InjectAttribute";
+
     private static bool HasInjectAttribute(IFieldSymbol fieldSymbol)
     {
         foreach (var attribute in fieldSymbol.GetAttributes())
         {
-            var attributeName = attribute.AttributeClass?.Name;
-            if (string.Equals(attributeName, "InjectAttribute", StringComparison.Ordinal)) return true;
+            if (string.Equals(attribute.AttributeClass?.ToDisplayString(), InjectAttributeMetadataName, StringComparison.Ordinal))
+                return true;
         }
 
         return false;
