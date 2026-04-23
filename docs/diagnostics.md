@@ -2,17 +2,18 @@
 
 Quick reference for all IoCTools diagnostic messages with remediation guidance.
 
-Authoring posture for `1.5.1`: never introduce new `[Inject]` or `InjectConfiguration` usage. When diagnostics mention them, treat them as compatibility-only patterns to migrate away from.
+Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc095) (see the 1.6 primary descriptor, not the 1.5 open-generic fallback of the same ID). `[DependsOn<T>]`, `[DependsOnConfiguration<T>]`, and `[DependsOnOptions<T>]` are canonical for new code.
 
 ## Diagnostic Categories
 
 - [Dependency Diagnostics](#dependency-diagnostics) - IOC001-IOC002, IOC006-IOC009, IOC039-IOC055, IOC061-IOC062, IOC076, IOC078-IOC079
 - [Lifetime Diagnostics](#lifetime-diagnostics) - IOC012-IOC015, IOC033, IOC059-IOC060, IOC072, IOC075, IOC084, IOC087
 - [Configuration Diagnostics](#configuration-diagnostics) - IOC016-IOC019, IOC043-IOC046, IOC056-IOC057, IOC079, IOC088-IOC089
-- [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC095
+- [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094 *(IOC095 moved to Auto-Deps in 1.6 — legacy open-generic fallback descriptor retained under the same ID)*
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
+- [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC105
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
-- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
+- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102 *(IDs shared with Auto-Deps — see the ID-collision note in that section)*
 
 ## Severity Legend
 
@@ -650,7 +651,7 @@ Diagnostics related to service registration patterns and attributes.
 
 **Cause:** An `[Inject]` field matches the default naming for `[DependsOn]`, making it unnecessarily verbose.
 
-**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]`. `[Inject]` is compatibility-only in `1.5.1`; never introduce it in new code.
+**Fix:** Replace the `[Inject]` field with `[DependsOn<T>]`. `[Inject]` is deprecated in 1.6.0 (fires [IOC095](#ioc095)); the Roslyn code fix and `ioc-tools migrate-inject` CLI migrate in bulk.
 
 **Related:** [IOC007](#ioc007) (DependsOn conflicts with Inject)
 
@@ -905,7 +906,7 @@ services.AddSingleton(typeof(IUserService), typeof(UserService)); // IOC092
 
 **Cause:** An open generic is registered via `typeof()` even though the common mapping can be expressed through IoCTools attributes on the generic implementation.
 
-**Fix:** The common open-generic path is supported in IoCTools `1.5.1`. Prefer expressing the registration through IoCTools attributes on the generic implementation so generated registrations and diagnostics stay aligned. If the manual mapping is intentionally outside current IoCTools intent, this diagnostic remains informational.
+**Fix:** The common open-generic path is natively supported. Prefer expressing the registration through IoCTools attributes on the generic implementation so generated registrations and diagnostics stay aligned. If the manual mapping is intentionally outside current IoCTools intent, this diagnostic remains informational.
 
 **Example:**
 ```csharp
@@ -962,6 +963,7 @@ every descriptor's `HelpLinkUri` points at the `#iocXXX` anchor on that page.
 > overlap carried into 1.6.0; consumers with IOC100-IOC102 suppressions
 > should review them.
 
+<a id="ioc095-inject-deprecated"></a>
 ### IOC095 (primary, 1.6.0+) — `[Inject]` is deprecated
 
 **Severity:** Warning (1.6) → Error (1.7) → Removed (2.0) | **Category:** IoCTools.AutoDeps
@@ -975,6 +977,7 @@ the solution root, or modulate severity during migration via
 `<IoCToolsInjectDeprecationSeverity>Info</IoCToolsInjectDeprecationSeverity>`.
 See the [1.5.x → 1.6.x migration guide](migration.md#migrating-from-15x-to-16x).
 
+<a id="ioc096"></a>
 ### IOC096 — Stale opt-out
 
 **Severity:** Info | **Category:** IoCTools.AutoDeps
@@ -985,6 +988,7 @@ shape with no matching auto-dep derivation for this service.
 
 **Fix:** Remove the stale opt-out, or fix the typo in the referenced type.
 
+<a id="ioc097"></a>
 ### IOC097 — Profile missing `IAutoDepsProfile` marker
 
 **Severity:** Warning | **Category:** IoCTools.AutoDeps
@@ -999,6 +1003,7 @@ shape with no matching auto-dep derivation for this service.
 public sealed class ControllerDefaults : IAutoDepsProfile { }
 ```
 
+<a id="ioc098"></a>
 ### IOC098 — `[DependsOn<T>]` redundant with auto-dep
 
 **Severity:** Info | **Category:** IoCTools.AutoDeps
@@ -1014,6 +1019,7 @@ message names the auto-dep's source (`auto-builtin:ILogger`,
 customization (`memberName*` or `external: true`) — keep it and ignore the
 info (explicit always wins).
 
+<a id="ioc099"></a>
 ### IOC099 — Profile attachment matches zero services
 
 **Severity:** Info | **Category:** IoCTools.AutoDeps
@@ -1025,6 +1031,7 @@ glob pattern.
 **Fix:** Remove the unused rule, fix the glob pattern, or confirm the base
 class match still holds.
 
+<a id="ioc100-autodeps"></a>
 ### IOC100 — `AutoDepOpen` on multi-arity generic
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
@@ -1036,6 +1043,7 @@ multi-arity generics.
 **Fix:** Use `AutoDep<T>` with an explicitly closed type, or redesign the
 dependency so the service-type parameter is a single unbound.
 
+<a id="ioc101-autodeps"></a>
 ### IOC101 — `AutoDepOpen` on non-generic
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
@@ -1044,6 +1052,7 @@ dependency so the service-type parameter is a single unbound.
 
 **Fix:** Use `AutoDep<T>` for closed types.
 
+<a id="ioc102-autodeps"></a>
 ### IOC102 — `AutoDepOpen` closure violates constraints
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
@@ -1056,6 +1065,7 @@ secondary location is the `AutoDepOpen` assembly attribute.
 **Fix:** Exclude the service from the auto-dep via `[NoAutoDepOpen(...)]`,
 or relax the unbound's constraints.
 
+<a id="ioc103"></a>
 ### IOC103 — Invalid glob pattern
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
@@ -1068,6 +1078,7 @@ The validator uses the same grammar as `IoCToolsIgnoredTypePatterns` and
 **Fix:** Fix the pattern. Simple leading/trailing wildcards (`*.Foo.*`) are
 always safe.
 
+<a id="ioc104"></a>
 ### IOC104 — Profile type is generic
 
 **Severity:** Error | **Category:** IoCTools.AutoDeps
@@ -1080,6 +1091,7 @@ must be non-generic in 1.6.
 needed, declare per-domain non-generic profiles
 (`OrderProfile`, `ReportProfile`, …) rather than one generic profile.
 
+<a id="ioc105"></a>
 ### IOC105 — Redundant profile attachment
 
 **Severity:** Info | **Category:** IoCTools.AutoDeps
@@ -1408,6 +1420,8 @@ Diagnostics for FluentValidation validator composition, lifetime management, and
 
 ### IOC100
 
+> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC100 — `AutoDepOpen` on multi-arity generic](#ioc100--autodepopen-on-multi-arity-generic). A `.editorconfig` suppression of `IOC100` silences both descriptors.
+
 **Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
 
 **Cause:** A validator directly instantiates a DI-managed child validator using `new`, bypassing dependency injection. The child validator's own dependencies won't be resolved.
@@ -1446,6 +1460,8 @@ public partial class OrderValidator : AbstractValidator<Order>
 
 ### IOC101
 
+> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC101 — `AutoDepOpen` on non-generic](#ioc101--autodepopen-on-non-generic). A `.editorconfig` suppression of `IOC101` silences both descriptors.
+
 **Severity:** [!Warning](#) | **Category:** IoCTools.FluentValidation
 
 **Cause:** A validator composition creates a captive dependency — a parent validator with a longer lifetime captures a child validator with a shorter lifetime. For example, a `[Singleton]` parent composing a `[Scoped]` child.
@@ -1474,6 +1490,8 @@ public partial class OrderValidator : AbstractValidator<Order>
 ---
 
 ### IOC102
+
+> **ID-collision note.** This ID is also used by the Auto-Deps diagnostic [IOC102 — `AutoDepOpen` closure violates constraints](#ioc102--autodepopen-closure-violates-constraints). A `.editorconfig` suppression of `IOC102` silences both descriptors.
 
 **Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
 

@@ -77,8 +77,9 @@ public partial class UserService : IUserService
 ### `[Inject]` — **deprecated in 1.6.0**
 
 `[Inject]` is marked `[Obsolete]` in 1.6.0 and fires
-[IOC095](diagnostics.md#ioc095-primary-160--inject-is-deprecated) at warning
-severity. Timeline:
+[IOC095](diagnostics.md#ioc095) at warning
+severity (the 1.6 primary descriptor — the ID also retains a secondary
+open-generic-fallback descriptor from 1.5.x). Timeline:
 
 - **1.6.x** — warning. Roslyn code fix and `ioc-tools migrate-inject` ship.
 - **1.7.0** — error. `IOC095` defaults to error severity.
@@ -254,7 +255,7 @@ public partial class ConcreteOnly { }
 public partial class Repository<T> : IRepository<T> where T : class { }
 ```
 
-If you request `InstanceSharing.Shared` for open-generic interface aliases, IoCTools reports [IOC095](diagnostics.md#ioc095) and falls back to separate registrations because `Microsoft.Extensions.DependencyInjection` does not support open-generic implementation factories.
+If you request `InstanceSharing.Shared` for open-generic interface aliases, IoCTools reports [IOC095](diagnostics.md#ioc095) (the 1.5.x open-generic fallback descriptor — in 1.6.0+, IOC095 is also the primary ID for the `[Inject]` deprecation diagnostic; both descriptors share the ID) and falls back to separate registrations because `Microsoft.Extensions.DependencyInjection` does not support open-generic implementation factories.
 
 ---
 
@@ -332,7 +333,7 @@ unbound type with the concrete service type at codegen — applied to
 The `typeof()` is the unavoidable exception to "generics all the way down"
 because C# does not permit unbound generics as type arguments to generic
 attributes. Multi-arity (`typeof(IFoo<,>)`) is rejected with
-[IOC100](diagnostics.md#ioc100--autodepopen-on-multi-arity-generic).
+[IOC100](diagnostics.md#ioc100-autodeps).
 
 **Built-in `ILogger<T>` detection.** When
 `Microsoft.Extensions.Logging.ILogger<T>` is discoverable in the compilation,
@@ -353,8 +354,8 @@ public sealed class ControllerDefaults : IAutoDepsProfile { }
 
 Profile types must implement `IAutoDepsProfile` (an empty marker interface)
 and must be non-generic. Missing marker fires
-[IOC097](diagnostics.md#ioc097--profile-missing-iautodepsprofile-marker);
-generic profile fires [IOC104](diagnostics.md#ioc104--profile-type-is-generic).
+[IOC097](diagnostics.md#ioc097);
+generic profile fires [IOC104](diagnostics.md#ioc104).
 
 ### `[assembly: AutoDepsApply<TProfile, TBase>]`
 
@@ -378,7 +379,7 @@ Attach a profile by namespace glob:
 AutoDepScope.Transitive`, the glob evaluates against service namespaces in
 the *consuming* assembly, not the declaring one. Prefer broad
 convention-based patterns (`"*.Controllers.*"`) over assembly-specific ones.
-Invalid patterns fire [IOC103](diagnostics.md#ioc103--invalid-glob-pattern).
+Invalid patterns fire [IOC103](diagnostics.md#ioc103).
 
 ### `[AutoDeps<TProfile>]`
 
@@ -404,7 +405,7 @@ Opt-out ladder for a service:
 `NoAutoDepOpen` is the rename-safe twin of `AutoDepOpen` — it suppresses by
 shape regardless of closure and regardless of source (built-in, universal,
 or transitive). Stale opt-outs fire
-[IOC096](diagnostics.md#ioc096--stale-opt-out).
+[IOC096](diagnostics.md#ioc096).
 
 ### `IAutoDepsProfile`
 

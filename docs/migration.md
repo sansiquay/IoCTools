@@ -239,7 +239,7 @@ public partial class EmailService
 
 ### Common Migration Patterns
 
-For `1.5.1`, treat `[Inject]` and `InjectConfiguration` as temporary migration bridges only. Retcon new code directly to `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`.
+In 1.6.0+, `[Inject]` is deprecated and emits [IOC095](diagnostics.md#ioc095). Use `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]` directly in new code. `InjectConfiguration` remains supported but is not preferred.
 
 | Manual DI | IoCTools |
 |-----------|----------|

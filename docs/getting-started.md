@@ -17,9 +17,11 @@ dotnet add package IoCTools.Generator
 using IoCTools.Abstractions.Annotations;
 
 [Scoped]
-[DependsOn<ILogger<EmailService>>]
 public partial class EmailService : IEmailService
 {
+    // ILogger<EmailService> is auto-detected as an auto-dep in 1.6.0+ —
+    // no [DependsOn] needed if you just want the standard logger.
+    // Add explicit [DependsOn<T>] for other business-logic dependencies.
 }
 ```
 
