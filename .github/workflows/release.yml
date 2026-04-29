@@ -47,6 +47,7 @@ jobs:
             IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj \
             IoCTools.Abstractions/IoCTools.Abstractions.csproj \
             IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj \
+            IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj \
             IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj \
             IoCTools.Testing/IoCTools.Testing/IoCTools.Testing.csproj \
             IoCTools.FluentValidation/IoCTools.FluentValidation/IoCTools.FluentValidation.csproj; do

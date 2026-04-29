@@ -42,6 +42,7 @@ for project in \
   IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj \
   IoCTools.Abstractions/IoCTools.Abstractions.csproj \
   IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj \
+  IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj \
   IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj \
   IoCTools.Testing/IoCTools.Testing/IoCTools.Testing.csproj \
   IoCTools.FluentValidation/IoCTools.FluentValidation/IoCTools.FluentValidation.csproj; do
@@ -65,6 +66,12 @@ require_contains IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj
 require_contains IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj "<AssemblyVersion>$version.0</AssemblyVersion>"
 require_contains IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj "<FileVersion>$version.0</FileVersion>"
 require_contains IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj "https://github.com/sansiquay/IoCTools"
+
+require_contains IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj "<Version>$version</Version>"
+require_contains IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj "<PackageVersion>$version</PackageVersion>"
+require_contains IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj "<AssemblyVersion>$version.0</AssemblyVersion>"
+require_contains IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj "<FileVersion>$version.0</FileVersion>"
+require_contains IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj "https://github.com/sansiquay/IoCTools"
 
 require_contains IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj "<Version>$version</Version>"
 require_contains IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj "<PackageVersion>$version</PackageVersion>"
@@ -100,6 +107,7 @@ require_contains .github/workflows/release.yml "publish:"
 require_contains .github/workflows/release.yml "IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Abstractions/IoCTools.Abstractions.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj"
+require_contains .github/workflows/release.yml "IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj"
 require_contains .github/workflows/release.yml "IoCTools.Testing/IoCTools.Testing/IoCTools.Testing.csproj"
 require_contains .github/workflows/release.yml "IoCTools.FluentValidation/IoCTools.FluentValidation/IoCTools.FluentValidation.csproj"
