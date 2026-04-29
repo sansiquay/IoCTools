@@ -10,7 +10,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add lifetime attribute ([Scoped], [Singleton], or [Transient]) to the class to enable multi-interface registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc004");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc004");
 
     public static readonly DiagnosticDescriptor SkipRegistrationWithoutRegisterAsAll = new(
         "IOC005",
@@ -20,7 +20,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Fix the attribute combination by: 1) Adding [RegisterAsAll] attribute to make [SkipRegistration] meaningful, or 2) Removing the unnecessary [SkipRegistration] attribute.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc005");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc005");
 
     public static readonly DiagnosticDescriptor DuplicateServiceRegistration = new(
         "IOC027",
@@ -30,7 +30,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Review service registration patterns to ensure no unintended duplicates. The generator automatically deduplicates identical registrations.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc027");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc027");
 
     public static readonly DiagnosticDescriptor RegisterAsRequiresService = new(
         "IOC028",
@@ -40,7 +40,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add [Lifetime], [Inject] fields, or other service indicators to enable selective interface registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc028");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc028");
 
     public static readonly DiagnosticDescriptor RegisterAsInterfaceNotImplemented = new(
         "IOC029",
@@ -50,7 +50,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Ensure that all interfaces specified in [RegisterAs] are actually implemented by the class.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc029");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc029");
 
     public static readonly DiagnosticDescriptor RegisterAsDuplicateInterface = new(
         "IOC030",
@@ -60,7 +60,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove duplicate interface specifications from the [RegisterAs] attribute.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc030");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc030");
 
     public static readonly DiagnosticDescriptor RegisterAsNonInterfaceType = new(
         "IOC031",
@@ -70,7 +70,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "RegisterAs can only specify interface types. Use concrete class types for direct registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc031");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc031");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsAttribute = new(
         "IOC032",
@@ -80,7 +80,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "RegisterAs should only be used when selectively registering a subset of interfaces.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc032");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc032");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsWithRegisterAsAll = new(
         "IOC034",
@@ -90,7 +90,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove redundant [RegisterAs] attributes or drop [RegisterAsAll] if selective registration is required.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc034");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc034");
 
     public static readonly DiagnosticDescriptor InjectFieldPreferDependsOn = new(
         "IOC035",
@@ -100,7 +100,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Replace the [Inject] field with a [DependsOn] attribute so the generator can produce constructor parameters and backing fields automatically. [Inject] remains supported for compatibility-only migration scenarios; do not introduce new [Inject] fields.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc035");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc035");
 
     public static readonly DiagnosticDescriptor MultipleLifetimeAttributes = new(
         "IOC036",
@@ -110,7 +110,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove redundant lifetime attributes so only one of [Scoped], [Singleton], or [Transient] remains on the class.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc036");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc036");
 
     public static readonly DiagnosticDescriptor SkipRegistrationOverridesOtherAttributes = new(
         "IOC037",
@@ -120,7 +120,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove redundant registration attributes or drop [SkipRegistration] so the class can register as intended.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc037");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc037");
 
     public static readonly DiagnosticDescriptor SkipRegistrationIneffectiveInDirectMode = new(
         "IOC038",
@@ -130,7 +130,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Change RegisterAsAll to RegistrationMode.All/Exclusionary or remove the ineffective [SkipRegistration] declaration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc038");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc038");
 
     public static readonly DiagnosticDescriptor PreferParamsStyleAttributeArguments = new(
         "IOC047",
@@ -140,7 +140,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Prefer params-style constructor arguments for [DependsOn] member names and [DependsOnConfiguration] keys so analyzers and generators can align argument order and defaults consistently.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc047");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc047");
 
     public static readonly DiagnosticDescriptor RedundantMemberName = new(
         "IOC085",
@@ -150,7 +150,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "You can omit memberNames when they equal the generator's default (based on naming convention, strip-I, and prefix settings). Keeping only overrides reduces noise and future merge conflicts.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc085");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc085");
 
     public static readonly DiagnosticDescriptor RegisterAsMissingLifetime = new(
         "IOC069",
@@ -160,7 +160,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Registration attributes still need a lifetime indicator; add a lifetime attribute once on the class.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc069");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc069");
 
     public static readonly DiagnosticDescriptor DependsOnMissingLifetime = new(
         "IOC070",
@@ -170,7 +170,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "When a class has [DependsOn] or [Inject], add a lifetime so it will be registered and validated.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc070");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc070");
 
     public static readonly DiagnosticDescriptor ConditionalMissingLifetime = new(
         "IOC071",
@@ -180,7 +180,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Conditional services still require an explicit lifetime; add one to enable registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc071");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc071");
 
     public static readonly DiagnosticDescriptor HostedServiceMissingLifetime = new(
         "IOC072",
@@ -190,7 +190,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Let IoCTools register hosted services implicitly. Only add a lifetime when the hosted service also registers additional interfaces.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc072");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc072");
 
     public static readonly DiagnosticDescriptor MissingRegisterAsAllForMultiInterface = new(
         "IOC074",
@@ -200,7 +200,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When a class implements multiple interfaces, [RegisterAsAll] makes intent explicit and prevents partial registrations.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc074");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc074");
 
     public static readonly DiagnosticDescriptor ManualRegistrationDuplicatesIoCTools = new(
         "IOC081",
@@ -210,7 +210,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid duplicate manual registrations when IoCTools already emits the same service/implementation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc081");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc081");
 
     public static readonly DiagnosticDescriptor ManualRegistrationLifetimeMismatch = new(
         "IOC082",
@@ -220,7 +220,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Keep manual registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc082");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc082");
 
     public static readonly DiagnosticDescriptor ManualOptionsRegistrationDuplicatesIoCTools = new(
         "IOC083",
@@ -230,7 +230,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "IoCTools automatically binds configuration-backed options types referenced via InjectConfiguration/DependsOnConfiguration. Avoid manual AddOptions/Configure calls for these types to prevent duplicate registrations and diverging configuration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc083");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc083");
 
     public static readonly DiagnosticDescriptor ManualRegistrationCouldUseAttributes = new(
         "IOC086",
@@ -240,7 +240,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools attributes over manual registrations to unlock diagnostics and generated registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc086");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc086");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationCouldUseAttributes = new(
         "IOC090",
@@ -250,7 +250,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Prefer IoCTools lifetime attributes over typeof()-based manual registrations for consistent DI management and build-time validation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc090");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc090");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationDuplicatesIoCTools = new(
         "IOC091",
@@ -260,7 +260,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid duplicate typeof()-based registrations when IoCTools already emits the same service/implementation pair.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc091");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc091");
 
     public static readonly DiagnosticDescriptor TypeOfRegistrationLifetimeMismatch = new(
         "IOC092",
@@ -270,7 +270,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Keep typeof() registrations aligned with IoCTools-generated lifetimes to avoid duplicate or conflicting registrations.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc092");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc092");
 
     public static readonly DiagnosticDescriptor OpenGenericTypeOfCouldUseAttributes = new(
         "IOC094",
@@ -280,7 +280,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "The common open-generic registration path is supported in IoCTools 1.5.1. Prefer IoCTools attributes over manual typeof() registrations so diagnostics and generated registrations stay aligned.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 
     public static readonly DiagnosticDescriptor OpenGenericSharedInstanceFallsBackToSeparate = new(
         "IOC095",
@@ -290,7 +290,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Use InstanceSharing.Separate for open generic interface aliases, or wire the shared behavior manually in a container that supports open generic factory aliases.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc095");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc095");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsInheritance = new(
         "IOC063",
@@ -300,7 +300,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Put [RegisterAs] on the base class once when all derived types share the same interface list; derived classes need it only when narrowing or extending the list.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc063");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc063");
 
     public static readonly DiagnosticDescriptor RegisterAsBaseSuggestion = new(
         "IOC064",
@@ -310,7 +310,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When multiple derived classes repeat the same RegisterAs interfaces, place the attribute on their shared base type instead.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc064");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc064");
 
     public static readonly DiagnosticDescriptor RedundantRegisterAsAllInheritance = new(
         "IOC065",
@@ -320,5 +320,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Only one [RegisterAsAll] is needed in an inheritance chain; place it on the base when all descendants should register all implemented interfaces.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc065");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc065");
 }

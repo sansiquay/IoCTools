@@ -1146,7 +1146,7 @@ public static readonly DiagnosticDescriptor InjectCompatibilityOnly = new(
     DiagnosticSeverity.Info,
     true,
     "Use [DependsOn] for new code. Keep [Inject] only to preserve compatibility until the 2.0 removal window.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc095");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc095");
 ```
 
 ```csharp
@@ -1159,7 +1159,7 @@ public static readonly DiagnosticDescriptor InjectConfigurationCompatibilityOnly
     DiagnosticSeverity.Info,
     true,
     "Use [DependsOnConfiguration] or [DependsOnOptions] for new code. Keep InjectConfiguration only to preserve compatibility until the 2.0 removal window.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc096");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc096");
 ```
 
 ```csharp
@@ -1214,7 +1214,7 @@ public static readonly DiagnosticDescriptor RegisterAsRequiresService = new(
     DiagnosticSeverity.Error,
     true,
     "Add a lifetime attribute and prefer [DependsOn]/[DependsOnConfiguration] for constructor intent. Keep [Inject] only for legacy compatibility.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc028");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc028");
 
 public static readonly DiagnosticDescriptor DependsOnMissingLifetime = new(
     "IOC070",
@@ -1224,7 +1224,7 @@ public static readonly DiagnosticDescriptor DependsOnMissingLifetime = new(
     DiagnosticSeverity.Warning,
     true,
     "Add a lifetime and prefer [DependsOn]/[DependsOnConfiguration] for new code. [Inject] remains compatibility-only in 1.5.0.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc070");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc070");
 
 public static readonly DiagnosticDescriptor NonServiceDependencyType = new(
     "IOC044",
@@ -1234,7 +1234,7 @@ public static readonly DiagnosticDescriptor NonServiceDependencyType = new(
     DiagnosticSeverity.Warning,
     true,
     "Reserve [DependsOn] for services. For configuration values, switch to [DependsOnConfiguration<...>] and keep InjectConfiguration only for legacy compatibility.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc044");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc044");
 ```
 
 - [ ] **Step 4: Update the docs and package metadata to match the new posture**

@@ -13,7 +13,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Test classes with [Cover<TService>] attribute receive auto-generated Mock<T> fields. Remove manual mock declarations and use the generated _mockName fields.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#tdiag-01");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag-01");
 
     /// <summary>
     /// TDIAG-02: Manual SUT construction detected where CreateSut() exists
@@ -26,7 +26,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Test classes with [Cover<TService>] attribute receive an auto-generated CreateSut() factory method. Replace manual 'new Service(...)' with 'var sut = CreateSut();'.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#tdiag-02");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag-02");
 
     /// <summary>
     /// TDIAG-03: Test class with manual mocks could use Cover<T> attribute
@@ -39,7 +39,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Add [Cover<TService>] attribute to the test class to auto-generate Mock<T> fields, CreateSut() factory, and typed setup helpers. The test class must be marked partial.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#tdiag-03");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag-03");
 
     /// <summary>
     /// TDIAG-04: Cover<T> references service without generated constructor
@@ -52,7 +52,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "IoCTools generates constructors for partial classes with service intent (lifetime attributes, [Inject], [DependsOn], or implementing interfaces). Add 'partial' to the service class or appropriate service attributes.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#tdiag-04");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag-04");
 
     /// <summary>
     /// TDIAG-05: Cover<T> used on non-partial test class
@@ -65,5 +65,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add 'partial' modifier to the test class declaration: 'public partial class {0}' to enable auto-generated fixture members.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#tdiag-05");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag-05");
 }

@@ -83,6 +83,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 5 new typeof() diagnostics (IOC090-IOC094)
 - 5 new test fixture diagnostics (TDIAG-01 through TDIAG-05)
 
-[Unreleased]: https://github.com/nathan-p-lane/IoCTools/compare/v1.5.1...HEAD
-[1.5.1]: https://github.com/nathan-p-lane/IoCTools/compare/v1.5.0...v1.5.1
-[1.5.0]: https://github.com/nathan-p-lane/IoCTools/compare/v1.4.0...v1.5.0
+[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/sansiquay/IoCTools/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/sansiquay/IoCTools/compare/v1.4.0...v1.5.0

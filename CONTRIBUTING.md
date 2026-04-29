@@ -60,7 +60,7 @@ When adding new diagnostics:
 5. Update README.md Error-only diagnostic table if severity is Error
 6. Document severity configurability via MSBuild properties if applicable
 
-**HelpLinkUri format:** `https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#iocXXX`
+**HelpLinkUri format:** `https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#iocXXX`
 
 Ensure the anchor `#iocXXX` exists in docs/diagnostics.md before committing.
 

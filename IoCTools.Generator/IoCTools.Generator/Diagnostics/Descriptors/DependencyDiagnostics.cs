@@ -10,7 +10,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix options: 1) Create a class implementing '{1}' with lifetime attribute ([Scoped], [Singleton], or [Transient]), 2) Add [ExternalService] attribute to this class if dependency is provided externally, or 3) Register manually with services.AddScoped<{1}, Implementation>() in Program.cs.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc001");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc001");
 
     public static readonly DiagnosticDescriptor ImplementationNotRegistered = new(
         "IOC002",
@@ -20,7 +20,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix options: 1) Add lifetime attribute ([Scoped], [Singleton], or [Transient]) to the implementation of '{1}', 2) Add [ExternalService] attribute to this class if dependency is provided externally, or 3) Register manually with services.AddScoped<{1}, Implementation>() in Program.cs.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc002");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc002");
 
     public static readonly DiagnosticDescriptor CircularDependency = new(
         "IOC003",
@@ -30,7 +30,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Break the circular dependency by: 1) Using dependency injection with interfaces, 2) Introducing a mediator pattern, or 3) Refactoring to eliminate the circular reference.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc003");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc003");
 
     public static readonly DiagnosticDescriptor DuplicateDependsOnType = new(
         "IOC006",
@@ -40,7 +40,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove duplicate dependency declarations.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc006");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc006");
 
     public static readonly DiagnosticDescriptor DependsOnConflictsWithInject = new(
         "IOC007",
@@ -50,7 +50,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove the [DependsOn] declaration or the [Inject] field to avoid duplication.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc007");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc007");
 
     public static readonly DiagnosticDescriptor DuplicateTypeInSingleDependsOn = new(
         "IOC008",
@@ -60,7 +60,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove duplicate type declarations from the [DependsOn] attribute.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc008");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc008");
 
     public static readonly DiagnosticDescriptor SkipRegistrationForNonRegisteredInterface = new(
         "IOC009",
@@ -70,7 +70,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove unnecessary [SkipRegistration] declaration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc009");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc009");
 
     public static readonly DiagnosticDescriptor UnusedDependency = new(
         "IOC039",
@@ -80,7 +80,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Keep only the dependencies that are actually consumed by the class. Remove unused [Inject]/[DependsOn] declarations or reference the generated field in your implementation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc039");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc039");
 
     public static readonly DiagnosticDescriptor RedundantDependencyDeclarations = new(
         "IOC040",
@@ -90,7 +90,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Declare each dependency a single time. Prefer [DependsOn] when no custom field is required and drop extra [Inject]/[DependsOn]/configuration declarations (including inherited ones) to avoid confusing constructor graphs.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc040");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc040");
 
     public static readonly DiagnosticDescriptor ManualConstructorConflict = new(
         "IOC041",
@@ -100,7 +100,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Let IoCTools generate the constructor for [Inject]/[InjectConfiguration]/[DependsOn] dependencies. If you need a hand-written constructor, remove the IoCTools dependency declarations or move your logic into a partial method.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc041");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc041");
 
     public static readonly DiagnosticDescriptor UnnecessaryExternalDependency = new(
         "IOC042",
@@ -110,7 +110,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Use External only when the implementation is provided outside the solution (e.g., runtime-only or manually registered). If an implementation exists in a referenced project or is a supported framework service (ILogger, IConfiguration, IOptions, etc.), skip External.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc042");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc042");
 
     public static readonly DiagnosticDescriptor OptionsDependencyNotSupported = new(
         "IOC043",
@@ -120,7 +120,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Inject configuration via [DependsOnConfiguration<...>] and access the options payload directly. Avoid taking IOptions/IOptionsSnapshot/IOptionsMonitor as dependencies in IoCTools-managed constructors.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc043");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc043");
 
     public static readonly DiagnosticDescriptor NonServiceDependencyType = new(
         "IOC044",
@@ -130,7 +130,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Reserve [DependsOn]/[Inject] for services (interfaces/classes). For configuration values, switch to [DependsOnConfiguration<...>] or [DependsOnOptions]. Do not introduce new InjectConfiguration usage.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc044");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc044");
 
     public static readonly DiagnosticDescriptor UnsupportedCollectionDependency = new(
         "IOC045",
@@ -140,7 +140,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Use IReadOnlyCollection<T> when consuming multiple service implementations. Avoid arrays, IEnumerable<T>, IReadOnlyList<T>, List<T>, HashSet<T>, Dictionary<,>, or custom collections; wrap the allowed collection yourself if you need different semantics.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc045");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc045");
 
     public static readonly DiagnosticDescriptor NullableDependencyNotAllowed = new(
         "IOC048",
@@ -150,7 +150,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Dependencies are expected to be required. Prefer non-nullable types and use composition (feature flags, no-op implementations, Lazy<Func>) rather than nullable dependency slots.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc048");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc048");
 
     public static readonly DiagnosticDescriptor DependencySetMetadataOnly = new(
         "IOC049",
@@ -160,7 +160,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "IDependencySet types are declaration-only containers for dependencies. Keep them free of executable members or state.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc049");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc049");
 
     public static readonly DiagnosticDescriptor DependencySetCycleDetected = new(
         "IOC050",
@@ -170,7 +170,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Dependency sets must not reference each other in cycles (e.g., SetA -> SetB -> SetA). Flattening stops when a cycle exists, so fix the graph to proceed.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc050");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc050");
 
     public static readonly DiagnosticDescriptor DependencySetNameCollision = new(
         "IOC051",
@@ -180,7 +180,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "When dependency sets flatten into a consumer, duplicate dependency types must share the same generated field/parameter name. Rename the slots or deduplicate the dependency in the sets.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc051");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc051");
 
     public static readonly DiagnosticDescriptor DependencySetRegistrationDetected = new(
         "IOC052",
@@ -190,7 +190,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "IDependencySet is a metadata-only construct. Do not combine it with lifetimes, RegisterAs/All, ConditionalService, ManualService, or ExternalService attributes.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc052");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc052");
 
     public static readonly DiagnosticDescriptor DependencySetExtractionSuggestion = new(
         "IOC053",
@@ -200,7 +200,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When three or more dependencies appear together on several services, consider introducing an IDependencySet to reduce duplication and tighten diagnostics.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc053");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc053");
 
     public static readonly DiagnosticDescriptor DependencySetNearMatchSuggestion = new(
         "IOC054",
@@ -210,7 +210,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Adopt existing dependency sets when a service already matches most of their members; add or remove the small delta locally.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc054");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc054");
 
     public static readonly DiagnosticDescriptor DependencySetSharedBaseSuggestion = new(
         "IOC055",
@@ -220,7 +220,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When multiple derived services share the same dependencies, centralize them in a base set to cut duplication and align lifetimes.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc055");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc055");
 
     public static readonly DiagnosticDescriptor RedundantDependencySetInInheritance = new(
         "IOC061",
@@ -230,7 +230,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Place dependency sets once on the base type when all descendants need them; avoid duplicating the same [DependsOn<Set>] on derived classes.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc061");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc061");
 
     public static readonly DiagnosticDescriptor DependencySetBaseSuggestion = new(
         "IOC062",
@@ -240,7 +240,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When several derived services reference the same dependency set, place the [DependsOn<Set>] on their shared base class instead of repeating it.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc062");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc062");
 
     public static readonly DiagnosticDescriptor RedundantDependencyWrapper = new(
         "IOC076",
@@ -250,7 +250,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid trivial wrapper properties around IoCTools dependency fields; they add noise without behavior. Use the generated field directly or refactor the dependency location if the base class needs it.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc076");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc076");
 
     public static readonly DiagnosticDescriptor ManualDependencyFieldShadowsGenerated = new(
         "IOC077",
@@ -260,7 +260,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Do not declare fields with the same name as IoCTools-generated dependencies; it prevents generation and leaves the dependency unassigned.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc077");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc077");
 
     public static readonly DiagnosticDescriptor DependsOnMemberNameSuppressedByField = new(
         "IOC078",
@@ -270,5 +270,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid providing MemberNames that collide with existing fields; IoCTools will skip generation and the dependency will not be assigned.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc078");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc078");
 }

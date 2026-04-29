@@ -387,4 +387,4 @@ Violations trigger **IOC012** (Singleton->Scoped), **IOC013** (Singleton->Transi
 
 ---
 
-**Need help?** Check the [diagnostics reference](diagnostics.md) for common issues or explore the [sample project](https://github.com/nathan-p-lane/IoCTools/tree/main/IoCTools.Sample).
+**Need help?** Check the [diagnostics reference](diagnostics.md) for common issues or explore the [sample project](https://github.com/sansiquay/IoCTools/tree/main/IoCTools.Sample).

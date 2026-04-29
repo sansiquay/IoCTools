@@ -10,7 +10,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton], 2) Changing this service to [Scoped] or [Transient], 3) Inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 4) Use a factory delegate Func<{1}> to create instances per-use.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc012");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc012");
 
     public static readonly DiagnosticDescriptor SingletonDependsOnTransient = new(
         "IOC013",
@@ -20,7 +20,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Review the design: 1) If '{1}' should be shared, change it to [Singleton], 2) If truly transient, inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 3) Use a factory delegate Func<{1}> to create a new instance each time it is needed.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc013");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc013");
 
     public static readonly DiagnosticDescriptor BackgroundServiceLifetimeValidation = new(
         "IOC014",
@@ -30,7 +30,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix options: 1) Change to [Singleton] for optimal background service lifetime, 2) Use [BackgroundService(SuppressLifetimeWarnings = true)] to suppress this warning if the current lifetime is intentional, or 3) Consider if this should inherit from BackgroundService at all.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc014");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc014");
 
     public static readonly DiagnosticDescriptor InheritanceChainLifetimeValidation = new(
         "IOC015",
@@ -40,7 +40,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the inheritance lifetime hierarchy by: 1) Making all services in the chain Singleton, 2) Changing consuming service to Scoped/Transient, or 3) Breaking the inheritance chain to avoid lifetime conflicts.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc015");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc015");
 
     public static readonly DiagnosticDescriptor RedundantScopedLifetimeAttribute = new(
         "IOC033",
@@ -50,7 +50,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Scoped is the default lifetime for implicit services; only specify it when clarifying intent or when no other service indicators exist.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc033");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc033");
 
     public static readonly DiagnosticDescriptor RedundantSingletonLifetimeAttribute = new(
         "IOC059",
@@ -60,7 +60,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "When a base class is already marked [Singleton], derived classes do not need to repeat the attribute unless changing lifetime.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc059");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc059");
 
     public static readonly DiagnosticDescriptor RedundantTransientLifetimeAttribute = new(
         "IOC060",
@@ -70,7 +70,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "When a base class is already marked [Transient], derived classes do not need to repeat the attribute unless changing lifetime.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc060");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc060");
 
     public static readonly DiagnosticDescriptor BaseClassLifetimeMismatch = new(
         "IOC075",
@@ -80,7 +80,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Place one lifetime attribute ([Scoped]/[Singleton]/[Transient]) on the shared base class so all derived IoCTools services register consistently, and drop duplicate child lifetimes.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc075");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc075");
 
     public static readonly DiagnosticDescriptor InheritedLifetimeRedundant = new(
         "IOC084",
@@ -90,7 +90,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Avoid repeating the same lifetime attribute on derived classes when the base class already establishes the lifetime.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc084");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc084");
 
     public static readonly DiagnosticDescriptor TransientDependsOnScoped = new(
         "IOC087",
@@ -100,5 +100,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton] or [Transient], 2) Changing this service to [Scoped], 3) Inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 4) Use a factory delegate Func<{1}> to create instances per-use.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc087");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc087");
 }

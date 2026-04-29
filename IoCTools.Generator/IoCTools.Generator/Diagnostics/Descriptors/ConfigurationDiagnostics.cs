@@ -10,7 +10,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Provide a valid configuration key. Keys cannot be empty, whitespace-only, or contain invalid characters like double colons. Example valid keys: 'ConnectionStrings:Default', 'App:Settings:Feature'.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc016");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc016");
 
     public static readonly DiagnosticDescriptor UnsupportedConfigurationType = new(
         "IOC017",
@@ -20,7 +20,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Use a supported configuration type: primitives (string, int, bool, double), POCOs with parameterless constructors, or collections (List<T>, Dictionary<string, T>). Prefer [DependsOnConfiguration<MyOptions>(\"MySection\")] for new code; InjectConfiguration remains compatibility-only.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc017");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc017");
 
     public static readonly DiagnosticDescriptor ConfigurationOnNonPartialClass = new(
         "IOC018",
@@ -30,7 +30,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add 'partial' modifier to the class declaration to preserve compatibility, then migrate new code to [DependsOnConfiguration] or [DependsOnOptions]. [InjectConfiguration] remains compatibility-only in 1.5.0.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc018");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc018");
 
     public static readonly DiagnosticDescriptor ConfigurationOnStaticField = new(
         "IOC019",
@@ -40,7 +40,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove [InjectConfiguration] from static fields. Configuration injection only supports instance members, and new code should use [DependsOnConfiguration] or [DependsOnOptions] instead of InjectConfiguration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc019");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc019");
 
     public static readonly DiagnosticDescriptor ConfigurationOverlap = new(
         "IOC046",
@@ -50,7 +50,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Bind each configuration section exactly once. Avoid mixing options bindings with per-field configuration from the same section, and remove duplicate configuration slots across inheritance.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc046");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc046");
 
     public static readonly DiagnosticDescriptor MixedOptionsAndPrimitiveBindings = new(
         "IOC056",
@@ -60,7 +60,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Bind each configuration section in one style: either inject the options object once or inject primitives directly, but not both in the same inheritance chain.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc056");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc056");
 
     public static readonly DiagnosticDescriptor ConfigurationBindingMissing = new(
         "IOC057",
@@ -70,7 +70,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Ensure options are bound: services.Configure<{1}>(configuration.GetSection(\"{0}\")), services.AddOptions<{1}>().BindConfiguration(\"{0}\"), or add an IConfigureOptions<{1}>/IConfigureNamedOptions<{1}> implementation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc057");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc057");
 
     public static readonly DiagnosticDescriptor IConfigurationDependencyDiscouraged = new(
         "IOC079",
@@ -80,7 +80,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Depend on typed configuration via [DependsOnConfiguration<...>] or options classes; avoid raw IConfiguration where possible.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc079");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc079");
 
     public static readonly DiagnosticDescriptor ConfigurationCircularReference = new(
         "IOC088",
@@ -90,7 +90,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Fix the circular reference by: 1) Breaking the cycle by removing the self-referencing property, 2) Using a different configuration structure (nested classes without cycles), or 3) Using IOptions<> pattern with manual configuration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc088");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc088");
 
     public static readonly DiagnosticDescriptor SupportsReloadingOnPrimitiveType = new(
         "IOC089",
@@ -100,5 +100,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Remove SupportsReloading=true from primitive configuration fields. For reloadable configuration, use IOptionsSnapshot<T> with a complex options type instead.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc089");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc089");
 }

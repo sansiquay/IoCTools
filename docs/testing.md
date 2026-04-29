@@ -409,4 +409,4 @@ public partial class OrderHandlerTests
 
 ---
 
-**Need help?** Check the [sample project](https://github.com/nathan-p-lane/IoCTools/tree/main/IoCTools.Sample) for complete working examples.
+**Need help?** Check the [sample project](https://github.com/sansiquay/IoCTools/tree/main/IoCTools.Sample) for complete working examples.

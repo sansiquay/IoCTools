@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 internal static class FluentValidationDiagnosticDescriptors
 {
     private const string Category = "IoCTools.FluentValidation";
-    private const string HelpLinkBase = "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md";
+    private const string HelpLinkBase = "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md";
 
     /// <summary>
     /// IOC100: Validator directly instantiates a DI-managed child validator.

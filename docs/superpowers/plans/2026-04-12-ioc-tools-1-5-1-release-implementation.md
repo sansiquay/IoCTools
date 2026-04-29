@@ -29,7 +29,7 @@
 set -euo pipefail
 
 expected_version="${1:-1.5.1}"
-expected_repo="https://github.com/nathan-p-lane/IoCTools"
+expected_repo="https://github.com/sansiquay/IoCTools"
 
 projects=(
   "IoCTools.Abstractions/IoCTools.Abstractions.csproj"
@@ -73,8 +73,8 @@ Expected: FAIL because projects are still on `1.5.0` / `1.0.0`, old `nate123456`
 <PackageVersion>1.5.1</PackageVersion>
 <AssemblyVersion>1.5.1.0</AssemblyVersion>
 <FileVersion>1.5.1.0</FileVersion>
-<PackageProjectUrl>https://github.com/nathan-p-lane/IoCTools</PackageProjectUrl>
-<RepositoryUrl>https://github.com/nathan-p-lane/IoCTools</RepositoryUrl>
+<PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
+<RepositoryUrl>https://github.com/sansiquay/IoCTools</RepositoryUrl>
 ```
 
 Apply this across the packable projects, including moving `IoCTools.FluentValidation` from `1.0.0` to `1.5.1` so the public release line is coherent.
@@ -268,7 +268,7 @@ public static readonly DiagnosticDescriptor ServiceAnalysisFailure = new(
     DiagnosticSeverity.Error,
     true,
     "This indicates generator analysis failed for a specific type. Fix the underlying syntax/model issue or report a bug if the code is valid.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc093");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc093");
 ```
 
 - [ ] **Step 4: Refactor interface discovery to be pure, testable, and non-silent**
@@ -497,7 +497,7 @@ public static readonly DiagnosticDescriptor OpenGenericTypeOfCouldUseAttributes 
     DiagnosticSeverity.Info,
     true,
     "The common open-generic registration path is supported in IoCTools 1.5.1. Prefer IoCTools attributes over manual typeof() registrations so diagnostics and generated registrations stay aligned.",
-    "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc094");
+    "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc094");
 ```
 
 - [ ] **Step 5: Re-enable the sample’s multi-interface open-generic repository and add a CLI test project**

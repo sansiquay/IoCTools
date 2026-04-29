@@ -11,7 +11,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "This diagnostic has been deprecated. Use IOC014 for background service lifetime validation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc010");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc010");
 
     public static readonly DiagnosticDescriptor BackgroundServiceNotPartial = new(
         "IOC011",
@@ -21,7 +21,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add 'partial' modifier to the class declaration: 'public partial class {0}' to enable dependency injection constructor generation.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc011");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc011");
 
     public static readonly DiagnosticDescriptor ConditionalServiceConflictingConditions = new(
         "IOC020",
@@ -31,7 +31,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Ensure that Environment and NotEnvironment conditions do not overlap, and Equals and NotEquals conditions are not contradictory.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc020");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc020");
 
     public static readonly DiagnosticDescriptor ConditionalServiceMissingServiceAttribute = new(
         "IOC021",
@@ -41,7 +41,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add lifetime attribute ([Scoped], [Singleton], or [Transient]) to the class to enable conditional service registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc021");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc021");
 
     public static readonly DiagnosticDescriptor ConditionalServiceEmptyConditions = new(
         "IOC022",
@@ -51,7 +51,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Specify at least one Environment, NotEnvironment, or ConfigValue condition for conditional registration.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc022");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc022");
 
     public static readonly DiagnosticDescriptor ConditionalServiceConfigValueWithoutComparison = new(
         "IOC023",
@@ -61,7 +61,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "When ConfigValue is specified, provide at least one Equals or NotEquals condition for comparison.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc023");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc023");
 
     public static readonly DiagnosticDescriptor ConditionalServiceComparisonWithoutConfigValue = new(
         "IOC024",
@@ -71,7 +71,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "When using Equals or NotEquals, specify the ConfigValue property to define which configuration key to check.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc024");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc024");
 
     public static readonly DiagnosticDescriptor ConditionalServiceEmptyConfigKey = new(
         "IOC025",
@@ -81,7 +81,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Provide a valid configuration key path for ConfigValue.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc025");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc025");
 
     public static readonly DiagnosticDescriptor ConditionalServiceMultipleAttributes = new(
         "IOC026",
@@ -91,7 +91,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Consider combining conditions into a single [ConditionalService] attribute or use separate classes for different conditions.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc026");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc026");
 
     public static readonly DiagnosticDescriptor SharedBaseMissingLifetimeSuggestion = new(
         "IOC058",
@@ -101,7 +101,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "When many services share a base type, prefer a single lifetime attribute on the base to avoid duplicating [Scoped]/[Singleton]/[Transient] on every derived class.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc058");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc058");
 
     public static readonly DiagnosticDescriptor RedundantConditionalServiceInheritance = new(
         "IOC067",
@@ -111,7 +111,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true,
         "Use [ConditionalService] on the base when derived types share the same predicate; only override when the condition differs.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc067");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc067");
 
     public static readonly DiagnosticDescriptor ConstructorCouldUseDependsOn = new(
         "IOC068",
@@ -121,7 +121,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Info,
         true,
         "Classes with DI-like constructors can opt into IoCTools by adding a lifetime attribute and [DependsOn<T>] to enable generator support and diagnostics.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc068");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc068");
 
     public static readonly DiagnosticDescriptor ServiceAnalysisFailure = new(
         "IOC093",
@@ -131,7 +131,7 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "This indicates generator analysis failed for a specific type. Fix the underlying syntax/model issue or report a bug if the code is valid.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc093");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc093");
 
     public static readonly DiagnosticDescriptor ServiceClassMustBePartial = new(
         "IOC080",
@@ -141,5 +141,5 @@ internal static partial class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true,
         "Add 'partial' modifier to the class declaration: 'public partial class {0}' to enable IoCTools code generation for constructors and fields.",
-        "https://github.com/nathan-p-lane/IoCTools/blob/main/docs/diagnostics.md#ioc080");
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc080");
 }
