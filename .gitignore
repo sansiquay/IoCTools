@@ -33,3 +33,6 @@ artifacts/
 # JetBrains Rider user-specific settings and crash dumps
 *.DotSettings.user
 *.hprof
+
+# Per-developer planning workspace (GSD)
+.planning/
