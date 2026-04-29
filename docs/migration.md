@@ -60,6 +60,19 @@ canonical upgrade path.
      converted with `memberName*` preservation, fields split due to
      divergent `external:` flags).
 
+     **Opting fields out of migration.** `migrate-inject` respects two
+     forms of `IOC095` suppression:
+
+     - `[SuppressMessage("IoCTools.Usage", "IOC095", ...)]` on the field
+       or its enclosing class. A class-level suppression covers every
+       `[Inject]` field on the class.
+     - `#pragma warning disable IOC095` covering the field
+       (paired with `#pragma warning restore IOC095` to bound the region).
+
+     Use this for deliberate `[Inject]` examples — demos, deprecation
+     fixtures, or one-off patterns you want to preserve through the
+     warning → error → removal lifecycle.
+
 4. **Commit the mechanical conversion as one diff** so code review stays
    manageable.
 5. **Audit existing `IOC095` suppressions.** In 1.5.1, `IOC095` flagged an

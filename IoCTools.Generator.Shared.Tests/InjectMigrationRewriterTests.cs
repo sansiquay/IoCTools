@@ -170,4 +170,74 @@ public interface IBar { }
         texts.Should().ContainSingle(t => t.Contains("external") && t.Contains("IFoo"));
         texts.Should().ContainSingle(t => !t.Contains("external") && t.Contains("IBar"));
     }
+
+    private static (ClassDeclarationSyntax classDecl, SemanticModel semantic) BuildClassFixture(string source)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        var refs = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Attribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Diagnostics.CodeAnalysis.SuppressMessageAttribute).Assembly.Location),
+        };
+        var comp = CSharpCompilation.Create("T", new[] { syntaxTree }, refs);
+        var semantic = comp.GetSemanticModel(syntaxTree);
+
+        var classDecl = syntaxTree.GetRoot().DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .First(c => c.Identifier.ValueText == "Svc");
+        return (classDecl, semantic);
+    }
+
+    [Fact]
+    public void Skip_field_with_SuppressMessage_IOC095_at_field_level()
+    {
+        var source = AttributeStubs + @"
+public class Svc {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(""IoCTools.Usage"", ""IOC095"", Justification = ""intentional demo"")]
+    [IoCTools.Abstractions.Annotations.Inject]
+    private readonly IFoo _foo = null!;
+}
+public interface IFoo { }
+";
+        var (classDecl, semantic) = BuildClassFixture(source);
+        var fields = InjectMigrationRewriter.CollectInjectFields(classDecl, semantic);
+        fields.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Skip_all_inject_fields_when_class_carries_SuppressMessage_IOC095()
+    {
+        var source = AttributeStubs + @"
+[System.Diagnostics.CodeAnalysis.SuppressMessage(""IoCTools.Usage"", ""IOC095"", Justification = ""whole class is the demo"")]
+public class Svc {
+    [IoCTools.Abstractions.Annotations.Inject] private readonly IFoo _foo = null!;
+    [IoCTools.Abstractions.Annotations.Inject] private readonly IBar _bar = null!;
+}
+public interface IFoo { }
+public interface IBar { }
+";
+        var (classDecl, semantic) = BuildClassFixture(source);
+        var fields = InjectMigrationRewriter.CollectInjectFields(classDecl, semantic);
+        fields.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Skip_field_inside_pragma_warning_disable_IOC095_block()
+    {
+        var source = AttributeStubs + @"
+public class Svc {
+#pragma warning disable IOC095
+    [IoCTools.Abstractions.Annotations.Inject] private readonly IFoo _foo = null!;
+#pragma warning restore IOC095
+    [IoCTools.Abstractions.Annotations.Inject] private readonly IBar _bar = null!;
+}
+public interface IFoo { }
+public interface IBar { }
+";
+        var (classDecl, semantic) = BuildClassFixture(source);
+        var fields = InjectMigrationRewriter.CollectInjectFields(classDecl, semantic);
+        fields.Should().HaveCount(1);
+        fields[0].Type.Name.Should().Be("IBar");
+    }
 }

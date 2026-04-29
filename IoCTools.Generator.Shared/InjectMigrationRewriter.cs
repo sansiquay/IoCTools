@@ -17,6 +17,9 @@ public static class InjectMigrationRewriter
 {
     private const string InjectAttributeMetadataName = "IoCTools.Abstractions.Annotations.InjectAttribute";
     private const string ExternalServiceAttributeMetadataName = "IoCTools.Abstractions.Annotations.ExternalServiceAttribute";
+    private const string SuppressMessageAttributeMetadataName = "System.Diagnostics.CodeAnalysis.SuppressMessageAttribute";
+    private const string Ioc095Category = "IoCTools.Usage";
+    private const string Ioc095CheckId = "IOC095";
 
     /// <summary>
     ///     Walk a class declaration and collect every <c>[Inject]</c>-annotated field as
@@ -33,6 +36,10 @@ public static class InjectMigrationRewriter
         if (semanticModel == null) throw new ArgumentNullException(nameof(semanticModel));
 
         var result = new List<InjectFieldInfo>();
+        var classSymbol = semanticModel.GetDeclaredSymbol(classDecl, ct) as INamedTypeSymbol;
+        var classSuppressesIoc095 = classSymbol is not null && IsIoc095Suppressed(classSymbol.GetAttributes());
+        if (classSuppressesIoc095) return result;
+
         foreach (var fieldDecl in classDecl.Members.OfType<FieldDeclarationSyntax>())
         {
             ct.ThrowIfCancellationRequested();
@@ -45,6 +52,9 @@ public static class InjectMigrationRewriter
                 var hasInject = attrs.Any(a => a.AttributeClass?.ToDisplayString() == InjectAttributeMetadataName);
                 if (!hasInject) continue;
 
+                if (IsIoc095Suppressed(attrs)) continue;
+                if (IsInsidePragmaDisableForIoc095(fieldDecl)) continue;
+
                 var hasExternal = attrs.Any(a =>
                     a.AttributeClass?.ToDisplayString() == ExternalServiceAttributeMetadataName);
 
@@ -55,6 +65,42 @@ public static class InjectMigrationRewriter
         }
 
         return result;
+    }
+
+    private static bool IsInsidePragmaDisableForIoc095(SyntaxNode node)
+    {
+        var root = node.SyntaxTree.GetRoot();
+        var nodeStart = node.SpanStart;
+        var active = false;
+        foreach (var directive in root.DescendantNodes(_ => true, descendIntoTrivia: true)
+                     .OfType<PragmaWarningDirectiveTriviaSyntax>())
+        {
+            if (directive.SpanStart > nodeStart) break;
+            var targetsIoc095 = directive.ErrorCodes.Count == 0 ||
+                directive.ErrorCodes.Any(e => string.Equals(
+                    e.ToString().Trim(), Ioc095CheckId, StringComparison.Ordinal));
+            if (!targetsIoc095) continue;
+            if (directive.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword)) active = true;
+            else if (directive.DisableOrRestoreKeyword.IsKind(SyntaxKind.RestoreKeyword)) active = false;
+        }
+
+        return active;
+    }
+
+    private static bool IsIoc095Suppressed(System.Collections.Immutable.ImmutableArray<AttributeData> attrs)
+    {
+        foreach (var attr in attrs)
+        {
+            if (attr.AttributeClass?.ToDisplayString() != SuppressMessageAttributeMetadataName) continue;
+            if (attr.ConstructorArguments.Length < 2) continue;
+            var category = attr.ConstructorArguments[0].Value as string;
+            var checkId = attr.ConstructorArguments[1].Value as string;
+            if (!string.Equals(category, Ioc095Category, StringComparison.Ordinal)) continue;
+            if (string.Equals(checkId, Ioc095CheckId, StringComparison.Ordinal)) return true;
+            if (checkId is not null && checkId.StartsWith(Ioc095CheckId + ":", StringComparison.Ordinal)) return true;
+        }
+
+        return false;
     }
 
     /// <summary>

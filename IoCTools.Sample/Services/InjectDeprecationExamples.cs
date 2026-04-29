@@ -18,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 #pragma warning disable CS0618 // Obsolete [Inject] usage is intentional in this file.
+#pragma warning disable IOC095  // Same intent for the IoCTools deprecation diagnostic — also opts out of `migrate-inject`.
 
 // 1. Simple ILogger<T> — the single most common [Inject] pattern.
 //    Retained so IOC095 has a clear, minimal reproduction in the Sample project.
@@ -66,4 +67,5 @@ public partial class InjectInheritanceDerivedExample : InjectInheritanceBaseExam
     public void Execute() => LogStart(nameof(Execute));
 }
 
+#pragma warning restore IOC095
 #pragma warning restore CS0618

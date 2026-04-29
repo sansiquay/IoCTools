@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **11 new diagnostics** covering `[Inject]` deprecation, stale opt-outs, profile validation, constraint violations, invalid glob patterns, and redundant attachments. IDs: IOC095-IOC099, IOC103-IOC108 (IOC100-IOC102 remained assigned to `IoCTools.FluentValidation`; the three `AutoDepOpen`-validation diagnostics that were originally planned for those IDs were renumbered to IOC106-IOC108 to avoid a suppression collision).
 - **Roslyn code fix** for IOC095 via new `IoCTools.Generator.Analyzer` package — IDE lightbulb migrates `[Inject]` fields to `[DependsOn<T>]`
 - **`ioc-tools profiles` subcommand** — introspect auto-deps profiles, their contributions, matches, and attachment sources
-- **`ioc-tools migrate-inject` subcommand** — headless bulk `[Inject]` → `[DependsOn<T>]` migration for CI and non-IDE workflows
+- **`ioc-tools migrate-inject` subcommand** — headless bulk `[Inject]` → `[DependsOn<T>]` migration for CI and non-IDE workflows. Respects IOC095 suppressions: fields under `[SuppressMessage("IoCTools.Usage", "IOC095", ...)]` (field- or class-level) or inside a `#pragma warning disable IOC095` region are left untouched, so deliberate demo/fixture `[Inject]` patterns survive the bulk pass.
 - **CLI enhancements** — `graph`/`why`/`explain`/`evidence` support `--hide-auto-deps` / `--only-auto-deps` filters; `doctor` adds three auto-deps preflight checks; source attribution surfaced across all inspection commands
 - **MSBuild properties** — `IoCToolsAutoDepsDisable`, `IoCToolsAutoDepsExcludeGlob`, `IoCToolsAutoDepsReport`, `IoCToolsAutoDetectLogger`, `IoCToolsInjectDeprecationSeverity`
 
