@@ -17,10 +17,10 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-        <Version>1.6.0</Version>
-        <PackageVersion>1.6.0</PackageVersion>
-        <AssemblyVersion>1.6.0.0</AssemblyVersion>
-        <FileVersion>1.6.0.0</FileVersion>
+        <Version>1.6.1</Version>
+        <PackageVersion>1.6.1</PackageVersion>
+        <AssemblyVersion>1.6.1.0</AssemblyVersion>
+        <FileVersion>1.6.1.0</FileVersion>
         <Title>IoC Tools Generator Package</Title>
         <Description>Advanced .NET source generator that automates dependency injection configuration and service registration. Features comprehensive diagnostic validation, inheritance support, and zero-runtime overhead.</Description>
         <Copyright>MIT</Copyright>

@@ -6,10 +6,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.6.0</Version>
-        <PackageVersion>1.6.0</PackageVersion>
-        <AssemblyVersion>1.6.0.0</AssemblyVersion>
-        <FileVersion>1.6.0.0</FileVersion>
+        <Version>1.6.1</Version>
+        <PackageVersion>1.6.1</PackageVersion>
+        <AssemblyVersion>1.6.1.0</AssemblyVersion>
+        <FileVersion>1.6.1.0</FileVersion>
         <Title>IoC Tools Abstractions Package</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>

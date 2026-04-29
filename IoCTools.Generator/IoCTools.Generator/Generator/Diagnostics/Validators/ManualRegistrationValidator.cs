@@ -11,6 +11,27 @@ using Microsoft.CodeAnalysis.CSharp;
 
 internal static class ManualRegistrationValidator
 {
+    private static bool IsInsideServicesReplaceCall(InvocationExpressionSyntax invocation, SemanticModel semanticModel)
+    {
+        // Walk up: ArgumentSyntax → ArgumentListSyntax → InvocationExpressionSyntax (the wrapper).
+        // If the wrapper invocation is `IServiceCollection.Replace(...)`, treat the inner
+        // ServiceDescriptor.X<T>() / AddX<T>() as an override, not a duplicate.
+        for (SyntaxNode? node = invocation.Parent; node is not null; node = node.Parent)
+        {
+            if (node is InvocationExpressionSyntax outer)
+            {
+                var outerSymbol = semanticModel.GetSymbolInfo(outer).Symbol as IMethodSymbol
+                    ?? semanticModel.GetSymbolInfo(outer).CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+                if (outerSymbol is null) return false;
+                if (outerSymbol.Name != "Replace") return false;
+                var containingNamespace = outerSymbol.ContainingType?.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+                return containingNamespace.StartsWith("Microsoft.Extensions.DependencyInjection", System.StringComparison.Ordinal);
+            }
+        }
+
+        return false;
+    }
+
     internal static void ValidateAllTrees(SourceProductionContext context,
         Compilation compilation,
         Dictionary<string, string> serviceLifetimes,
@@ -83,6 +104,12 @@ internal static class ManualRegistrationValidator
                 var isServiceDescriptorFactory = name is "Scoped" or "Singleton" or "Transient"
                     && methodSymbol.ContainingType?.Name == "ServiceDescriptor";
                 if (!isAddMethod && !isServiceDescriptorFactory) continue;
+
+                // services.Replace(ServiceDescriptor.X<T>(...)) is the canonical override
+                // pattern — the consumer is intentionally swapping the IoCTools-registered
+                // implementation for a different one (a fake in tests, an alternate impl in
+                // composition root). That is not a duplicate registration.
+                if (IsInsideServicesReplaceCall(invocation, semanticModel)) continue;
 
                 var lifetime = name switch
                 {

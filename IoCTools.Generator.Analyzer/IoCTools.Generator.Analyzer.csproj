@@ -22,10 +22,10 @@
         <RootNamespace>IoCTools.Generator.Analyzer</RootNamespace>
         <PackageId>IoCTools.Generator.Analyzer</PackageId>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.6.0</Version>
-        <PackageVersion>1.6.0</PackageVersion>
-        <AssemblyVersion>1.6.0.0</AssemblyVersion>
-        <FileVersion>1.6.0.0</FileVersion>
+        <Version>1.6.1</Version>
+        <PackageVersion>1.6.1</PackageVersion>
+        <AssemblyVersion>1.6.1.0</AssemblyVersion>
+        <FileVersion>1.6.1.0</FileVersion>
         <Title>IoC Tools Analyzer Package</Title>
         <Description>Roslyn analyzer and code fixes for IoCTools — migrates [Inject] fields to [DependsOn] via IDE quick-fix.</Description>
         <Copyright>MIT</Copyright>

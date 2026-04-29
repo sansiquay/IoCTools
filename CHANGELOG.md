@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-04-29
+
+### Fixed
+- **IOC081 no longer fires on `services.Replace(ServiceDescriptor.X<T>(...))`** — the canonical override pattern. Previously the diagnostic flagged any `ServiceDescriptor.{Lifetime}<T>(...)` factory call as a duplicate when IoCTools auto-registered `T`, even when it was wrapped in `IServiceCollection.Replace(...)` — the explicit "swap this implementation" call shape that test suites use to substitute fakes for the real registration. The validator now walks the ancestor chain when it sees a `ServiceDescriptor.X<T>()` invocation; if the wrapping call is `IServiceCollection.Replace(...)`, the inner factory is treated as an override, not a duplicate registration.
+
 ## [1.6.0] - 2026-04-22
 
 ### Added

@@ -202,4 +202,69 @@ public static class Program
         result.GetDiagnosticsByCode("IOC081").Should().BeEmpty();
         result.GetDiagnosticsByCode("IOC082").Should().BeEmpty();
     }
+
+    [Fact]
+    public void ServicesReplace_OverridingIoCToolsRegistration_DoesNotTriggerIOC081()
+    {
+        // services.Replace(ServiceDescriptor.Singleton<T>(...)) is the canonical
+        // override pattern — tests use it to swap a real service for a fake. It
+        // should not be flagged as a duplicate.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace Test;
+
+public interface IFoo { }
+
+[Singleton]
+public partial class FooService : IFoo { }
+
+public sealed class FakeFoo : IFoo { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.Replace(ServiceDescriptor.Singleton<IFoo>(new FakeFoo()));
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        result.GetDiagnosticsByCode("IOC081").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ServicesReplace_WithImplGenericArgs_DoesNotTriggerIOC081()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
+namespace Test;
+
+public interface IFoo { }
+
+[Singleton]
+public partial class FooService : IFoo { }
+
+public sealed class FakeFoo : IFoo { }
+
+public static class Program
+{
+    public static void Main()
+    {
+        var services = new ServiceCollection();
+        services.Replace(ServiceDescriptor.Singleton<IFoo, FakeFoo>());
+    }
+}
+";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+        result.GetDiagnosticsByCode("IOC081").Should().BeEmpty();
+    }
 }
