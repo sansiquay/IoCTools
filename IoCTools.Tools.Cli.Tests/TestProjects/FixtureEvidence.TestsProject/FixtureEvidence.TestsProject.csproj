@@ -15,11 +15,9 @@
     <PackageReference Include="Moq" Version="4.20.70" />
   </ItemGroup>
 
+  <!-- This project is a CLI fixture-evidence corpus, not a generated-fixture execution test project. -->
   <ItemGroup>
     <ProjectReference Include="..\..\..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\..\IoCTools.Testing\IoCTools.Testing\IoCTools.Testing.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\..\..\IoCTools.Abstractions\IoCTools.Abstractions.csproj" />

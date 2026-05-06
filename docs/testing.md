@@ -29,7 +29,7 @@ Or in your test project `.csproj`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="IoCTools.Testing" Version="1.7.0" />
+  <PackageReference Include="IoCTools.Testing" Version="1.7.1" />
 </ItemGroup>
 ```
 

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-05-06
+
+### Fixed
+- **FixtureEvidence.TestsProject CLI evidence corpus build failure:** removed accidental `IoCTools.Testing` analyzer reference (only `IoCTools.Testing.Abstractions` is needed for `[Cover<T>]` examples); removed unused `ProductionPreferenceHelperTests` helper that incorrectly combined IoCTools dependencies with a manual constructor.
+- **Note:** the `v1.7.0` tag was created and immediately withdrawn after CI revealed this build failure; no `1.7.0` packages were published to NuGet.
+
 ## [1.7.0] - 2026-05-06
 
 ### Added
@@ -114,8 +120,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 5 new typeof() diagnostics (IOC090-IOC094)
 - 5 new test fixture diagnostics (TDIAG-01 through TDIAG-05)
 
-[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.7.0...HEAD
-[1.7.0]: https://github.com/sansiquay/IoCTools/compare/v1.6.1...v1.7.0
+[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/sansiquay/IoCTools/compare/v1.6.1...v1.7.1
+[1.7.0]: https://github.com/sansiquay/IoCTools/compare/v1.6.1...6b7e7be41ba2e9d26f5717644dc7f3bc376a7486
 [1.6.1]: https://github.com/sansiquay/IoCTools/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/sansiquay/IoCTools/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/sansiquay/IoCTools/compare/v1.5.0...v1.5.1

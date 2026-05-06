@@ -42,7 +42,9 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.7.0
+## What's New in v1.7.1
+
+> v1.7.0 was tagged but never published to NuGet — CI failed in the CLI fixture-evidence build step before the publish job ran. v1.7.1 is the first published release with these features.
 
 - **`AnalysisScope` model + `DiagnosticGate`** — each diagnostic declares
   whether it fires in production projects, test projects, or both.
@@ -73,6 +75,12 @@ Or directly in your project file:
   and **CLI host-path resolver** that walks `PATH` before throwing.
 - **Multitarget CLI** — `IoCTools.Tools.Cli` ships for both `net9.0` and
   `net10.0`. Existing .NET 9 global-tool consumers are not broken.
+- **CI build fix (1.7.1)** — removed accidental `IoCTools.Testing` analyzer
+  reference from `FixtureEvidence.TestsProject` (CLI evidence corpus only needs
+  `IoCTools.Testing.Abstractions` for `[Cover<T>]`); removed unused
+  `ProductionPreferenceHelperTests` helper that combined IoCTools deps with a
+  manual constructor, triggering IOC041 through diagnostics core (`net9.0`
+  builds pass; `net8.0` CI now installs SDK `8.0.x`).
 
 ## Getting Started in Three Steps
 
