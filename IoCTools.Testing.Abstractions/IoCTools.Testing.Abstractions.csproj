@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.7.2</Version>
-        <PackageVersion>1.7.2</PackageVersion>
-        <AssemblyVersion>1.7.2.0</AssemblyVersion>
-        <FileVersion>1.7.2.0</FileVersion>
+        <Version>1.7.3</Version>
+        <PackageVersion>1.7.3</PackageVersion>
+        <AssemblyVersion>1.7.3.0</AssemblyVersion>
+        <FileVersion>1.7.3.0</FileVersion>
         <Title>IoC Tools Testing Abstractions Package</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,7 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.7.2: consumer regression fixes — restore [Cover&lt;T&gt;] source-compat via global using injection, fix IOC997 scalar TypedConstant params parsing, downgrade TDIAG08 to Info. See CHANGELOG.md for full notes.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.3: fix IOC997 crash on array TypedConstant in DependsOn-family attrs; fix TDIAG04 false positive for services with [GeneratedCode(&quot;IoCTools&quot;)] constructor. See CHANGELOG.md.</PackageReleaseNotes>
         <Description>Test fixture generation attributes for IoCTools - mark test classes with [Cover&lt;TService&gt;] to auto-generate Mock&lt;T&gt; fields and CreateSut() factories.</Description>
     </PropertyGroup>
     <ItemGroup>

@@ -36,21 +36,22 @@ internal static class AttributeParser
         var prefix = "_";
 
         // Check constructor arguments first (like ExtractLifetime method)
+        // Guard: skip .Value on Array-kinded TypedConstants (params Type[] attrs throw on .Value).
         var constructorArgs = attribute.ConstructorArguments;
-        if (constructorArgs.Length > 0)
+        if (constructorArgs.Length > 0 && constructorArgs[0].Kind != TypedConstantKind.Array)
         {
             // First parameter is namingConvention
             namingConvention = ParseNamingConventionEnum(constructorArgs[0].Value);
         }
 
-        if (constructorArgs.Length > 1)
+        if (constructorArgs.Length > 1 && constructorArgs[1].Kind != TypedConstantKind.Array)
         {
             // Second parameter is stripI
             var stripIValue = constructorArgs[1].Value;
             if (stripIValue is bool b) stripI = b;
         }
 
-        if (constructorArgs.Length > 2)
+        if (constructorArgs.Length > 2 && constructorArgs[2].Kind != TypedConstantKind.Array)
         {
             // Third parameter is prefix
             var prefixValue = constructorArgs[2].Value;
@@ -89,27 +90,29 @@ internal static class AttributeParser
         // The constructor shape is:
         // (NamingConvention, bool stripI, string prefix, bool external, string? memberName1, ...)
         // Member-name slots align with the generic arity; we read the provided strings past index 3.
-        if (constructorArgs.Length > 0)
+        // Guard: custom DependsOn-prefixed attrs with params Type[] pack args as Array TypedConstant.
+        // Calling .Value on an Array TypedConstant throws — skip these slots when kind is Array.
+        if (constructorArgs.Length > 0 && constructorArgs[0].Kind != TypedConstantKind.Array)
         {
             // First parameter is namingConvention
             namingConvention = ParseNamingConventionEnum(constructorArgs[0].Value);
         }
 
-        if (constructorArgs.Length > 1)
+        if (constructorArgs.Length > 1 && constructorArgs[1].Kind != TypedConstantKind.Array)
         {
             // Second parameter is stripI
             var stripIValue = constructorArgs[1].Value;
             if (stripIValue is bool b) stripI = b;
         }
 
-        if (constructorArgs.Length > 2)
+        if (constructorArgs.Length > 2 && constructorArgs[2].Kind != TypedConstantKind.Array)
         {
             // Third parameter is prefix
             var prefixValue = constructorArgs[2].Value;
             if (prefixValue != null) prefix = prefixValue.ToString() ?? "_";
         }
 
-        if (constructorArgs.Length > 3)
+        if (constructorArgs.Length > 3 && constructorArgs[3].Kind != TypedConstantKind.Array)
         {
             // Fourth parameter is external
             var externalValue = constructorArgs[3].Value;

@@ -11,16 +11,16 @@
         <RootNamespace>IoCTools.Tools.Cli</RootNamespace>
         <PackageId>IoCTools.Tools.Cli</PackageId>
         <EnableMacOSCodeSign>false</EnableMacOSCodeSign>
-        <Version>1.7.2</Version>
-        <PackageVersion>1.7.2</PackageVersion>
-        <AssemblyVersion>1.7.2.0</AssemblyVersion>
-        <FileVersion>1.7.2.0</FileVersion>
+        <Version>1.7.3</Version>
+        <PackageVersion>1.7.3</PackageVersion>
+        <AssemblyVersion>1.7.3.0</AssemblyVersion>
+        <FileVersion>1.7.3.0</FileVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
         <RepositoryUrl>https://github.com/sansiquay/IoCTools</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageReleaseNotes>v1.7.2: consumer regression fixes — restore [Cover&lt;T&gt;] source-compat via global using injection, fix IOC997 scalar TypedConstant params parsing, downgrade TDIAG08 to Info. See CHANGELOG.md for full notes.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.3: fix IOC997 crash on array TypedConstant in DependsOn-family attrs; fix TDIAG04 false positive for services with [GeneratedCode(&quot;IoCTools&quot;)] constructor. See CHANGELOG.md.</PackageReleaseNotes>
         <Description>Developer-facing CLI for IoCTools: fields, services, explain, graph, why, doctor, compare, profile, config-audit, evidence, test scaffold, fixture evidence, validators, validator-graph, and structured suppression output.</Description>
     </PropertyGroup>
 

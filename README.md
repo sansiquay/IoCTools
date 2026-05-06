@@ -42,7 +42,11 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.7.2
+## What's New in v1.7.3
+
+### Fixed in 1.7.3
+- **IOC997 crash on array `TypedConstant` args fixed** — `TestFixtureAnalyzer` and `AttributeParser` now guard against calling `.Value` on Array-kinded `TypedConstant`s, which occurs when a `DependsOn`-prefixed attribute is called with multiple `typeof()` args (e.g. `[DependsOnExtras(typeof(IFoo), typeof(IBar))]`).
+- **TDIAG04 false positive for `[GeneratedCode("IoCTools")]` constructors fixed** — `HasConstructorGenerationIntent` now recognizes constructors tagged by IoCTools in a prior pass, preventing false TDIAG04 on Keel `LoggedHandler<T>` subclasses.
 
 ### Fixed in 1.7.2
 - **`[Cover<T>]` source compatibility restored** — `IoCTools.Testing` now injects `IoCTools.Testing.Annotations` as a global using via its MSBuild `.targets` file. Consumers using `PrivateAssets="all"` with no explicit `using` directive no longer receive CS0246 on `Cover<>`, `CoverAttribute<>`, or `FixtureLoggerProfile`.
