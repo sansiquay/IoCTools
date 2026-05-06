@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using IoCTools.Generator.Diagnostics;
 using IoCTools.Generator.Models;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 internal static class ManualRegistrationValidator
 {
@@ -32,13 +34,148 @@ internal static class ManualRegistrationValidator
         return false;
     }
 
+    /// <summary>
+    ///     Detects the canonical IHostedService companion-interface bridge:
+    ///     <c>services.AddSingleton&lt;IHostedService&gt;(sp =&gt; sp.GetRequiredService&lt;TImpl&gt;())</c>
+    ///     (or AddScoped/AddTransient variants). This shape is intentional regardless of project
+    ///     type — it is the legacy way to register a hosted service that also exposes additional
+    ///     interfaces. KFS-006 made this mostly obsolete via [RegisterAs<T>] on hosted classes,
+    ///     but legacy code still uses it. Always skip IOC081/082 for this shape.
+    /// </summary>
+    private static bool IsHostedServiceFactoryBridge(InvocationExpressionSyntax invocation,
+        IMethodSymbol methodSymbol,
+        SemanticModel semanticModel)
+    {
+        // Only single-arg generic Add{Lifetime}<IHostedService>(factory) calls qualify.
+        var typeArgs = methodSymbol.TypeArguments;
+        if (typeArgs.Length == 0 && methodSymbol.ReducedFrom?.TypeArguments.Length > 0)
+            typeArgs = methodSymbol.ReducedFrom.TypeArguments;
+        if (typeArgs.Length != 1) return false;
+
+        var serviceType = typeArgs[0];
+        var serviceFqn = serviceType.ToDisplayString();
+        if (serviceFqn != "Microsoft.Extensions.Hosting.IHostedService" &&
+            serviceFqn != "global::Microsoft.Extensions.Hosting.IHostedService")
+            return false;
+
+        // The factory must reference sp.GetRequiredService<TImpl>() or sp.GetService<TImpl>()
+        // so the registration is bridging an existing concrete registration rather than
+        // duplicating it. A factory that calls 'new TImpl(...)' is genuine duplication.
+        var args = invocation.ArgumentList.Arguments;
+        if (args.Count != 1) return false;
+        var factory = args[0].Expression;
+        if (factory is not LambdaExpressionSyntax lambda) return false;
+
+        foreach (var inner in lambda.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            var innerSymbol = semanticModel.GetSymbolInfo(inner).Symbol as IMethodSymbol
+                ?? semanticModel.GetSymbolInfo(inner).CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+            if (innerSymbol is null) continue;
+            if (innerSymbol.Name is not ("GetRequiredService" or "GetService")) continue;
+            var innerNs = innerSymbol.ContainingType?.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+            if (innerNs.StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Detects explicit-factory registration shapes:
+    ///     <c>services.AddSingleton&lt;TService&gt;(sp =&gt; ...)</c>,
+    ///     <c>services.TryAddSingleton&lt;TService&gt;(sp =&gt; ...)</c>, etc.
+    ///     The factory body is the consumer's deliberate composition expression; IoCTools
+    ///     attributes cannot capture that logic, so suggesting "remove the manual call and add
+    ///     attributes" via IOC086 is incorrect for these shapes.
+    /// </summary>
+    private static bool IsFactoryRegistration(InvocationExpressionSyntax invocation)
+    {
+        var args = invocation.ArgumentList.Arguments;
+        if (args.Count == 0) return false;
+
+        // Walk arguments; any LambdaExpressionSyntax (simple or parenthesized) is the
+        // factory delegate. Roslyn binds these to the
+        // Func<IServiceProvider, T> overload at the call site.
+        foreach (var arg in args)
+        {
+            if (arg.Expression is LambdaExpressionSyntax) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Detects <c>services.TryAddEnumerable(ServiceDescriptor.{Lifetime}&lt;TService, TImpl&gt;(...))</c>
+    ///     calls. The inner <c>ServiceDescriptor</c> factory call is the invocation IOC086 would
+    ///     otherwise fire on; this helper detects when that inner call is wrapped by
+    ///     <c>TryAddEnumerable</c>, which is intentionally additive (one of N contributors to an
+    ///     enumerable resolution) and is not a duplicate or replacement registration.
+    /// </summary>
+    private static bool IsInsideTryAddEnumerableCall(InvocationExpressionSyntax invocation,
+        SemanticModel semanticModel)
+    {
+        for (SyntaxNode? node = invocation.Parent; node is not null; node = node.Parent)
+        {
+            if (node is InvocationExpressionSyntax outer)
+            {
+                var outerSymbol = semanticModel.GetSymbolInfo(outer).Symbol as IMethodSymbol
+                    ?? semanticModel.GetSymbolInfo(outer).CandidateSymbols.OfType<IMethodSymbol>().FirstOrDefault();
+                if (outerSymbol is null) return false;
+                if (outerSymbol.Name != "TryAddEnumerable") return false;
+                var containingNamespace = outerSymbol.ContainingType?.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+                return containingNamespace.StartsWith("Microsoft.Extensions.DependencyInjection", StringComparison.Ordinal);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Returns <c>true</c> when the given type is defined in an assembly that does not reference
+    ///     <c>IoCTools.Abstractions</c>. Such types cannot be IoCTools-attributed by the consumer
+    ///     (they don't own the source), so IOC086's "use IoCTools attributes instead" suggestion is
+    ///     not actionable. Common cases: <c>IHttpContextAccessor</c>, <c>IPostConfigureOptions&lt;T&gt;</c>,
+    ///     and other framework/third-party types. The check is principled: we look at the type's
+    ///     containing assembly and ask whether it has any reference to the IoCTools.Abstractions
+    ///     assembly. The current assembly under compilation is treated as IoCTools-aware so we don't
+    ///     accidentally suppress legitimate manual-registration warnings on the consumer's own types.
+    /// </summary>
+    private static bool IsTypeFromIoCToolsUnawareAssembly(ITypeSymbol type, Compilation compilation)
+    {
+        var containingAssembly = type.ContainingAssembly;
+        if (containingAssembly is null) return false;
+
+        // Types defined in the current compilation are owned by the consumer; suppression here
+        // would over-suppress the rule. Only types from referenced assemblies can be "external".
+        if (SymbolEqualityComparer.Default.Equals(containingAssembly, compilation.Assembly))
+            return false;
+
+        // The principled signal: does the assembly reference IoCTools.Abstractions? Iterate the
+        // assembly's referenced module identities. If any references IoCTools.Abstractions, the
+        // assembly author could have added IoCTools attributes to the type, so we keep IOC086
+        // active. If none do, the type is from an IoCTools-unaware assembly and IOC086 is not
+        // actionable for the consumer.
+        foreach (var module in containingAssembly.Modules)
+        {
+            foreach (var referenced in module.ReferencedAssemblies)
+            {
+                if (referenced.Name is "IoCTools.Abstractions") return false;
+            }
+        }
+
+        return true;
+    }
+
     internal static void ValidateAllTrees(SourceProductionContext context,
         Compilation compilation,
         Dictionary<string, string> serviceLifetimes,
         DiagnosticConfiguration diagnosticConfig,
-        HashSet<string>? autoConfigOptionTypes = null)
+        HashSet<string>? autoConfigOptionTypes = null,
+        AnalyzerConfigOptionsProvider? configOptions = null)
     {
         autoConfigOptionTypes ??= new HashSet<string>(StringComparer.Ordinal);
+        // Resolve once per validator pass; the answer cannot change mid-compilation.
+        var isTestProject = configOptions is not null && DiagnosticGate.IsTestProject(configOptions);
         foreach (var tree in compilation.SyntaxTrees)
         {
             var semanticModel = compilation.GetSemanticModel(tree);
@@ -66,7 +203,8 @@ internal static class ManualRegistrationValidator
                     {
                         var opt = typeArgs[0];
                         var optName = Normalize(opt.ToDisplayString());
-                        if (autoConfigOptionTypes.Contains(optName))
+                        if (autoConfigOptionTypes.Contains(optName) &&
+                            DiagnosticGate.ShouldReport(isTestProject, DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools))
                         {
                             var diag = Diagnostic.Create(
                                 ApplyManualSeverity(DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools, diagnosticConfig),
@@ -84,7 +222,8 @@ internal static class ManualRegistrationValidator
                         optBuilder.TypeArguments[0] is ITypeSymbol optArg)
                     {
                         var optName = Normalize(optArg.ToDisplayString());
-                        if (autoConfigOptionTypes.Contains(optName))
+                        if (autoConfigOptionTypes.Contains(optName) &&
+                            DiagnosticGate.ShouldReport(isTestProject, DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools))
                         {
                             var diag = Diagnostic.Create(
                                 ApplyManualSeverity(DiagnosticDescriptors.ManualOptionsRegistrationDuplicatesIoCTools, diagnosticConfig),
@@ -110,6 +249,22 @@ internal static class ManualRegistrationValidator
                 // implementation for a different one (a fake in tests, an alternate impl in
                 // composition root). That is not a duplicate registration.
                 if (IsInsideServicesReplaceCall(invocation, semanticModel)) continue;
+
+                // services.TryAddEnumerable(ServiceDescriptor.X<T, TImpl>(...)) is the canonical
+                // additive registration shape — one of N contributors to an enumerable resolution.
+                // The inner ServiceDescriptor.X<T, TImpl>() call is intentional regardless of
+                // whether T or TImpl carry IoCTools attributes; suggesting the user replace it
+                // with attribute-driven registration would lose the additive semantics.
+                if (isServiceDescriptorFactory && IsInsideTryAddEnumerableCall(invocation, semanticModel))
+                    continue;
+
+                // services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<TImpl>())
+                // is the legacy companion-interface bridge for hosted services (mostly obsolete
+                // since KFS-006 made [RegisterAs<T>] handle this on hosted classes, but legacy
+                // code still uses it). Always skip — this shape is intentional regardless of
+                // project type.
+                if (isAddMethod && IsHostedServiceFactoryBridge(invocation, methodSymbol, semanticModel))
+                    continue;
 
                 var lifetime = name switch
                 {
@@ -211,43 +366,69 @@ internal static class ManualRegistrationValidator
 
                 if (iocLifetime == null)
                 {
-                    var diag = Diagnostic.Create(
-                        ApplyManualSeverity(
-                            isTypeOfRegistration && isOpenGenericTypeOfRegistration
-                                ? DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes
-                                : isTypeOfRegistration
-                                ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
-                                : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes,
-                            diagnosticConfig),
-                        invocation.GetLocation(),
+                    // IOC086 carve-outs (also apply to the typeof / open-generic variants):
+                    //
+                    //   1. Factory registrations — services.AddSingleton<T>(sp => ...) and
+                    //      services.TryAddSingleton<T>(sp => ...) etc. The lambda body is the
+                    //      consumer's deliberate composition; IoCTools attributes cannot capture
+                    //      that logic, so "use IoCTools attributes instead" is not actionable.
+                    //   2. Implementation type defined in an assembly that has no reference to
+                    //      IoCTools.Abstractions — e.g. IHttpContextAccessor, IPostConfigureOptions<T>,
+                    //      third-party framework types. The consumer cannot add IoCTools attributes
+                    //      to source they don't own, so the suggestion is not actionable.
+                    //
+                    // Lifetime-conflict diagnostics (IOC081 / IOC082) still fire on factory shapes
+                    // when an IoCTools-attributed type is involved — those carve-outs only apply
+                    // to the IOC086 / "could use attributes" emission below.
+                    if (IsFactoryRegistration(invocation)) continue;
+                    if (IsTypeFromIoCToolsUnawareAssembly(implNamed, compilation)) continue;
+                    if (!SymbolEqualityComparer.Default.Equals(svcNamed, implNamed) &&
+                        IsTypeFromIoCToolsUnawareAssembly(svcNamed, compilation)) continue;
+
+                    var baseDescriptor =
                         isTypeOfRegistration && isOpenGenericTypeOfRegistration
-                            ? new object[] { serviceTypeName }
-                            : new object[] { serviceTypeName, lifetime, implTypeName });
-                    context.ReportDiagnostic(diag);
+                            ? DiagnosticDescriptors.OpenGenericTypeOfCouldUseAttributes
+                            : isTypeOfRegistration
+                                ? DiagnosticDescriptors.TypeOfRegistrationCouldUseAttributes
+                                : DiagnosticDescriptors.ManualRegistrationCouldUseAttributes;
+                    if (DiagnosticGate.ShouldReport(isTestProject, baseDescriptor))
+                    {
+                        var diag = Diagnostic.Create(
+                            ApplyManualSeverity(baseDescriptor, diagnosticConfig),
+                            invocation.GetLocation(),
+                            isTypeOfRegistration && isOpenGenericTypeOfRegistration
+                                ? new object[] { serviceTypeName }
+                                : new object[] { serviceTypeName, lifetime, implTypeName });
+                        context.ReportDiagnostic(diag);
+                    }
                     continue;
                 }
 
                 if (iocLifetime == lifetime)
                 {
-                    var diag = Diagnostic.Create(
-                        ApplyManualSeverity(
-                            isTypeOfRegistration
-                                ? DiagnosticDescriptors.TypeOfRegistrationDuplicatesIoCTools
-                                : DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools,
-                            diagnosticConfig),
-                        invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
-                    context.ReportDiagnostic(diag);
+                    var baseDescriptor = isTypeOfRegistration
+                        ? DiagnosticDescriptors.TypeOfRegistrationDuplicatesIoCTools
+                        : DiagnosticDescriptors.ManualRegistrationDuplicatesIoCTools;
+                    if (DiagnosticGate.ShouldReport(isTestProject, baseDescriptor))
+                    {
+                        var diag = Diagnostic.Create(
+                            ApplyManualSeverity(baseDescriptor, diagnosticConfig),
+                            invocation.GetLocation(), serviceTypeName, lifetime, implTypeName);
+                        context.ReportDiagnostic(diag);
+                    }
                 }
                 else
                 {
-                    var diag = Diagnostic.Create(
-                        ApplyManualSeverity(
-                            isTypeOfRegistration
-                                ? DiagnosticDescriptors.TypeOfRegistrationLifetimeMismatch
-                                : DiagnosticDescriptors.ManualRegistrationLifetimeMismatch,
-                            diagnosticConfig),
-                        invocation.GetLocation(), serviceTypeName, lifetime, iocLifetime);
-                    context.ReportDiagnostic(diag);
+                    var baseDescriptor = isTypeOfRegistration
+                        ? DiagnosticDescriptors.TypeOfRegistrationLifetimeMismatch
+                        : DiagnosticDescriptors.ManualRegistrationLifetimeMismatch;
+                    if (DiagnosticGate.ShouldReport(isTestProject, baseDescriptor))
+                    {
+                        var diag = Diagnostic.Create(
+                            ApplyManualSeverity(baseDescriptor, diagnosticConfig),
+                            invocation.GetLocation(), serviceTypeName, lifetime, iocLifetime);
+                        context.ReportDiagnostic(diag);
+                    }
                 }
             }
         }

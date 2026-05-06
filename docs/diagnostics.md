@@ -12,7 +12,7 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 - [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094 *(IOC095 moved to Auto-Deps in 1.6 — legacy open-generic fallback descriptor retained under the same ID)*
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
 - [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC099, IOC103-IOC108
-- [Testing Diagnostics](#testing-diagnostics) - TDIAG-01 through TDIAG-05
+- [Testing Diagnostics](#testing-diagnostics) - TDIAG01 through TDIAG08
 - [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
 
 ## Severity Legend
@@ -20,6 +20,16 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 - **[!Error](#)** - Blocks compilation; must be fixed
 - **[!Warning](#)** - Potential issue; should be reviewed
 - **[!Info](#)** - Suggestion; can improve code quality
+
+## Project Scope
+
+IoCTools diagnostics are scoped by `build_property.IsTestProject`.
+
+- **Test-project only:** `TDIAG01`-`TDIAG08`. These help migrate service tests to `[Cover<T>]` and catch generated fixture misuse.
+- **Production-project only:** DI graph completeness, manual registration, lifetime-policy, style, redundancy, auto-deps profile, and opportunity diagnostics such as `IOC001`-`IOC003`, `IOC012`, `IOC013`, `IOC027`, `IOC039`, `IOC043`, `IOC047`, `IOC057`, `IOC068`, `IOC079`, `IOC081`-`IOC087`, `IOC090`-`IOC094`, `IOC096`-`IOC099`, `IOC103`-`IOC108`, and `IOC110`.
+- **Both production and test projects:** code-generation correctness diagnostics where an invalid attribute shape can break generated code, such as malformed registration/configuration attributes, missing `partial` on code-generated types, invalid dependency sets, manual constructor conflicts, and `[Inject]` deprecation.
+
+Test projects often define fakes, partial harnesses, manual service registrations, and incomplete DI graphs. Production-only diagnostics are intentionally suppressed there so test code sees fixture/testing guidance without production-composition noise.
 
 ---
 
@@ -1272,40 +1282,19 @@ Diagnostics related to code structure, partial class requirements, and attribute
 
 Diagnostics from the IoCTools.Testing package for test fixture generation.
 
-### TDIAG-01
+### TDIAG01
 
 **Severity:** [!Info](#) | **Category:** IoCTools.Testing
 
-**Cause:** Test class has a manual `Mock<T>` field but uses `[Cover<TService>]` which generates mock fields automatically.
+**Cause:** Test class has a manual `Mock<T>` field that duplicates a generated fixture member for the same dependency type. Only reported when the mocked type matches a constructor parameter of the covered service.
 
 **Fix:** Remove the manual mock field declaration and use the auto-generated `_mockFieldName` field from the fixture.
 
-**Example:**
-```csharp
-// Before (manual):
-[Cover<UserService>]
-public partial class UserServiceTests
-{
-    private readonly Mock<IUserRepository> _mockRepo = new(); // TDIAG-01
-}
-
-// After (use generated):
-[Cover<UserService>]
-public partial class UserServiceTests
-{
-    // _mockUserRepository is auto-generated
-    [Fact]
-    public void Test() {
-        var sut = CreateSut(); // Also auto-generated
-    }
-}
-```
-
-**Related:** [TDIAG-02](#tdiag-02) (manual SUT construction), [TDIAG-03](#tdiag-03) (missing Cover attribute)
+**Related:** [TDIAG02](#tdiag02) (manual SUT construction), [TDIAG03](#tdiag03) (missing Cover attribute)
 
 ---
 
-### TDIAG-02
+### TDIAG02
 
 **Severity:** [!Info](#) | **Category:** IoCTools.Testing
 
@@ -1322,11 +1311,11 @@ var sut = new UserService(_mockUserRepository.Object, _mockLogger.Object);
 var sut = CreateSut();
 ```
 
-**Related:** [TDIAG-01](#tdiag-01) (manual mock fields), [TDIAG-03](#tdiag-03) (missing Cover attribute)
+**Related:** [TDIAG01](#tdiag01) (manual mock fields), [TDIAG03](#tdiag03) (missing Cover attribute)
 
 ---
 
-### TDIAG-03
+### TDIAG03
 
 **Severity:** [!Info](#) | **Category:** IoCTools.Testing
 
@@ -1351,40 +1340,25 @@ public partial class UserServiceTests // Added Cover<T> and partial
 }
 ```
 
-**Related:** [TDIAG-01](#tdiag-01) (manual mock with Cover), [TDIAG-05](#tdiag-05) (missing partial modifier)
+**Related:** [TDIAG01](#tdiag01) (manual mock with Cover), [TDIAG05](#tdiag05) (missing partial modifier)
 
 ---
 
-### TDIAG-04
+### TDIAG04
 
 **Severity:** [!Error](#) | **Category:** IoCTools.Testing
 
-**Cause:** Service referenced in `[Cover<T>]` has no generated constructor (not partial, no service intent).
+**Cause:** Service referenced in `[Cover<T>]` has no generated constructor (not partial, missing lifetime attribute, or missing dependency declarations).
 
-**Fix:** Mark the service class as `partial` and add a lifetime attribute (`[Scoped]`, `[Singleton]`, `[Transient]`) plus `[DependsOn]` attributes for constructor intent. Do not introduce new `[Inject]` fields for this.
+**Fix:** Mark the service class as `partial`, add a lifetime attribute (`[Scoped]`, `[Singleton]`, `[Transient]`), and add `[DependsOn<T>]` attributes for dependencies.
 
-**Example:**
-```csharp
-// Before (no constructor):
-public class UserService // Not partial
-{
-    public UserService(IUserRepository repo) { }
-}
+This diagnostic is emitted at compile time by the TestFixtureAnalyzer.
 
-// After:
-[Scoped] // Add lifetime attribute
-[DependsOn<IUserRepository>]
-public partial class UserService // Make partial
-{
-    // Constructor auto-generated
-}
-```
-
-**Related:** [TDIAG-05](#tdiag-05) (test class not partial), [IOC080](#ioc080) (partial class requirement)
+**Related:** [TDIAG05](#tdiag05) (test class not partial), [IOC080](#ioc080) (partial class requirement)
 
 ---
 
-### TDIAG-05
+### TDIAG05
 
 **Severity:** [!Error](#) | **Category:** IoCTools.Testing
 
@@ -1407,7 +1381,106 @@ public partial class UserServiceTests // Added partial
 }
 ```
 
-**Related:** [TDIAG-04](#tdiag-04) (service not partial), [IOC080](#ioc080) (partial class requirement)
+**Related:** [TDIAG04](#tdiag04) (service not partial), [IOC080](#ioc080) (partial class requirement)
+
+---
+
+### TDIAG06
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.Testing
+
+**Cause:** Generated fixture member names collide or become ambiguous when multiple constructor
+parameters share similar type names.
+
+**Fix:** Rename types or add descriptive namespaces to disambiguate the generated fixture members.
+
+**Example:**
+```csharp
+// Issue: Both parameters resolve to similar field names
+public class ReportService(ISettings settings, ISettingsCache settingsCache) { }
+// Generated fields: _mockSettings, _mockSettings (collision!)
+
+// Fix: Use more specific type names or namespaces
+public class ReportService(ISettingsCache settingsCache, IReportSettings reportSettings) { }
+```
+
+**Related:** [TDIAG01](#tdiag01) (manual mock fields with Cover)
+
+---
+
+### TDIAG07
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.Testing
+
+**Cause:** A generated fixture helper (Setup*, Configure*, Use*) is called in a method after the
+`Sut` property has been accessed. Since `Sut` triggers lazy construction via `CreateSut()`,
+helpers called afterward have no effect on the already-constructed service.
+
+**Fix:** Move fixture helper calls before the first access to the `Sut` property. Arrange-phase
+code should configure all mocks before accessing the SUT.
+
+**Example:**
+```csharp
+// Before (setup after Sut — TDIAG07):
+[Fact]
+public void Test()
+{
+    var result = Sut.DoSomething();  // Sut accessed here — lazy CreateSut() fires
+    SetupRepository(m => m.Setup(r => r.GetById(1)).Returns(user)); // TOO LATE
+}
+
+// After (setup before Sut):
+[Fact]
+public void Test()
+{
+    SetupRepository(m => m.Setup(r => r.GetById(1)).Returns(user));
+    var result = Sut.DoSomething();
+}
+```
+
+**Related:** [TDIAG02](#tdiag02) (manual SUT construction), [TDIAG05](#tdiag05) (missing partial)
+
+---
+
+### TDIAG08
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.Testing
+
+**Cause:** A test class manually constructs an IoCTools-managed service using `new ServiceType(...)`
+but does not use `[Cover<T>]`. The service has source-generator constructor metadata available,
+meaning the fixture generator could produce mock fields, `CreateSut()`, and setup helpers.
+
+**Fix:** Add `[Cover<ServiceType>]` to the test class (must be `partial`) to auto-generate the fixture
+and eliminate manual mock/constructor boilerplate.
+
+**Example:**
+```csharp
+// Before (manual construction — TDIAG08):
+public class UserServiceTests
+{
+    [Fact]
+    public void Test()
+    {
+        var repo = new Mock<IUserRepository>();
+        var sut = new UserService(repo.Object);
+        // ...
+    }
+}
+
+// After (using generated fixture):
+[Cover<UserService>]
+public partial class UserServiceTests
+{
+    [Fact]
+    public void Test()
+    {
+        SetupUserRepository(m => m.Setup(r => r.GetById(1)).Returns(user));
+        var result = Sut.DoSomething();
+    }
+}
+```
+
+**Related:** [TDIAG03](#tdiag03) (Mock<T> fields without Cover), [TDIAG04](#tdiag04) (Cover<T> service check)
 
 ---
 

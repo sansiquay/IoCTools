@@ -1,9 +1,12 @@
 namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 
+using IoCTools.Generator.Diagnostics;
+
 internal static class DependencySetValidator
 {
     public static void Validate(SourceProductionContext context,
-        Compilation compilation)
+        Compilation compilation,
+        bool isTestProject = false)
     {
         var sets = CollectDependencySets(compilation);
         if (sets.Count == 0) return;
@@ -11,7 +14,7 @@ internal static class DependencySetValidator
         foreach (var set in sets)
         {
             ValidateMetadataOnly(context, set);
-            ValidateRegistrationIntent(context, set);
+            ValidateRegistrationIntent(context, set, isTestProject);
         }
 
         ValidateCycles(context, sets);
@@ -65,7 +68,8 @@ internal static class DependencySetValidator
     }
 
     private static void ValidateRegistrationIntent(SourceProductionContext context,
-        INamedTypeSymbol setSymbol)
+        INamedTypeSymbol setSymbol,
+        bool isTestProject)
     {
         var attrs = setSymbol.GetAttributes();
         var forbidden = attrs.FirstOrDefault(a =>
@@ -82,9 +86,13 @@ internal static class DependencySetValidator
         if (forbidden == null) return;
 
         var source = forbidden.AttributeClass?.Name ?? "attribute";
-        context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.DependencySetRegistrationDetected,
-            forbidden.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? setSymbol.Locations.FirstOrDefault(),
-            setSymbol.Name, source));
+        if (DiagnosticGate.ShouldReport(isTestProject,
+                DiagnosticDescriptors.DependencySetRegistrationDetected))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.DependencySetRegistrationDetected,
+                forbidden.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? setSymbol.Locations.FirstOrDefault(),
+                setSymbol.Name, source));
+        }
     }
 
     private static void ValidateCycles(SourceProductionContext context,

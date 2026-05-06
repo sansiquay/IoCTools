@@ -2,14 +2,14 @@ namespace IoCTools.Generator.Tests;
 
 /// <summary>
 ///     Comprehensive tests for verifying that IoCToolsDisableDiagnostics=true suppresses ALL diagnostics.
-///     This ensures that the global disable flag works correctly for every diagnostic ID (IOC001-IOC087).
+///     This ensures that the global disable flag works correctly for every diagnostic ID (IOC001-IOC108).
 /// </summary>
 public class GlobalDiagnosticDisableTests
 {
     #region MemberData: All Diagnostic IDs
 
     /// <summary>
-    ///     All diagnostic IDs defined in IoCTools (IOC001-IOC087, excluding deprecated IOC010).
+    ///     All diagnostic IDs defined in IoCTools (IOC001-IOC108, excluding deprecated IOC010).
     ///     This ensures the global disable flag is tested for every possible diagnostic.
     /// </summary>
     public static TheoryData<string> AllDiagnosticIds => new()
@@ -90,7 +90,7 @@ public class GlobalDiagnosticDisableTests
         "IOC078", // MemberName suppressed by existing field
         "IOC079", // IConfiguration dependency discouraged
         "IOC080", // Service class must be partial
-        "IOC087"  // Transient depends on Scoped
+        "IOC087", // Transient depends on Scoped
     };
 
     #endregion

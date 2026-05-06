@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>11.0</LangVersion>
@@ -30,6 +30,7 @@
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.2"/>
+        <PackageReference Include="Moq" Version="4.20.72"/>
         <PackageReference Include="Xunit.SkippableFact" Version="1.5.23"/>
         <PackageReference Include="FluentAssertions" Version="6.12.0"/>
     </ItemGroup>
@@ -43,6 +44,7 @@
         <!-- Do NOT reference as analyzer to avoid conflicts during test compilation -->
         <ProjectReference Include="..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"/>
         <ProjectReference Include="..\IoCTools.Abstractions\IoCTools.Abstractions.csproj"/>
+        <ProjectReference Include="..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

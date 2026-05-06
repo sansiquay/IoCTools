@@ -36,9 +36,12 @@ internal static class ServiceClassPipeline
                     var isHosted = TypeAnalyzer.IsAssignableFromIHostedService(symbol);
                     var isPartialWithInterfaces = typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)) &&
                                                   symbol.Interfaces.Any();
+                    var inheritsManaged = typeDecl.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword)) &&
+                                         ServiceDiscovery.InheritsFromIoCToolsManagedBase(symbol);
 
                     var hasServiceIntent = hasInject || hasDependsOn || hasConditional || hasRegAll || hasRegAs ||
-                                           hasLifetime || isHosted || isPartialWithInterfaces || hasInjectConfig;
+                                           hasLifetime || isHosted || isPartialWithInterfaces || hasInjectConfig ||
+                                           inheritsManaged;
                     return hasServiceIntent
                         ? new ServiceClassInfo(symbol, typeDecl, ctx.SemanticModel)
                         : (ServiceClassInfo?)null;

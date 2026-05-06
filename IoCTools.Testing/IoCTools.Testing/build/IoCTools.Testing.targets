@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="IoCToolsTestingDiagnosticSeverity" />
+    <CompilerVisibleProperty Include="IsTestProject" />
+  </ItemGroup>
+</Project>

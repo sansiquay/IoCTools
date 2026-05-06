@@ -321,4 +321,24 @@ internal static partial class DiagnosticDescriptors
         true,
         "Only one [RegisterAsAll] is needed in an inheritance chain; place it on the base when all descendants should register all implemented interfaces.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc065");
+
+    public static readonly DiagnosticDescriptor OpenGenericHostedServiceSkipped = new(
+        "IOC073",
+        "Open-generic IHostedService implementer skipped from auto-registration",
+        "Class '{0}' implements IHostedService and is an open generic type. Microsoft.Extensions.DependencyInjection's services.AddHostedService<T>() requires a closed type, so IoCTools cannot auto-register it. Register a closed subtype (e.g., 'class Closed : {0}<...> {{}}') instead.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Info,
+        true,
+        "AddHostedService<T>() resolves a single instance at startup and cannot accept open generic type definitions. Provide a closed-generic subclass and register that, or wire the hosted service manually with closed type arguments.",
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc073");
+
+    public static readonly DiagnosticDescriptor InaccessibleHostedServiceSkipped = new(
+        "IOC066",
+        "Inaccessible IHostedService implementer skipped from auto-registration",
+        "Class '{0}' implements IHostedService but its effective accessibility ({1}) is below 'internal'. The generated registration extension lives in a separate type and namespace and cannot reference it (CS0122). Make the type internal+ or wire it manually.",
+        "IoCTools.Registration",
+        DiagnosticSeverity.Info,
+        true,
+        "Generated registration extensions are emitted alongside the consumer assembly but live in a separate type. Private, protected, or private-nested hosted-service types are unreachable from that emission site. Raise the accessibility to internal or above, or register the type manually in composition root.",
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc066");
 }

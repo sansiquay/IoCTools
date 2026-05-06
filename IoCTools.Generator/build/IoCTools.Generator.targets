@@ -13,5 +13,12 @@
     <CompilerVisibleProperty Include="IoCToolsAutoDepsReport" />
     <CompilerVisibleProperty Include="IoCToolsAutoDetectLogger" />
     <CompilerVisibleProperty Include="IoCToolsInjectDeprecationSeverity" />
+    <!--
+      Forward IsTestProject so analyzers can scope diagnostics to production-only
+      or test-only projects (see Diagnostics/AnalysisScope.cs and DiagnosticGate.cs).
+      Microsoft.NET.Test.Sdk sets IsTestProject=true automatically; IoCTools never
+      infers this from naming heuristics or test-framework references.
+    -->
+    <CompilerVisibleProperty Include="IsTestProject" />
   </ItemGroup>
 </Project>

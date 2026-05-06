@@ -17,10 +17,10 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-        <Version>1.6.1</Version>
-        <PackageVersion>1.6.1</PackageVersion>
-        <AssemblyVersion>1.6.1.0</AssemblyVersion>
-        <FileVersion>1.6.1.0</FileVersion>
+        <Version>1.7.0</Version>
+        <PackageVersion>1.7.0</PackageVersion>
+        <AssemblyVersion>1.7.0.0</AssemblyVersion>
+        <FileVersion>1.7.0.0</FileVersion>
         <Title>IoC Tools Generator Package</Title>
         <Description>Advanced .NET source generator that automates dependency injection configuration and service registration. Features comprehensive diagnostic validation, inheritance support, and zero-runtime overhead.</Description>
         <Copyright>MIT</Copyright>
@@ -29,7 +29,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.6.0: adds auto-deps feature — universal and profile-scoped auto-injected dependencies, built-in ILogger&lt;T&gt; detection, transitive-scope policy across assemblies, [Inject] deprecation diagnostic (IOC095), 11 new diagnostics (IOC095-IOC099, IOC103-IOC108), and full CLI inspection support.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.0: AnalysisScope model + DiagnosticGate (IOC081/IOC082/IOC086 reclassified Production-only), IOC110 deterministic multi-impl lifetime Warning, IOC073 (open-generic IHostedService skip), IOC066 (inaccessible IHostedService skip), [RegisterAs] + [RegisterAsAll] composition with IHostedService, IOC032 InstanceSharing.Shared exemption, IOC081/082/086 carve-outs for Replace/factory/TryAddEnumerable/IoCTools-unaware shapes, buildTransitive packaging of generator targets. See CHANGELOG.md for full notes.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
@@ -59,6 +59,7 @@
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs/netstandard2.0" Visible="false"/>
         <None Include="../../README.md" Pack="true" PackagePath=""/>
         <None Include="../build/IoCTools.Generator.targets" Pack="true" PackagePath="build"/>
+        <None Include="../build/IoCTools.Generator.targets" Pack="true" PackagePath="buildTransitive"/>
     </ItemGroup>
 
 </Project>

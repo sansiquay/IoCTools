@@ -35,8 +35,29 @@ internal static partial class ServiceRegistrationGenerator
 
         var lifetime = service.Lifetime;
 
-        if (lifetime == "BackgroundService")
+        // The "BackgroundService" lifetime is a synthetic marker meaning "register via
+        // services.AddHostedService<T>()". Only the concrete row (ClassSymbol == InterfaceSymbol)
+        // should render that call. Interface rows for hosted-service classes that explicitly opt
+        // into companion-interface registration via [RegisterAs<T>] (including the bridged
+        // IHostedService row itself) fall through to the normal factory-bridge emission path.
+        if (lifetime == "BackgroundService" &&
+            SymbolEqualityComparer.Default.Equals(service.ClassSymbol, service.InterfaceSymbol))
         {
+            // Defense-in-depth: services.AddHostedService<T>() requires a closed generic. Selectors
+            // are expected to skip open-generic IHostedService implementers upstream and surface
+            // IOC073 there; emitting nothing here prevents invalid codegen if a future caller
+            // bypasses that guard.
+            if (service.ClassSymbol.TypeParameters.Length > 0)
+                return string.Empty;
+
+            // Defense-in-depth: the generated registration extension lives in a separate type and
+            // namespace, so any link of the containing-type chain that is below 'internal' makes
+            // the BackgroundService row unreferenceable (CS0122). Selectors are expected to skip
+            // these upstream and surface IOC066; emitting nothing here protects against future
+            // bypasses.
+            if (!Analysis.TypeAnalyzer.IsAccessibleFromGeneratedRegistrationExtension(service.ClassSymbol))
+                return string.Empty;
+
             var backgroundServiceType = isConditionalService
                 ? TypeNameSimplifier.SimplifyTypesForConditionalServices(
                     service.ClassSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))

@@ -112,10 +112,45 @@ internal static class RegistrationSelector
             : implicitLifetime;
 
         var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(classSymbol);
-        if (isHostedService) lifetime = "BackgroundService";
+
+        // Microsoft.Extensions.DependencyInjection's services.AddHostedService<T>() requires a
+        // closed type. Open-generic IHostedService implementers cannot be registered through it
+        // because the type parameter cannot be supplied at the registration site. Skip the
+        // implicit registration entirely; consumers must provide a closed subclass.
+        if (isHostedService && classSymbol.TypeParameters.Length > 0)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.OpenGenericHostedServiceSkipped,
+                classSymbol.Locations.FirstOrDefault() ?? Location.None,
+                classSymbol.Name));
+            return Enumerable.Empty<ServiceRegistration>();
+        }
+
+        // Generated registration extensions live in a separate type and namespace. If the hosted
+        // service has effective accessibility below 'internal' anywhere in its containing-type
+        // chain, services.AddHostedService<TImpl>() emission produces CS0122. Skip and surface
+        // IOC066 so the omission is observable.
+        if (isHostedService && !TypeAnalyzer.IsAccessibleFromGeneratedRegistrationExtension(classSymbol))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.InaccessibleHostedServiceSkipped,
+                classSymbol.Locations.FirstOrDefault() ?? Location.None,
+                classSymbol.ToDisplayString(),
+                EffectiveAccessibilityDescription(classSymbol)));
+            return Enumerable.Empty<ServiceRegistration>();
+        }
 
         var serviceRegisterAsAllAttr = classSymbol.GetAttributes().FirstOrDefault(attr =>
             AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
+        var hasRegisterAs = classSymbol.GetAttributes().Any(AttributeTypeChecker.IsRegisterAsAttribute);
+        var bridgesHostedService = isHostedService && (serviceRegisterAsAllAttr != null || hasRegisterAs);
+
+        // When a hosted service explicitly opts into companion-interface registration via
+        // [RegisterAs<T>] or [RegisterAsAll], keep the user's declared lifetime so the concrete
+        // class is registered once (Singleton/Scoped/Transient) and IHostedService bridges to it
+        // via a factory alongside the other interface registrations. Without [RegisterAs*],
+        // preserve the implicit-hosted-service shape (services.AddHostedService<T>()).
+        if (isHostedService && !bridgesHostedService) lifetime = "BackgroundService";
 
         foreach (var conditionalAttr in conditionalServiceAttrs)
         {
@@ -151,9 +186,52 @@ internal static class RegistrationSelector
                             lifetime, condition, useSharedInstance, hasConfigInjection));
                 }
             }
+
+            if (bridgesHostedService)
+            {
+                var hostedServiceSymbol = TryGetIHostedServiceSymbol(classSymbol);
+                if (hostedServiceSymbol != null)
+                    results.Add(new ConditionalServiceRegistration(classSymbol, hostedServiceSymbol, lifetime,
+                        condition, true, false));
+            }
         }
 
         return results;
+    }
+
+    private static INamedTypeSymbol? TryGetIHostedServiceSymbol(INamedTypeSymbol classSymbol)
+    {
+        const string hostedServiceFullName = "Microsoft.Extensions.Hosting.IHostedService";
+        foreach (var iface in classSymbol.AllInterfaces)
+            if (iface.ToDisplayString() == hostedServiceFullName)
+                return iface;
+        return null;
+    }
+
+    private static string EffectiveAccessibilityDescription(INamedTypeSymbol type)
+    {
+        // Walk the containing-type chain and report the strictest link, which is what actually
+        // gates accessibility from a sibling type/namespace.
+        var strictest = type.DeclaredAccessibility;
+        var current = type.ContainingType;
+        while (current != null)
+        {
+            if (Rank(current.DeclaredAccessibility) < Rank(strictest))
+                strictest = current.DeclaredAccessibility;
+            current = current.ContainingType;
+        }
+
+        return strictest.ToString().ToLowerInvariant();
+
+        static int Rank(Accessibility a) => a switch
+        {
+            Accessibility.Public => 5,
+            Accessibility.Internal or Accessibility.ProtectedOrInternal => 4,
+            Accessibility.Protected => 3,
+            Accessibility.ProtectedAndInternal => 2,
+            Accessibility.Private => 1,
+            _ => 0
+        };
     }
 
     internal static IEnumerable<ServiceRegistration> GetServicesToRegisterForSingleClass(
@@ -193,6 +271,40 @@ internal static class RegistrationSelector
                 "IoCTools.Abstractions.Annotations.ConditionalServiceAttribute");
 
             var isHostedService = TypeAnalyzer.IsAssignableFromIHostedService(classSymbol);
+
+            // Microsoft.Extensions.DependencyInjection's services.AddHostedService<T>() requires
+            // a closed type. Open-generic IHostedService implementers cannot be registered
+            // through it because the type parameter cannot be supplied at the registration site.
+            // Emitting AddHostedService<Foo<TContext>>() produces invalid C# (CS0246). Skip the
+            // implicit registration entirely; consumers must provide a closed subclass to register.
+            if (isHostedService && classSymbol.TypeParameters.Length > 0)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.OpenGenericHostedServiceSkipped,
+                    classSymbol.Locations.FirstOrDefault() ?? Location.None,
+                    classSymbol.Name));
+                return serviceRegistrations;
+            }
+
+            // Generated registration extensions live in a separate type and namespace. If the
+            // hosted service has effective accessibility below 'internal' anywhere in its
+            // containing-type chain, services.AddHostedService<TImpl>() emission produces CS0122.
+            // When the user has opted in with an explicit lifetime attribute, escalate the
+            // severity to Warning — they asked for registration that the emission cannot deliver.
+            if (isHostedService && !TypeAnalyzer.IsAccessibleFromGeneratedRegistrationExtension(classSymbol))
+            {
+                var descriptor = hasLifetimeAttribute
+                    ? DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.InaccessibleHostedServiceSkipped,
+                        DiagnosticSeverity.Warning)
+                    : DiagnosticDescriptors.InaccessibleHostedServiceSkipped;
+                context.ReportDiagnostic(Diagnostic.Create(
+                    descriptor,
+                    classSymbol.Locations.FirstOrDefault() ?? Location.None,
+                    classSymbol.ToDisplayString(),
+                    EffectiveAccessibilityDescription(classSymbol)));
+                return serviceRegistrations;
+            }
 
             var hasExplicitServiceIntent = ServiceIntentEvaluator.HasExplicitServiceIntent(
                 classSymbol,
@@ -234,10 +346,14 @@ internal static class RegistrationSelector
                     ? ServiceDiscovery.GetServiceLifetimeFromAttributes(classSymbol, implicitLifetime)
                     : implicitLifetime;
 
-                if (isHostedService) lifetime = "BackgroundService";
-
                 var serviceRegisterAsAllAttr = classSymbol.GetAttributes().FirstOrDefault(attr =>
                     AttributeTypeChecker.IsAttribute(attr, AttributeTypeChecker.RegisterAsAllAttribute));
+                var hasRegisterAsConditional =
+                    classSymbol.GetAttributes().Any(AttributeTypeChecker.IsRegisterAsAttribute);
+                var bridgesHostedServiceConditional =
+                    isHostedService && (serviceRegisterAsAllAttr != null || hasRegisterAsConditional);
+
+                if (isHostedService && !bridgesHostedServiceConditional) lifetime = "BackgroundService";
 
                 foreach (var conditionalAttr in conditionalServiceAttrs)
                 {
@@ -275,6 +391,14 @@ internal static class RegistrationSelector
                                     lifetime, condition, useSharedInstance, hasConfigInjection));
                         }
                     }
+
+                    if (bridgesHostedServiceConditional)
+                    {
+                        var hostedServiceSymbol = TryGetIHostedServiceSymbol(classSymbol);
+                        if (hostedServiceSymbol != null)
+                            serviceRegistrations.Add(new ConditionalServiceRegistration(classSymbol,
+                                hostedServiceSymbol, lifetime, condition, true, false));
+                    }
                 }
 
                 return serviceRegistrations;
@@ -295,7 +419,19 @@ internal static class RegistrationSelector
             var lifetimeValue = hasLifetimeAttribute
                 ? ServiceDiscovery.GetServiceLifetimeFromAttributes(classSymbol, implicitLifetime)
                 : implicitLifetime;
-            if (isHostedService) lifetimeValue = "BackgroundService";
+
+            var registerAsAttributesForBridge = classSymbol.GetAttributes()
+                .Where(AttributeTypeChecker.IsRegisterAsAttribute)
+                .ToList();
+            var bridgesHostedService =
+                isHostedService && (registerAsAllAttribute != null || registerAsAttributesForBridge.Any());
+
+            // When a hosted service explicitly opts into companion-interface registration via
+            // [RegisterAs<T>] or [RegisterAsAll], keep the user's declared lifetime so the
+            // concrete class is registered once and IHostedService bridges to it via factory
+            // alongside the other interface registrations. Without [RegisterAs*], preserve the
+            // implicit-hosted-service shape (services.AddHostedService<T>()).
+            if (isHostedService && !bridgesHostedService) lifetimeValue = "BackgroundService";
 
             var hasConfig = ServiceDiscovery.HasInjectConfigurationFieldsAcrossPartialClasses(classSymbol);
 
@@ -309,14 +445,10 @@ internal static class RegistrationSelector
             }
             else
             {
-                var registerAsAttributes = classSymbol.GetAttributes()
-                    .Where(attr => AttributeTypeChecker.IsRegisterAsAttribute(attr))
-                    .ToList();
-
-                if (registerAsAttributes.Any())
+                if (registerAsAttributesForBridge.Any())
                 {
                     // Route through diagnostic-aware helper to emit IOC029/IOC030/IOC031 and correct sharing behavior
-                    foreach (var registerAsAttr in registerAsAttributes)
+                    foreach (var registerAsAttr in registerAsAttributesForBridge)
                     {
                         var regs = GetRegisterAsRegistrationsWithSourceContext(classSymbol, registerAsAttr,
                             lifetimeValue, context);
@@ -333,6 +465,14 @@ internal static class RegistrationSelector
                         serviceRegistrations.Add(new ServiceRegistration(classSymbol, @interface, lifetimeValue,
                             false, hasConfig));
                 }
+            }
+
+            if (bridgesHostedService)
+            {
+                var hostedServiceSymbol = TryGetIHostedServiceSymbol(classSymbol);
+                if (hostedServiceSymbol != null)
+                    serviceRegistrations.Add(new ServiceRegistration(classSymbol, hostedServiceSymbol, lifetimeValue,
+                        true, false));
             }
         }
         catch (Exception ex)

@@ -2,7 +2,7 @@
 
 The `ioc-tools` command-line tool interrogates your project with the real IoCTools generator, showing exactly what the build produced without spelunking through `obj/`.
 
-For `1.5.1`, use the CLI to audit and migrate toward `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `[Inject]` and `InjectConfiguration` remain supported for compatibility, and `evidence` will call them out when present.
+For `1.6.0+`, use the CLI to audit and migrate toward `[DependsOn]`, `[DependsOnConfiguration]`, and `[DependsOnOptions]`. `[Inject]` remains supported only for compatibility and migration, and `evidence` will call it out when present. Test projects can also use `test scaffold` and `evidence --test-fixtures` to adopt `[Cover<T>]` fixture generation.
 
 ## Installation
 
@@ -264,6 +264,7 @@ Builds one correlated review packet across registrations, diagnostics, configura
 
 ```bash
 ioc-tools evidence --project MyProject.csproj --type MyNamespace.UserService --settings appsettings.json --json
+ioc-tools evidence --project MyProject.Tests.csproj --production-project MyProject.csproj --test-fixtures --json
 ```
 
 **Options:**
@@ -271,6 +272,8 @@ ioc-tools evidence --project MyProject.csproj --type MyNamespace.UserService --s
 - `--settings <path>` — Validate configuration evidence against a settings file
 - `--baseline <dir>` — Include compare output when a baseline exists
 - `--output <dir>` — Use deterministic artifact directory for generated snapshots
+- `--test-fixtures` — Include fixture migration evidence for test projects
+- `--production-project <csproj>` — Production project used to resolve covered service types
 - `--hide-auto-deps` / `--only-auto-deps` — Auto-dep visibility filter for
   per-service rows (1.6.0+).
 
@@ -279,7 +282,15 @@ alongside explicit declarations, tagged by source
 (`auto-builtin:ILogger`, `auto-universal`, `auto-transitive:<Assembly>`,
 `auto-profile:<Name>`).
 
-**Output:** Compact text review packet by default, or a stable JSON bundle with `project`, `services`, `typeEvidence`, `diagnostics`, `configuration`, `validators`, `artifacts`, and `migrationHints`.
+**Output:** Compact text review packet by default, or a stable JSON bundle with `project`, `services`, `typeEvidence`, `diagnostics`, `configuration`, `validators`, `artifacts`, `migrationHints`, and `fixtureEvidence` when `--test-fixtures` is enabled.
+
+Fixture evidence classifies existing tests as `safe-migration`, `partial-migration`,
+`already-covered`, `not-target`, or `unknown-review`. It correlates manual
+`Mock<T>` fields, manual `new Service(...)` / `CreateSut() => new Service(...)`
+helpers, logger/null-logger wiring, options helpers, and fixture-provided
+dependencies such as `IClock` against the production service constructor shape.
+It is evidence for test-boilerplate reduction, not a source of generated
+business assertions.
 
 **Artifact evidence:** `artifacts.generatedArtifacts[*]` includes stable `artifactId`, on-disk `path`, `fingerprint`, and `sizeBytes`. When `--baseline` is supplied, `artifacts.compare.deltas[*]` includes `status` (`added`, `removed`, `changed`, `unchanged`) plus baseline/current paths and fingerprints.
 
@@ -396,6 +407,35 @@ to.
 > (existing). Plural `profiles` = auto-deps profile introspection (new).
 
 ---
+
+### `test scaffold` (1.6.0+)
+
+Generates a partial test class with `[Cover<T>]` and a smoke test for a production service type.
+
+```bash
+ioc-tools test scaffold --project MyProject.csproj --type MyApp.Services.UserService
+ioc-tools test scaffold --project MyProject.csproj --type MyApp.Services.UserService --test-project MyProject.Tests.csproj --output ./tests/Services
+ioc-tools test scaffold --project MyProject.csproj --type UserService --dry-run --json
+```
+
+**Options:**
+- `--project <csproj>` — Production project with the service type (required)
+- `--type <typename>` — Fully-qualified or simple service type name (required; ambiguous simple names refused)
+- `--test-project <csproj>` — Test project path for output inference
+- `--test-framework xunit|nunit|mstest` — Test framework (default: xunit)
+- `--mocking moq` — Mocking framework (default: moq)
+- `--assertions fluentassertions|shouldly|none` — Assertion style (default: none)
+- `--output <path>` — Output file path or directory
+- `--dry-run` — Print generated source without writing
+- `--json` — Machine-readable JSON output
+- `--force` — Overwrite existing output file
+
+**Output:** Partial test class with `[Cover<T>(Logger = FixtureLoggerProfile.NullLogger)]` and a `Sut_ShouldConstruct` smoke test. The generated class uses the lazy `Sut` property; `CreateSut()` remains available from the fixture for explicit multi-instance tests.
+
+**Example:**
+```bash
+ioc-tools test scaffold --project src/MyApp/MyApp.csproj --type MyApp.Services.UserService --test-framework xunit --assertions fluentassertions --dry-run
+```
 
 ### `migrate-inject` (1.6.0+)
 

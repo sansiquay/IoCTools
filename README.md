@@ -42,30 +42,37 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.6.0
+## What's New in v1.7.0
 
-- **[Auto-deps](docs/auto-deps.md)** — declare ambient deps once at
-  assembly scope; universal, profile-scoped, or transitive across
-  project boundaries. `Microsoft.Extensions.Logging.ILogger<T>` is
-  auto-detected with zero configuration.
-- **`[Inject]` deprecated** — emits `IOC095` warning in 1.6, error in 1.7,
-  removed in 2.0. A Roslyn code fix (new `IoCTools.Generator.Analyzer`
-  package) and [`ioc-tools migrate-inject`](docs/cli-reference.md) do the
-  conversion.
-- **11 new diagnostics** — IOC095-IOC099 and IOC103-IOC108 covering `[Inject]` deprecation,
-  stale opt-outs, profile validation, glob correctness, and redundant
-  attachments. See [diagnostics.md](docs/diagnostics.md).
-- **CLI upgrades** — `graph`/`why`/`explain`/`evidence` gain source
-  attribution and `--hide-auto-deps` / `--only-auto-deps` filters;
-  `doctor` adds preflight checks; new `profiles` (plural) and
-  `migrate-inject` subcommands.
-- **Five new MSBuild properties** — `IoCToolsAutoDepsDisable`,
-  `IoCToolsAutoDepsExcludeGlob`, `IoCToolsAutoDepsReport`,
-  `IoCToolsAutoDetectLogger`, `IoCToolsInjectDeprecationSeverity`.
-- **First-party migration** — `IoCTools.Testing`, `IoCTools.FluentValidation`,
-  and the `IoCTools.Sample` project are all migrated off `[Inject]`. See
-  [docs/migration.md](docs/migration.md#migrating-from-15x-to-16x) for the
-  1.5.x → 1.6.x upgrade path.
+- **`AnalysisScope` model + `DiagnosticGate`** — each diagnostic declares
+  whether it fires in production projects, test projects, or both.
+  `IOC081`/`IOC082`/`IOC086` are reclassified as `AnalysisScope.Production`;
+  test projects are auto-exempt via the `IsTestProject` MSBuild property
+  (forwarded as a `CompilerVisibleProperty` from `Microsoft.NET.Test.Sdk`).
+  No naming heuristics.
+- **IOC110** (Warning, configurable via `IoCToolsLifetimeValidationSeverity`)
+  — deterministic multi-impl lifetime diagnostic. Fires when *some* (not all)
+  implementations of an interface violate the lifetime dependency rule.
+  Replaces the previous non-deterministic single-impl selection that caused
+  IOC012 to fire in Rider but pass silently in CLI.
+- **IOC073 / IOC066** — open-generic and inaccessible `IHostedService`
+  implementers are skipped at registration with observable diagnostics
+  (rather than emitting CS0246/CS0122 in consumer code).
+- **`[RegisterAs<T>]` + `[RegisterAsAll]` compose with `IHostedService`** —
+  the concrete class is registered once at the declared lifetime, companion
+  interfaces bridged via `GetRequiredService<TImpl>()`, and `IHostedService`
+  bridged to the same instance.
+- **Test fixture generator v2** (`IoCTools.Testing`) — `FixtureMemberPlanner`
+  separates planning from emission. Generated fixtures enable nullable
+  context, emit `new` modifier on derived hidden members, support
+  `GetRequiredSection` and binder-style configuration reads, and treat
+  `IClock` as fixture-provided.
+- **IOC032 InstanceSharing.Shared exemption**, **IOC081/082/086 carve-outs**
+  for `Replace`, factory lambdas, `TryAddEnumerable`, and IoCTools-unaware
+  assemblies, **buildTransitive packaging** of `IoCTools.Generator.targets`,
+  and **CLI host-path resolver** that walks `PATH` before throwing.
+- **Multitarget CLI** — `IoCTools.Tools.Cli` ships for both `net9.0` and
+  `net10.0`. Existing .NET 9 global-tool consumers are not broken.
 
 ## Getting Started in Three Steps
 
@@ -128,12 +135,19 @@ public partial class UserServiceTests
 {
     [Fact]
     public void Test() {
-        var sut = CreateSut(); // Auto-generated
+        var result = Sut.GetById(1); // Lazy auto-generated SUT
     }
 }
 ```
 
 [Full testing guide](docs/testing.md)
+
+The CLI includes `test scaffold` and fixture-aware `evidence --test-fixtures`
+paths for downstream adoption:
+```bash
+dotnet ioc-tools test scaffold --project src/App.csproj --type MyApp.Services.UserService --dry-run
+dotnet ioc-tools evidence --project tests/App.Tests.csproj --production-project src/App.csproj --test-fixtures
+```
 
 ## IoCTools CLI
 
@@ -225,7 +239,7 @@ Key attributes: `[Scoped]`, `[Singleton]`, `[Transient]`, `[DependsOn<T>]`, `[De
 
 ## Diagnostics Reference
 
-IoCTools provides core diagnostics through `IOC108`, plus testing diagnostics (`TDIAG-01` through `TDIAG-05`) and FluentValidation diagnostics (`IOC100`-`IOC102`). See [diagnostics.md](docs/diagnostics.md) for the full list.
+IoCTools provides core diagnostics through `IOC110`, plus testing diagnostics (`TDIAG01` through `TDIAG08`) and FluentValidation diagnostics (`IOC100`-`IOC102`). See [diagnostics.md](docs/diagnostics.md) for the full list.
 
 ### Error-Severity Diagnostics
 
@@ -256,8 +270,10 @@ IoCTools provides core diagnostics through `IOC108`, plus testing diagnostics (`
 | IOC087 | Transient depends on Scoped |
 | IOC088 | Configuration circular reference |
 | IOC092 | typeof() registration lifetime mismatch |
-| TDIAG-04 | `[Cover<T>]` service has no generated constructor |
-| TDIAG-05 | Test class with `[Cover<T>]` must be partial |
+| TDIAG04 | `[Cover<T>]` service has no generated constructor |
+| TDIAG05 | Test class with `[Cover<T>]` must be partial |
+| TDIAG07 | Fixture setup helper called after `Sut` access |
+| TDIAG08 | Test class manually constructs a service that could use `[Cover<T>]` |
 
 [View all diagnostics including warnings and info](docs/diagnostics.md)
 

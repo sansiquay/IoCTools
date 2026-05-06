@@ -27,7 +27,7 @@ internal static class TypeNameUtilities
     /// <summary>
     /// Extracts a readable type name for mock/setup helpers, handling generic and interface types.
     /// </summary>
-    private static string GetSimpleTypeName(ITypeSymbol type)
+    public static string GetSimpleTypeName(ITypeSymbol type)
     {
         // Handle generic types: ILogger<UserService> -> LoggerUserService
         if (type is INamedTypeSymbol namedType && namedType.IsGenericType)

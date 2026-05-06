@@ -80,6 +80,54 @@ internal static class ServiceDiscovery
             .Any(AttributeParser.IsDependsOnConfigurationAttribute);
     }
 
+    /// <summary>
+    /// Returns true if any base class in the inheritance chain has IoCTools-managed status,
+    /// meaning it carries at least one of: [DependsOn*], a lifetime attribute ([Scoped]/[Singleton]/[Transient]),
+    /// [ConditionalService], [RegisterAsAll], [RegisterAs], [Inject] field, or [InjectConfiguration] field.
+    /// This allows bare derived partial classes to inherit service intent from their base.
+    /// </summary>
+    public static bool InheritsFromIoCToolsManagedBase(INamedTypeSymbol classSymbol)
+    {
+        var current = classSymbol.BaseType;
+        while (current != null && current.SpecialType == SpecialType.None)
+        {
+            var attrs = current.GetAttributes();
+
+            // Lifetime attrs
+            if (attrs.Any(a => AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.ScopedAttribute) ||
+                               AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.SingletonAttribute) ||
+                               AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.TransientAttribute)))
+                return true;
+
+            // [DependsOn*]
+            if (attrs.Any(AttributeTypeChecker.IsDependsOnAttribute))
+                return true;
+
+            // [ConditionalService]
+            if (attrs.Any(a => AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.ConditionalServiceAttribute)))
+                return true;
+
+            // [RegisterAsAll]
+            if (attrs.Any(a => AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.RegisterAsAllAttribute)))
+                return true;
+
+            // [RegisterAs<T>]
+            if (attrs.Any(a => AttributeTypeChecker.IsRegisterAsAttribute(a)))
+                return true;
+
+            // [Inject] or [InjectConfiguration] fields
+            if (current.GetMembers().OfType<IFieldSymbol>().Any(f =>
+                    f.GetAttributes().Any(a =>
+                        AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.InjectAttribute) ||
+                        AttributeTypeChecker.IsAttribute(a, AttributeTypeChecker.InjectConfigurationAttribute))))
+                return true;
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
     private static bool HasFieldWithAttributeAcrossPartialClasses(INamedTypeSymbol classSymbol, params string[] attributeNames)
     {
         foreach (var declaringSyntaxRef in classSymbol.DeclaringSyntaxReferences)

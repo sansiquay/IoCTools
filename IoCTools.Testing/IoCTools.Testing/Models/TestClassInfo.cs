@@ -1,5 +1,6 @@
 namespace IoCTools.Testing.Models;
 
+using IoCTools.Testing.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -13,18 +14,21 @@ internal readonly struct TestClassInfo
         INamedTypeSymbol testClassSymbol,
         TypeDeclarationSyntax testClassDeclaration,
         SemanticModel semanticModel,
-        INamedTypeSymbol serviceSymbol)
+        INamedTypeSymbol serviceSymbol,
+        LoggerProfile loggerProfile = LoggerProfile.Mock)
     {
         TestClassSymbol = testClassSymbol;
         TestClassDeclaration = testClassDeclaration;
         SemanticModel = semanticModel;
         ServiceSymbol = serviceSymbol;
+        LoggerProfile = loggerProfile;
     }
 
     public INamedTypeSymbol TestClassSymbol { get; }
     public TypeDeclarationSyntax TestClassDeclaration { get; }
     public SemanticModel SemanticModel { get; }
     public INamedTypeSymbol ServiceSymbol { get; }
+    public LoggerProfile LoggerProfile { get; }
 
     public string TestClassName => TestClassSymbol.Name;
     public string TestClassNamespace => TestClassSymbol.ContainingNamespace?.ToString() ?? string.Empty;

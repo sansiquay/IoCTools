@@ -66,6 +66,12 @@ internal static class RedundantConfigurationValidator
 
         foreach (var attribute in registerAsAttributes)
         {
+            // [RegisterAs<...>(InstanceSharing.Shared)] is a deliberate factory composition that
+            // returns the same instance across the listed interfaces. Removing the attribute would
+            // change semantics (each interface would resolve to its own instance), so the
+            // "redundant interface set" reading does not apply.
+            if (GetRegisterAsInstanceSharing(attribute) == "Shared") continue;
+
             var location = attribute.ApplicationSyntaxReference?.GetSyntax()?.GetLocation() ??
                            classDeclaration.GetLocation();
             var diagnostic = Diagnostic.Create(DiagnosticDescriptors.RedundantRegisterAsAttribute,

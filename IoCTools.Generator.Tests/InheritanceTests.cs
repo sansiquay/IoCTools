@@ -1500,21 +1500,13 @@ public partial class DerivedClass : BaseClass
     [Fact]
     public void Inheritance_ComplexParameterOrdering_MaintainsConsistency()
     {
-        // ARCHITECTURAL LIMIT: This test represents an edge case that combines multiple advanced patterns
-        // that create fundamental conflicts in the generator's inheritance pipeline architecture.
+        // Previously this test documented an "architectural limit" where FinalClass (a bare partial
+        // derived from a managed base) failed to compile because the generator did not detect
+        // inherited service intent.
         //
-        // The combination of:
-        // - [Inject][ExternalService] fields across inheritance levels
-        // - [DependsOn<>(external: true)] with inheritance
-        // - Mixed external/internal service indicators in complex hierarchies
-        //
-        // Creates parameter ordering conflicts that would require 25+ test regressions to support.
-        // This represents a deliberate architectural boundary where complexity exceeds practical benefit.
-        //
-        // REAL-WORLD IMPACT: Zero - this pattern doesn't occur in standard business applications.
-        // WORKAROUND: Use consistent service patterns (all [Inject] OR all [DependsOn], not mixed).
+        // That was a bug. The fix (InheritsFromIoCToolsManagedBase) now generates a forwarding
+        // constructor for FinalClass, so the compilation succeeds.
 
-        // Arrange - Simplified test that demonstrates architectural limit
         var source = @"
 using IoCTools.Abstractions.Annotations;
 using IoCTools.Abstractions.Enumerations;
@@ -1522,7 +1514,7 @@ using IoCTools.Abstractions.Enumerations;
 namespace Test;
 
 public interface IService1 { }
-public interface IService2 { }  
+public interface IService2 { }
 public interface IService3 { }
 public interface IService4 { }
 
@@ -1544,16 +1536,14 @@ public partial class FinalClass : MiddleClass
         // Act
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        // Assert - This pattern is expected to have compilation errors due to architectural limits
-        result.HasErrors.Should().BeTrue(
-            "Complex mixed external service patterns are architectural limits");
+        // FinalClass inherits from MiddleClass which has [DependsOn], so the generator now
+        // detects inherited service intent and generates a forwarding constructor.
+        result.HasErrors.Should().BeFalse(
+            "bare derived partial class inheriting from IoCTools-managed base should compile successfully");
 
-        // Verify this produces a specific diagnostic about the complexity
-        var diagnostics = result.CompilationDiagnostics.Where(d => d.Severity >= DiagnosticSeverity.Warning).ToList();
-        diagnostics.Should().NotBeEmpty(); // Should produce diagnostics explaining the limitation
-
-        // This test documents the architectural boundary rather than expecting success
-        // The generator prioritizes 90% use case reliability over edge case complexity
+        var finalClassCtor = result.GetConstructorSource("FinalClass");
+        finalClassCtor.Should().NotBeNull(
+            "FinalClass should have a generated forwarding constructor via inherited service intent");
     }
 
     [Fact]
@@ -1641,4 +1631,61 @@ public partial class DerivedService : NonIoCBase, IDerivedService
     }
 
     #endregion
+
+    [Fact]
+    public void Inheritance_PerClassTypedLogger_DerivedFieldGetsNewModifier()
+    {
+        // Regression test: when both base and derived classes generate a field
+        // with the same name (e.g. both want their own typed ILogger<T>, which
+        // both name the field "_logger"), the derived field hides the inherited
+        // field. The generator must emit the `new` modifier so consumers don't
+        // hit CS0108 ("hides inherited member; use the new keyword if hiding
+        // was intended").
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Logging;
+
+namespace Test;
+
+public interface IClock { }
+public interface IScheduler { }
+
+// Mirrors Delta's adapter pattern: base has explicit non-logger DependsOn so its logger
+// comes from auto-detect-logger; derived has explicit ILogger<Derived> DependsOn.
+[DependsOn<IClock, IScheduler>]
+public abstract partial class BaseAdapter
+{
+    public abstract void Run();
+}
+
+[DependsOn<ILogger<DerivedAdapter>>]
+public partial class DerivedAdapter : BaseAdapter
+{
+    public override void Run() { }
+}";
+
+        // Enable auto-deps + auto-detect-logger so the merger injects ILogger<TBase> on base.
+        var props = new Dictionary<string, string>
+        {
+            ["build_property.IoCToolsAutoDepsDisable"] = "false",
+            ["build_property.IoCToolsAutoDetectLogger"] = "true"
+        };
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source, true, props);
+        var errorMessages = string.Join("\n", result.Diagnostics
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Select(d => $"{d.Id}: {d.GetMessage()}"));
+
+        result.HasErrors.Should().BeFalse(
+            "Inheritance with per-class typed loggers must compile cleanly. Errors:\n{0}",
+            errorMessages);
+
+        var derivedConstructorSource = result.GetConstructorSourceText("DerivedAdapter");
+        var baseConstructorSource = result.GetConstructorSourceText("BaseAdapter");
+        var hidingFieldRegex = new Regex(
+            @"private\s+new\s+readonly\s+ILogger<DerivedAdapter>\s+_logger;");
+        hidingFieldRegex.IsMatch(derivedConstructorSource).Should().BeTrue(
+            "Derived class field hiding inherited _logger must be emitted with `new` modifier.\nDerived:\n{0}\n\nBase:\n{1}",
+            derivedConstructorSource,
+            baseConstructorSource);
+    }
 }

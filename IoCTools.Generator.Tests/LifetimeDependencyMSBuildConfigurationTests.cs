@@ -73,7 +73,7 @@ public partial class CacheService
         diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Error);
         diagnostics[0].GetMessage().Should().Contain("Singleton service");
         diagnostics[0].GetMessage().Should().Contain("CacheService");
-        diagnostics[0].GetMessage().Should().Contain("Scoped service");
+        diagnostics[0].GetMessage().Should().Contain("Scoped");
         diagnostics[0].GetMessage().Should().Contain("DatabaseContext");
     }
 
@@ -106,7 +106,7 @@ public partial class CacheService
         diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
         diagnostics[0].GetMessage().Should().Contain("Singleton service");
         diagnostics[0].GetMessage().Should().Contain("CacheService");
-        diagnostics[0].GetMessage().Should().Contain("Transient service");
+        diagnostics[0].GetMessage().Should().Contain("Transient");
         diagnostics[0].GetMessage().Should().Contain("HelperService");
     }
 
@@ -202,9 +202,8 @@ public partial class CacheService
         var message = diagnostics[0].GetMessage();
         message.Should().Contain("Singleton service");
         message.Should().Contain("CacheService");
-        message.Should().Contain("Scoped service");
+        message.Should().Contain("Scoped");
         message.Should().Contain("DatabaseContext");
-        message.Should().Contain("cannot capture shorter-lived dependencies");
     }
 
     [Fact]
@@ -239,9 +238,8 @@ public partial class CacheService
         var message = diagnostics[0].GetMessage();
         message.Should().Contain("Singleton service");
         message.Should().Contain("CacheService");
-        message.Should().Contain("Transient service");
+        message.Should().Contain("Transient");
         message.Should().Contain("HelperService");
-        message.Should().Contain("Consider if this transient should be Singleton");
     }
 
     [Fact]

@@ -45,6 +45,7 @@ public static class Program
                 "suppress" => await RunSuppressAsync(remaining, cts.Token),
                 "validators" => await RunValidatorsAsync(remaining, cts.Token),
                 "validator-graph" => await RunValidatorGraphAsync(remaining, cts.Token),
+                "test" => await RunTestAsync(remaining, cts.Token),
                 "migrate-inject" => await RunMigrateInjectAsync(remaining, cts.Token),
                 "help" => UsagePrinter.ExitWithUsage(),
                 _ => UsagePrinter.ExitUnknown(command)
@@ -592,6 +593,39 @@ public static class Program
         ValidatorPrinter.WriteList(validators, options.Filter, output);
         output.ReportTiming("validators command completed");
         return 0;
+    }
+
+    private static async Task<int> RunTestAsync(string[] args, CancellationToken token)
+    {
+        if (args.Length == 0)
+            return UsagePrinter.ExitWithError("test requires a subcommand: scaffold");
+
+        var subcommand = args[0].ToLowerInvariant();
+        var subArgs = args.Skip(1).ToArray();
+
+        return subcommand switch
+        {
+            "scaffold" => await RunTestScaffoldAsync(subArgs, token),
+            _ => UsagePrinter.ExitWithError($"Unknown test subcommand '{subcommand}'. Available: scaffold")
+        };
+    }
+
+    private static async Task<int> RunTestScaffoldAsync(string[] args, CancellationToken token)
+    {
+        var parse = CommandLineParser.ParseTestScaffold(args);
+        if (!parse.Success)
+        {
+            if (args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!string.IsNullOrWhiteSpace(parse.Error)) Console.Error.WriteLine(parse.Error);
+                return 1;
+            }
+
+            return UsagePrinter.ExitWithError(parse.Error);
+        }
+
+        var options = parse.Value!;
+        return await TestScaffoldRunner.RunAsync(options, token);
     }
 
     private static async Task<int> RunMigrateInjectAsync(string[] args,

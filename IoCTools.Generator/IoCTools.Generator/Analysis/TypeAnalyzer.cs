@@ -214,6 +214,31 @@ internal static class TypeAnalyzer
     }
 
     /// <summary>
+    ///     Determines whether a type is reachable from the generator-emitted registration extension.
+    ///     The extension lives in the same assembly under a separate <c>*.Extensions.Generated</c>
+    ///     namespace, so internal-or-better visibility is required at every link of the
+    ///     containing-type chain. A nominally <c>public</c> type nested inside a <c>private</c>
+    ///     outer type is effectively private from the extension's vantage point.
+    /// </summary>
+    public static bool IsAccessibleFromGeneratedRegistrationExtension(INamedTypeSymbol type)
+    {
+        for (var current = type; current != null; current = current.ContainingType)
+        {
+            switch (current.DeclaredAccessibility)
+            {
+                case Accessibility.Public:
+                case Accessibility.Internal:
+                case Accessibility.ProtectedOrInternal:
+                    continue;
+                default:
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     ///     Determines if a type is assignable from IHostedService (either directly implements it or inherits from a class that
     ///     does)
     /// </summary>

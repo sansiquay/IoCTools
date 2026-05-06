@@ -195,8 +195,14 @@ internal static class CommandLineParser
         var baseline = map.TryGetValue("baseline", out var baselineValues) ? NormalizePath(baselineValues[^1]) : null;
         var output = map.TryGetValue("output", out var outputValues) ? NormalizePath(outputValues[^1]) : null;
 
+        // Fixture migration mode options
+        var testFixtures = map.ContainsKey("test-fixtures");
+        var productionProject = map.TryGetValue("production-project", out var ppValues)
+            ? NormalizePath(ppValues[^1])
+            : null;
+
         return ParseResult<EvidenceCommandOptions>.Ok(
-            new EvidenceCommandOptions(common, typeName, settings, baseline, output, autoDeps));
+            new EvidenceCommandOptions(common, typeName, settings, baseline, output, autoDeps, testFixtures, productionProject));
     }
 
     internal static ParseResult<SuppressCommandOptions> ParseSuppress(string[] args)
@@ -324,6 +330,82 @@ internal static class CommandLineParser
             new MigrateInjectCommandOptions(normalizedPath, dryRun, configuration, framework, verbose));
     }
 
+    internal static ParseResult<TestScaffoldCommandOptions> ParseTestScaffold(string[] args)
+    {
+        if (!TryCollectOptions(args, out var map, out var error))
+            return ParseResult<TestScaffoldCommandOptions>.Fail(error);
+
+        if (!map.TryGetValue("project", out var projectValues))
+            return ParseResult<TestScaffoldCommandOptions>.Fail("--project is required.");
+        if (!map.TryGetValue("type", out var typeValues))
+            return ParseResult<TestScaffoldCommandOptions>.Fail("--type is required.");
+
+        // Accept both --test-framework (explicit) and --framework (for TFM override fallback).
+        // If --framework is used and its value matches a known test framework, treat it as
+        // the test framework option rather than a TFM override.
+        // IMPORTANT: Strip test-framework names from "framework" BEFORE BuildCommon so
+        // CommonOptions.Framework doesn't receive "mstest"/"xunit"/"nunit" which would
+        // corrupt the production project load.
+        string testFramework;
+        if (map.TryGetValue("test-framework", out var fwValues))
+        {
+            testFramework = fwValues[^1].ToLowerInvariant();
+        }
+        else if (map.TryGetValue("framework", out var commonFwValues))
+        {
+            var fw = commonFwValues[^1].ToLowerInvariant();
+            var knownTestFrameworks = new[] { "xunit", "nunit", "mstest" };
+            if (knownTestFrameworks.Contains(fw))
+            {
+                testFramework = fw;
+                // Clear the map entry so BuildCommon doesn't pick it up
+                map.Remove("framework");
+            }
+            else
+            {
+                testFramework = "xunit"; // Treat unknown --framework as TFM, use xunit default
+            }
+        }
+        else
+        {
+            testFramework = "xunit";
+        }
+
+        var common = BuildCommon(projectValues[^1], map);
+        var testProject = map.TryGetValue("test-project", out var tpValues)
+            ? NormalizePath(tpValues[^1])
+            : null;
+        var serviceType = typeValues[^1].Trim();
+        var mocking = map.TryGetValue("mocking", out var mockValues)
+            ? mockValues[^1].ToLowerInvariant()
+            : "moq";
+        var assertions = map.TryGetValue("assertions", out var assertValues)
+            ? assertValues[^1].ToLowerInvariant()
+            : "none";
+        var output = map.TryGetValue("output", out var outputValues)
+            ? NormalizePath(outputValues[^1])
+            : null;
+        var dryRun = map.ContainsKey("dry-run");
+        var force = map.ContainsKey("force");
+
+        var validFrameworks = new[] { "xunit", "nunit", "mstest" };
+        if (!validFrameworks.Contains(testFramework))
+            return ParseResult<TestScaffoldCommandOptions>.Fail(
+                $"Unknown test framework '{testFramework}'. Valid: {string.Join(", ", validFrameworks)}");
+
+        if (mocking != "moq")
+            return ParseResult<TestScaffoldCommandOptions>.Fail(
+                $"Unknown mocking framework '{mocking}'. Valid: moq");
+
+        var validAssertions = new[] { "fluentassertions", "shouldly", "none" };
+        if (!validAssertions.Contains(assertions))
+            return ParseResult<TestScaffoldCommandOptions>.Fail(
+                $"Unknown assertions library '{assertions}'. Valid: {string.Join(", ", validAssertions)}");
+
+        return ParseResult<TestScaffoldCommandOptions>.Ok(
+            new TestScaffoldCommandOptions(common, testProject, serviceType, testFramework, mocking, assertions, output, dryRun, force));
+    }
+
     internal static ParseResult<ValidatorGraphCommandOptions> ParseValidatorGraph(string[] args)
     {
         if (!TryCollectOptions(args, out var map, out var error))
@@ -394,6 +476,11 @@ internal static class CommandLineParser
             "--project" or "-p" => "project",
             "--configuration" or "-c" => "configuration",
             "--framework" or "-f" => "framework",
+            "--test-framework" => "test-framework",
+            "--test-project" or "-tp" => "test-project",
+            "--mocking" or "-m" => "mocking",
+            "--assertions" or "-a" => "assertions",
+            "--force" => "force",
             "--file" => "file",
             "--type" or "-t" or "--class" => "type",
             "--output" or "-o" => "output",
@@ -413,6 +500,9 @@ internal static class CommandLineParser
             "--matches" => "matches",
             "--path" => "path",
             "--dry-run" => "dry-run",
+            "--test-fixtures" => "test-fixtures",
+            "--production-project" => "production-project",
+            "--test-migration" => "test-fixtures",
             _ => key
         };
     }
@@ -429,7 +519,7 @@ internal static class CommandLineParser
     }
 
     private static bool IsFlag(string key) =>
-        key is "fixable-only" or "source" or "json" or "verbose" or "live" or "matches" or "dry-run";
+        key is "fixable-only" or "source" or "json" or "verbose" or "live" or "matches" or "dry-run" or "force" or "test-fixtures";
 
     private static bool TryCollectValue(
         ref int index,
@@ -542,7 +632,9 @@ internal sealed record EvidenceCommandOptions(
     string? SettingsPath,
     string? BaselineDirectory,
     string? OutputDirectory,
-    CommonAutoDepsOptions AutoDepsFlags);
+    CommonAutoDepsOptions AutoDepsFlags,
+    bool TestFixtures = false,
+    string? ProductionProjectPath = null);
 
 internal sealed record SuppressCommandOptions(
     CommonOptions Common,
@@ -567,3 +659,14 @@ internal sealed record MigrateInjectCommandOptions(
     string Configuration,
     string? Framework,
     bool Verbose);
+
+internal sealed record TestScaffoldCommandOptions(
+    CommonOptions Common,
+    string? TestProjectPath,
+    string ServiceType,
+    string TestFramework,
+    string Mocking,
+    string Assertions,
+    string? OutputPath,
+    bool DryRun,
+    bool Force);

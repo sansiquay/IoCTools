@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.6.1</Version>
-        <PackageVersion>1.6.1</PackageVersion>
-        <AssemblyVersion>1.6.1.0</AssemblyVersion>
-        <FileVersion>1.6.1.0</FileVersion>
+        <Version>1.7.0</Version>
+        <PackageVersion>1.7.0</PackageVersion>
+        <AssemblyVersion>1.7.0.0</AssemblyVersion>
+        <FileVersion>1.7.0.0</FileVersion>
         <Title>IoC Tools Testing Source Generator</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,7 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.6.0: aligned with core 1.6.0 — the testing surface does not emit [Inject]; no migration needed for consumers. See IoCTools 1.6 migration guide.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.0: fixture generator v2 (FixtureMemberPlanner, nullable context, GetRequiredSection, binder-style reads, concrete dependency helpers). See CHANGELOG.md for full notes.</PackageReleaseNotes>
         <Description>Source generator for IoCTools test fixture generation - generates Mock&lt;T&gt; fields, CreateSut() factories, and typed setup helpers for test classes marked with [Cover&lt;TService&gt;].</Description>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
@@ -33,10 +33,15 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj"/>
+        <ProjectReference Include="..\..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"/>
     </ItemGroup>
     <ItemGroup>
         <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false"/>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false"/>
+        <None Include="build\IoCTools.Testing.targets" Pack="true" PackagePath="build" Visible="false"/>
+        <None Include="build\IoCTools.Testing.targets" Pack="true" PackagePath="buildTransitive" Visible="false"/>
         <None Include="_._" Pack="true" PackagePath="lib\net8.0\" Visible="false"/>
     </ItemGroup>
 </Project>

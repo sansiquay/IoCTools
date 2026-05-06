@@ -232,8 +232,19 @@ internal static partial class ConstructorGenerator
             // CRITICAL FIX: Determine if fields should be protected for inheritance scenarios
             var accessModifier = ShouldUseProtectedFields(classDeclaration, classSymbol) ? "protected" : "private";
 
+            // Detect fields that hide inherited members so we emit the `new` modifier and avoid
+            // CS0108. Two sources of inherited names: (a) IoCTools-generated base fields tracked
+            // in BaseDependencies, and (b) hand-declared base-class fields visible via the symbol
+            // chain. ILogger<TBase> + ILogger<TDerived> with auto-detect-logger is the canonical
+            // case — both produce a field named "_logger" with different element types, which is
+            // intentional hiding once the user genuinely wants per-class typed loggers.
+            var inheritedFieldNames = CollectInheritedFieldNames(classSymbol, hierarchyDependencies);
+
             var fieldDeclarations = fieldsToGenerate.Select(d =>
-                $"{accessModifier} readonly {RemoveNamespacesAndDots(d.ServiceType, namespacesForStripping)} {d.FieldName};");
+            {
+                var newModifier = inheritedFieldNames.Contains(d.FieldName) ? "new " : "";
+                return $"{accessModifier} {newModifier}readonly {RemoveNamespacesAndDots(d.ServiceType, namespacesForStripping)} {d.FieldName};";
+            });
 
             var fieldsStr = string.Join("\n    ", fieldDeclarations);
 
@@ -436,6 +447,53 @@ internal static partial class ConstructorGenerator
         return hierarchyDependencies.RawAllDependencies?.Any(d => d.Source == DependencySource.Inject) ?? false;
     }
 
+
+    /// <summary>
+    ///     Collects field names declared on ancestor classes so the constructor generator can
+    ///     emit the <c>new</c> modifier on derived fields that intentionally hide base members.
+    ///     Walks the actual symbol-resolved base chain (catches hand-declared and previously
+    ///     generated base fields) and <see cref="InheritanceHierarchyDependencies.BaseDependencies"/>.
+    ///     For ancestor entries the merger has disambiguated (e.g. <c>_loggerOfBaseSvc</c>),
+    ///     also includes the natural standalone name (<c>_logger</c>) — that's what the
+    ///     ancestor's own constructor pass actually emits as a field, and what derived needs
+    ///     to detect to honor C# hide semantics.
+    /// </summary>
+    private static HashSet<string> CollectInheritedFieldNames(
+        INamedTypeSymbol? classSymbol,
+        InheritanceHierarchyDependencies hierarchyDependencies)
+    {
+        var inheritedFieldNames = new HashSet<string>();
+
+        var baseType = classSymbol?.BaseType;
+        while (baseType != null && baseType.SpecialType != SpecialType.System_Object)
+        {
+            foreach (var field in baseType.GetMembers().OfType<IFieldSymbol>())
+                inheritedFieldNames.Add(field.Name);
+            baseType = baseType.BaseType;
+        }
+
+        if (hierarchyDependencies.BaseDependencies != null)
+            foreach (var (serviceType, fieldName, _) in hierarchyDependencies.BaseDependencies)
+            {
+                inheritedFieldNames.Add(fieldName);
+
+                if (serviceType != null)
+                {
+                    // The natural standalone name the ancestor's own constructor pass emits.
+                    // ILogger<TBase> + ILogger<TDerived> both strip to "_logger"; the merger
+                    // suffixes one of them in the derived ctor parameter list, but the
+                    // ancestor's own field is still "_logger".
+                    var naturalName = AttributeParser.GenerateFieldName(
+                        TypeUtilities.GetMeaningfulTypeName(serviceType),
+                        "CamelCase",
+                        stripI: true,
+                        prefix: "_");
+                    inheritedFieldNames.Add(naturalName);
+                }
+            }
+
+        return inheritedFieldNames;
+    }
 
     /// <summary>
     ///     Determines if DependsOn fields should be protected instead of private to allow inheritance access

@@ -154,6 +154,14 @@ internal sealed class ProjectContext : IAsyncDisposable
         if (!string.IsNullOrWhiteSpace(dotNetRoot))
             candidates.Add(Path.Combine(dotNetRoot, OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet"));
 
+        if (!OperatingSystem.IsWindows())
+        {
+            candidates.Add("/usr/local/share/dotnet/dotnet");
+            candidates.Add("/opt/homebrew/bin/dotnet");
+        }
+
+        candidates.Add(FindDotNetOnPath());
+
         foreach (var candidate in candidates)
         {
             if (string.IsNullOrWhiteSpace(candidate) || !File.Exists(candidate)) continue;
@@ -164,8 +172,24 @@ internal sealed class ProjectContext : IAsyncDisposable
             return candidate;
         }
 
-        _resolvedDotNetHostPath = "dotnet";
-        return _resolvedDotNetHostPath;
+        throw new InvalidOperationException("Unable to locate the dotnet host. Set DOTNET_HOST_PATH or ensure dotnet is on PATH.");
+    }
+
+    private static string? FindDotNetOnPath()
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        var fileName = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
+        foreach (var entry in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = Path.Combine(entry, fileName);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
     }
 
     private static string ResolveSdkPath(string dotNetHostPath,
@@ -176,6 +200,10 @@ internal sealed class ProjectContext : IAsyncDisposable
         if (sdkVersion.Length == 0)
             throw new InvalidOperationException($"Unable to determine .NET SDK version using '{dotNetHostPath} --version'.");
 
+        var sdkBasePath = ResolveSdkBasePathFromInfo(dotNetHostPath, workingDirectory);
+        if (!string.IsNullOrWhiteSpace(sdkBasePath) && Directory.Exists(sdkBasePath))
+            return sdkBasePath;
+
         var dotNetRoot = Path.GetDirectoryName(dotNetHostPath)
                          ?? throw new InvalidOperationException($"Unable to determine DOTNET_ROOT from '{dotNetHostPath}'.");
         var sdkPath = Path.Combine(dotNetRoot, "sdk", sdkVersion);
@@ -183,6 +211,24 @@ internal sealed class ProjectContext : IAsyncDisposable
             throw new InvalidOperationException($"Resolved SDK path '{sdkPath}' does not exist.");
 
         return sdkPath;
+    }
+
+    private static string? ResolveSdkBasePathFromInfo(string dotNetHostPath,
+        string workingDirectory)
+    {
+        var info = RunDotNet(dotNetHostPath, "--info", workingDirectory);
+        foreach (var line in info.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmed = line.Trim();
+            if (!trimmed.StartsWith("Base Path:", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var basePath = trimmed.Substring("Base Path:".Length).Trim();
+            if (basePath.Length > 0)
+                return basePath;
+        }
+
+        return null;
     }
 
     private static string RunDotNet(string dotNetHostPath,

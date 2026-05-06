@@ -70,6 +70,7 @@ internal static class DiagnosticCatalog
             new("IOC075", "Inconsistent lifetimes across inherited services", "IoCTools.Lifetime", "Warning"),
             new("IOC084", "Lifetime attribute duplicates inherited lifetime", "IoCTools.Lifetime", "Warning"),
             new("IOC087", "Transient service depends on Scoped service", "IoCTools.Lifetime", "Error"),
+            new("IOC110", "Service depends on interface with multiple implementations of conflicting lifetimes", "IoCTools.Lifetime", "Warning"),
 
             // IoCTools.Registration
             new("IOC004", "RegisterAsAll attribute requires Service attribute", "IoCTools.Registration", "Error"),
@@ -136,11 +137,14 @@ internal static class DiagnosticCatalog
             new("IOC089", "SupportsReloading is only supported for Options pattern types", "IoCTools.Configuration", "Warning"),
 
             // IoCTools.Testing
-            new("TDIAG-01", "Test class has manual mock fields that could be generated", "IoCTools.Testing", "Info"),
-            new("TDIAG-02", "Test class has manual SUT construction that could be generated", "IoCTools.Testing", "Info"),
-            new("TDIAG-03", "Test class covers a service not registered with IoCTools", "IoCTools.Testing", "Warning"),
-            new("TDIAG-04", "Cover attribute references a type that is not a service", "IoCTools.Testing", "Error"),
-            new("TDIAG-05", "Test class has multiple Cover attributes", "IoCTools.Testing", "Error"),
+            new("TDIAG01", "Test class has manual mock fields that could be generated", "IoCTools.Testing", "Info"),
+            new("TDIAG02", "Test class has manual SUT construction that could be generated", "IoCTools.Testing", "Info"),
+            new("TDIAG03", "Test class could use auto-generated fixture", "IoCTools.Testing", "Info"),
+            new("TDIAG04", "Cover<T> service has no generated constructor", "IoCTools.Testing", "Error"),
+            new("TDIAG05", "Cover<T> requires partial test class", "IoCTools.Testing", "Error"),
+            new("TDIAG06", "Generated fixture member name collision detected", "IoCTools.Testing", "Warning"),
+            new("TDIAG07", "Fixture setup helper is called after Sut access", "IoCTools.Testing", "Warning"),
+            new("TDIAG08", "Test class manually constructs a service that could use Cover<T>", "IoCTools.Testing", "Warning"),
 
             // IoCTools.AutoDeps (1.6 — Auto-dependencies milestone)
             new("IOC096", "NoAutoDep[Open] target is not in resolved auto-dep set", "IoCTools.AutoDeps", "Info"),

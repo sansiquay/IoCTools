@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>FixtureEvidenceProject.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\IoCTools.Generator\IoCTools.Generator\IoCTools.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\IoCTools.Testing\IoCTools.Testing\IoCTools.Testing.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\IoCTools.Abstractions\IoCTools.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\IoCTools.Testing.Abstractions\IoCTools.Testing.Abstractions.csproj" />
+    <ProjectReference Include="..\FixtureEvidence.ProductionProject\FixtureEvidence.ProductionProject.csproj" />
+    <ProjectReference Include="..\FixtureEvidence.TestSupportProject\FixtureEvidence.TestSupportProject.csproj" />
+  </ItemGroup>
+
+</Project>

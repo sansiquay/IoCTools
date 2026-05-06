@@ -2,6 +2,7 @@ namespace IoCTools.Testing.Generator.Pipeline;
 
 using System.Collections.Immutable;
 using System.Linq;
+using IoCTools.Testing.CodeGeneration;
 using IoCTools.Testing.Models;
 
 using Microsoft.CodeAnalysis;
@@ -40,7 +41,12 @@ internal static class TestFixturePipeline
                         namedAttr.TypeArguments.Length > 0 &&
                         namedAttr.TypeArguments[0] is INamedTypeSymbol serviceSymbol)
                     {
-                        return new TestClassInfo(symbol, typeDecl, ctx.SemanticModel, serviceSymbol);
+                        return new TestClassInfo(
+                            symbol,
+                            typeDecl,
+                            ctx.SemanticModel,
+                            serviceSymbol,
+                            GetLoggerProfile(coverAttr));
                     }
 
                     return (TestClassInfo?)null;
@@ -53,5 +59,20 @@ internal static class TestFixturePipeline
                     .GroupBy(t => t.TestClassSymbol, SymbolEqualityComparer.Default)
                     .Select(g => g.First())
                     .ToImmutableArray());
+    }
+
+    private static LoggerProfile GetLoggerProfile(AttributeData coverAttr)
+    {
+        foreach (var arg in coverAttr.NamedArguments)
+        {
+            if (arg.Key != "Logger" || arg.Value.Value == null)
+                continue;
+
+            return arg.Value.Value is int profileValue && profileValue == 1
+                ? LoggerProfile.NullLogger
+                : LoggerProfile.Mock;
+        }
+
+        return LoggerProfile.Mock;
     }
 }

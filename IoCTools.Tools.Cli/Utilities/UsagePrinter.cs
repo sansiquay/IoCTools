@@ -24,10 +24,12 @@ internal static class UsagePrinter
         Console.WriteLine("      (plural: auto-deps profile introspection)");
         Console.WriteLine("  dotnet ioc-tools config-audit --project <csproj> [--settings appsettings.json]");
         Console.WriteLine("  dotnet ioc-tools evidence --project <csproj> [--type Namespace.Service] [--settings appsettings.json] [--baseline <dir>] [--output <dir>]");
+        Console.WriteLine("  dotnet ioc-tools evidence --project <csproj> --test-fixtures [--production-project <csproj>] [--settings appsettings.json]");
         Console.WriteLine("  dotnet ioc-tools suppress --project <csproj> [--severity warning,info] [--codes IOC035,IOC053] [--live] [--output .editorconfig]");
         Console.WriteLine("  dotnet ioc-tools validators --project <csproj> [--filter ModelType]");
         Console.WriteLine("  dotnet ioc-tools validator-graph --project <csproj> [--why ValidatorName]");
         Console.WriteLine("  dotnet ioc-tools migrate-inject [--path <csproj|sln|dir>] [--dry-run]");
+        Console.WriteLine("  dotnet ioc-tools test scaffold --project <csproj> --type Namespace.Service [--test-project <csproj>] [--test-framework xunit|nunit|mstest] [--mocking moq] [--assertions fluentassertions|shouldly|none] [--output <path>] [--dry-run] [--force]");
         Console.WriteLine();
         Console.WriteLine("Common switches:");
         Console.WriteLine("  --configuration <Debug|Release>    Build configuration (default Debug)");

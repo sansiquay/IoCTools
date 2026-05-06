@@ -1,3 +1,9 @@
+// Multi-line message formats below are intentional: IOC012/013/087/110 enumerate every
+// implementation candidate the analyzer found, so the message must render a list. Roslyn's
+// RS1032 prefers single-sentence formats, but the bullet list is doctrinally load-bearing
+// for this analyzer (the bug it fixes is "we picked one impl based on iteration order").
+#pragma warning disable RS1032
+
 namespace IoCTools.Generator.Diagnostics;
 
 internal static partial class DiagnosticDescriptors
@@ -5,21 +11,21 @@ internal static partial class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor SingletonDependsOnScoped = new(
         "IOC012",
         "Singleton service depends on Scoped service",
-        "Singleton service '{0}' depends on Scoped service '{1}'. Singleton services cannot capture shorter-lived dependencies.",
+        "Singleton service '{0}' depends on '{1}', and every known implementation of '{1}' is shorter-lived (Scoped):\n{2}\nThe actual implementation DI resolves at runtime depends on registration order. Resolve by either annotating unattributed impls explicitly, removing impls that should not be services (use [SkipRegistration] / [ManualService]), or changing the consumer to a shorter lifetime.",
         "IoCTools.Lifetime",
         DiagnosticSeverity.Error,
         true,
-        "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton], 2) Changing this service to [Scoped] or [Transient], 3) Inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 4) Use a factory delegate Func<{1}> to create instances per-use.",
+        "Singleton services cannot capture Scoped dependencies. Fix by: 1) Promoting all implementations of '{1}' to [Singleton], 2) Changing this service to [Scoped] or [Transient], 3) Injecting IServiceProvider and calling CreateScope() to resolve '{1}' on demand, or 4) Using a factory delegate Func<{1}> to create instances per-use.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc012");
 
     public static readonly DiagnosticDescriptor SingletonDependsOnTransient = new(
         "IOC013",
         "Singleton service depends on Transient service",
-        "Singleton service '{0}' depends on Transient service '{1}'. Consider if this transient should be Singleton or if the dependency is appropriate.",
+        "Singleton service '{0}' depends on '{1}', and every known implementation of '{1}' is Transient:\n{2}\nThe actual implementation DI resolves at runtime depends on registration order. Consider if these transients should be Singleton or if the dependency shape is appropriate.",
         "IoCTools.Lifetime",
         DiagnosticSeverity.Warning,
         true,
-        "Review the design: 1) If '{1}' should be shared, change it to [Singleton], 2) If truly transient, inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 3) Use a factory delegate Func<{1}> to create a new instance each time it is needed.",
+        "Review the design: 1) If '{1}' should be shared, change all impls to [Singleton], 2) If truly transient, inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 3) Use a factory delegate Func<{1}> to create a new instance each time it is needed.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc013");
 
     public static readonly DiagnosticDescriptor BackgroundServiceLifetimeValidation = new(
@@ -95,10 +101,20 @@ internal static partial class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor TransientDependsOnScoped = new(
         "IOC087",
         "Transient service depends on Scoped service",
-        "Transient service '{0}' depends on Scoped service '{1}'. Transient services resolved from the root scope cannot depend on Scoped services.",
+        "Transient service '{0}' depends on '{1}', and every known implementation of '{1}' is Scoped:\n{2}\nTransient services resolved from the root scope cannot depend on Scoped services. The actual implementation DI resolves at runtime depends on registration order.",
         "IoCTools.Lifetime",
         DiagnosticSeverity.Error,
         true,
-        "Fix the lifetime mismatch by: 1) Changing dependency '{1}' to [Singleton] or [Transient], 2) Changing this service to [Scoped], 3) Inject IServiceProvider and call CreateScope() to resolve '{1}' on demand, or 4) Use a factory delegate Func<{1}> to create instances per-use.",
+        "Fix the lifetime mismatch by: 1) Promoting all implementations of '{1}' to [Singleton] or [Transient], 2) Changing this service to [Scoped], 3) Injecting IServiceProvider and calling CreateScope() to resolve '{1}' on demand, or 4) Using a factory delegate Func<{1}> to create instances per-use.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc087");
+
+    public static readonly DiagnosticDescriptor AmbiguousLifetimeMultipleImpls = new(
+        "IOC110",
+        "Service depends on interface with multiple implementations of conflicting lifetimes",
+        "{0} service '{1}' depends on '{2}', which has implementations with mixed lifetimes:\n{3}\nWhether the resolved implementation is lifetime-compatible depends on DI registration order at runtime. Resolve by annotating unattributed impls explicitly, removing impls that should not be services (use [SkipRegistration] / [ManualService]), or making all impls share a compatible lifetime.",
+        "IoCTools.Lifetime",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "When an interface has multiple implementations and at least one is shorter-lived than the consumer, the analyzer cannot statically determine which impl DI will resolve. Resolve by aligning impl lifetimes, removing non-service impls, or making the consumer's lifetime safe for the worst-case impl.",
+        helpLinkUri: "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#ioc110");
 }

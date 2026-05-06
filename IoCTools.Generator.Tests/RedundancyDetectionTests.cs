@@ -410,6 +410,92 @@ public partial class SelectiveRegistrationService : IServiceA, IServiceB
         result.GetDiagnosticsByCode("IOC032").Should().BeEmpty();
     }
 
+    [Fact]
+    public void RegisterAsRedundancy_AllInterfacesWithSharedInstance_NoWarning()
+    {
+        // Arrange - RegisterAs covers every implemented interface, but InstanceSharing.Shared
+        // makes the attribute load-bearing: removing it would register the class once per interface
+        // (each interface resolves to its own instance) instead of returning the same instance
+        // across both interfaces. IOC032 must not suggest deletion in this case.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+
+[Singleton]
+[RegisterAs<IServiceA, IServiceB>(InstanceSharing.Shared)]
+public partial class SharedAcrossInterfacesService : IServiceA, IServiceB
+{
+}
+";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - InstanceSharing.Shared exempts the attribute from IOC032
+        result.GetDiagnosticsByCode("IOC032").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RegisterAsRedundancy_AllInterfacesWithNamedSharedInstance_NoWarning()
+    {
+        // Arrange - Same as above but with the named-argument form `InstanceSharing: ...`.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Abstractions.Enumerations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+
+[Singleton]
+[RegisterAs<IServiceA, IServiceB>(instanceSharing: InstanceSharing.Shared)]
+public partial class SharedAcrossInterfacesNamedService : IServiceA, IServiceB
+{
+}
+";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - Named-argument form is also exempt
+        result.GetDiagnosticsByCode("IOC032").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RegisterAsRedundancy_AllInterfacesWithoutSharing_StillWarns()
+    {
+        // Arrange - Regression: the bare `[RegisterAs<...>]` shape (default Separate sharing)
+        // must still emit IOC032. The fix narrows the exemption to `InstanceSharing.Shared` only.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+namespace Test;
+
+public interface IServiceA { }
+public interface IServiceB { }
+
+[Singleton]
+[RegisterAs<IServiceA, IServiceB>]
+public partial class FullyRegisteredSeparateService : IServiceA, IServiceB
+{
+}
+";
+
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert - IOC032 still fires when no Shared sharing is requested
+        var diagnostics = result.GetDiagnosticsByCode("IOC032");
+        diagnostics.Should().ContainSingle();
+        diagnostics[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+    }
+
     #region Inheritance-aware scoped redundancy
 
     [Fact]

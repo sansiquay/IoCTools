@@ -312,5 +312,50 @@ public sealed class FluentValidationFixtureTests
         fixtureSource.Should().Contain("SetupAddressValidatorValidationFailure", "should name failure helper after address validator parameter");
     }
 
+    [Fact]
+    public void FluentValidationFixture_VerifyCompiles()
+    {
+        // Arrange
+        var source = """
+            using IoCTools.Abstractions.Annotations;
+            using IoCTools.Testing.Annotations;
+            using FluentValidation;
+
+            namespace TestProject;
+
+            public class OrderCommand { public string Name { get; set; } }
+
+            public partial class OrderService
+            {
+                private readonly IValidator<OrderCommand> _orderValidator;
+
+                public OrderService(IValidator<OrderCommand> orderValidator)
+                {
+                    _orderValidator = orderValidator;
+                }
+            }
+
+            [Cover<OrderService>]
+            public partial class OrderServiceTests { }
+            """;
+
+        // Act
+        var genResult = GenerateWithFluentValidation(source);
+
+        // Add FluentValidation reference for compiled code
+        var fvRef = new MetadataReference[0];
+        try
+        {
+            var fvAsm = typeof(FluentValidation.IValidator<>).Assembly;
+            fvRef = new[] { MetadataReference.CreateFromFile(fvAsm.Location) };
+        }
+        catch { }
+        var compileResult = TestHelper.VerifyCompiles(source, genResult, fvRef);
+
+        // Assert
+        var errors = compileResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        errors.Should().BeEmpty("generated FluentValidation fixture + original source should compile without errors");
+    }
+
     #endregion
 }

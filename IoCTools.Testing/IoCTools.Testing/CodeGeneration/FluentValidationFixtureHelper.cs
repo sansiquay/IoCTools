@@ -54,7 +54,7 @@ internal static class FluentValidationFixtureHelper
         var pascalName = ToPascalCase(parameterName);
         var sb = new StringBuilder();
 
-        sb.AppendLine($"        protected void Setup{pascalName}ValidationSuccess()");
+        sb.AppendLine($"        private void Setup{pascalName}ValidationSuccess()");
         sb.AppendLine("        {");
         sb.AppendLine($"            {mockFieldName}.Setup(v => v.Validate(It.IsAny<{validatedTypeName}>()))");
         sb.AppendLine("                .Returns(new FluentValidation.Results.ValidationResult());");
@@ -62,7 +62,7 @@ internal static class FluentValidationFixtureHelper
         sb.AppendLine("                .ReturnsAsync(new FluentValidation.Results.ValidationResult());");
         sb.AppendLine("        }");
         sb.AppendLine();
-        sb.AppendLine($"        protected void Setup{pascalName}ValidationFailure(params string[] errorMessages)");
+        sb.AppendLine($"        private void Setup{pascalName}ValidationFailure(params string[] errorMessages)");
         sb.AppendLine("        {");
         sb.AppendLine("            var failures = errorMessages.Select(m => new FluentValidation.Results.ValidationFailure(\"\", m)).ToList();");
         sb.AppendLine("            var result = new FluentValidation.Results.ValidationResult(failures);");

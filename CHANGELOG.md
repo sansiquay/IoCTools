@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-05-06
+
+### Added
+- **`AnalysisScope` model and `DiagnosticGate`.** Each diagnostic now declares whether it fires in production projects, test projects, or both. `IOC081`/`IOC082`/`IOC086` are reclassified as `AnalysisScope.Production` — test projects are automatically exempt via the `IsTestProject` MSBuild property forwarded through `CompilerVisibleProperty`. No naming heuristics; detection is the standard Roslyn signal from `Microsoft.NET.Test.Sdk`.
+- **Test fixture generator v2 (`IoCTools.Testing`).** `FixtureMemberPlanner` separates member planning from code emission. Generated fixtures now: enable nullable context; emit `new` modifier on derived fields that hide inherited members; support `GetRequiredSection` and binder-style configuration reads; treat `IClock` as fixture-provided; classify `ILogger<T>` and concrete dependency helpers correctly.
+- **IOC073** (Info) — open-generic `IHostedService` implementers skipped at registration; omission is observable.
+- **IOC066** (Info/Warning) — inaccessible `IHostedService` implementers skipped; reason surfaced in diagnostic.
+- **IOC110** (Warning, `IoCToolsLifetimeValidationSeverity`) — fires when an interface has multiple IoCTools-managed implementations with different lifetimes and only *some* violate the dependency rule. `DependencyLifetimeResolver` now returns all candidate impls deterministically (sorted by full type name) and distinguishes attribute-declared vs implicit lifetimes in diagnostic messages. Replaces the previous non-deterministic single-impl selection that caused IOC012 to fire in Rider but silently pass in CLI.
+
+### Changed
+- **`IoCTools.Tools.Cli` multitargets `net9.0` and `net10.0`.** Existing .NET 9 global-tool consumers are not broken. Workflows install SDK `8.0.x`, `9.0.x`, and `10.0.x`.
+
+### Fixed
+- **IOC032 no longer fires on `[RegisterAs<...>(InstanceSharing.Shared)]`.** The redundancy check now parses the `InstanceSharing` argument and exempts `Shared`-mode registrations, which bridge multiple interfaces to one concrete instance. `Separate`-mode and bare `[RegisterAs]` continue to emit IOC032 unchanged.
+- **`IoCTools.Generator.targets` now ships in `buildTransitive/` as well as `build/`.** Consumers receiving the generator transitively no longer silently drop the `IsTestProject` property forwarding, which broke the production-only diagnostic scope gate.
+- **IOC086 no longer fires on three legitimate manual-registration shapes:** explicit factory lambdas (`sp => ...`), `TryAddEnumerable(ServiceDescriptor.X<T, TImpl>(...))`, and registrations whose implementation type lives in an IoCTools-unaware assembly. IOC081/IOC082 are similarly suppressed for the `TryAddEnumerable` and `IHostedService` bridge shapes.
+- **`[RegisterAs<T>]` and `[RegisterAsAll]` now compose with `IHostedService`.** Previously the generator silently dropped companion-interface registrations when `IHostedService` was also implemented. The concrete class is now registered once at the declared lifetime, companion interfaces are bridged via `GetRequiredService<TImpl>()`, and `IHostedService` is bridged to the same instance.
+- **Open-generic `IHostedService` implementers no longer produce CS0246.** Registration is skipped (IOC073 emitted) instead of emitting an unresolvable open-generic type reference.
+- **Inaccessible `IHostedService` implementers no longer produce CS0122.** The selector now walks the containing-type chain and skips emission when any link is below `internal` (IOC066 emitted).
+- **IOC081/IOC082/IOC086 carve-outs extended.** The `services.Replace(...)` carve-out (IOC081, landed in 1.6.1) now also covers IOC082 and IOC086. The `IHostedService` companion-interface bridge shape (`AddSingleton<IHostedService>(sp => sp.GetRequiredService<TImpl>())`) is suppressed for IOC081/IOC082.
+- **CLI `dotnet` host-path resolver now walks `PATH`.** `ProjectContext` previously fell back to the bare string `"dotnet"` when `DOTNET_HOST_PATH` was unset, which silently failed MSBuild loading in some global-tool installations. The resolver now searches each `PATH` entry for the `dotnet` executable before throwing a descriptive `InvalidOperationException`.
+
+### Packaging
+- All seven packages normalized to `1.7.0` (no pre-release suffix).
+- `IoCTools.Tools.Cli` multitargets `net9.0;net10.0`; workflows install SDK `8.0.x`, `9.0.x`, `10.0.x`.
+
 ## [1.6.1] - 2026-04-29
 
 ### Fixed
@@ -88,6 +114,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 5 new typeof() diagnostics (IOC090-IOC094)
 - 5 new test fixture diagnostics (TDIAG-01 through TDIAG-05)
 
-[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/sansiquay/IoCTools/compare/v1.6.1...v1.7.0
+[1.6.1]: https://github.com/sansiquay/IoCTools/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/sansiquay/IoCTools/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/sansiquay/IoCTools/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/sansiquay/IoCTools/compare/v1.4.0...v1.5.0

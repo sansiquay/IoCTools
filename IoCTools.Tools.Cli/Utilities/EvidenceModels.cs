@@ -8,7 +8,8 @@ internal sealed record EvidenceBundle(
     EvidenceConfiguration configuration,
     EvidenceValidators? validators,
     EvidenceArtifacts artifacts,
-    IReadOnlyList<EvidenceMigrationHint> migrationHints);
+    IReadOnlyList<EvidenceMigrationHint> migrationHints,
+    EvidenceFixtureEvidence? fixtureEvidence = null);
 
 internal sealed record EvidenceProject(
     string path,
@@ -117,3 +118,33 @@ internal sealed record EvidenceMigrationHint(
     string source,
     string member,
     string message);
+
+/// <summary>
+/// Fixture migration classification for evidence.
+/// Evaluates whether a test class can safely migrate to [Cover&lt;T&gt;] generated fixtures.
+/// </summary>
+internal sealed record EvidenceFixtureEvidence(
+    IReadOnlyList<EvidenceFixtureClassification> Classifications,
+    int TotalTestClasses,
+    int SafeCount,
+    int PartialCount,
+    int SemanticHarnessCount,
+    int UnknownCount);
+
+internal sealed record EvidenceFixtureClassification(
+    string TestClass,
+    string Classification,
+    string? ServiceType,
+    string? Reason,
+    IReadOnlyList<string> MatchedDependencies,
+    IReadOnlyList<string> ManualMocks,
+    int? Line = null,
+    string? FilePath = null);
+
+internal static class FixtureClassificationKind
+{
+    public const string SafeMigration = "safe-migration";
+    public const string PartialMigration = "partial-migration";
+    public const string SemanticHarness = "semantic-harness";
+    public const string UnknownReview = "unknown-review";
+}

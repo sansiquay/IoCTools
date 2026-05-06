@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 
 using IoCTools.Generator.Diagnostics;
 using IoCTools.Generator.Utilities;
@@ -131,92 +132,153 @@ internal static class LifetimeDependencyValidator
                 continue;
             }
 
-            var (dependencyLifetime, implementationName) =
-                DependencyLifetimeResolver.GetDependencyLifetimeWithGenericSupportAndImplementationName(
-                    dependency.ServiceType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
-            if (dependencyLifetime == null) continue;
+            var candidates = DependencyLifetimeResolver.GetDependencyLifetimeCandidates(
+                dependency.ServiceType, serviceLifetimes, allRegisteredServices, allImplementations, implicitLifetime);
+            if (candidates.Count == 0) continue;
 
-            var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, dependencyLifetime);
-            ReportLifetimeViolationIfNeeded(context, classDeclaration, classSymbol, violationType, dependencyTypeName,
-                implementationName, diagnosticConfig.LifetimeValidationSeverity, allRegisteredServices);
+            ReportLifetimeViolationsForCandidates(
+                context,
+                classDeclaration,
+                classSymbol,
+                serviceLifetime,
+                dependencyTypeName,
+                candidates,
+                diagnosticConfig.LifetimeValidationSeverity,
+                allRegisteredServices);
         }
     }
 
-    private static void ReportLifetimeViolationIfNeeded(
+    /// <summary>
+    /// Inspects every impl candidate. If all violate, fires the canonical IOC012/013/087.
+    /// If only some violate, fires IOC110 (ambiguous). If none violate, no diagnostic.
+    /// All emitted messages enumerate every impl and its lifetime so consumers do not
+    /// have to guess which one DI will resolve at runtime.
+    /// </summary>
+    private static void ReportLifetimeViolationsForCandidates(
         SourceProductionContext context,
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
-        LifetimeViolationType violationType,
+        string consumerLifetime,
         string dependencyTypeName,
-        string? implementationName,
+        IReadOnlyList<LifetimeImplCandidate> candidates,
         DiagnosticSeverity lifetimeValidationSeverity,
         HashSet<string> allRegisteredServices)
     {
-        if (violationType == LifetimeViolationType.Compatible)
+        var violations = new List<(LifetimeImplCandidate Candidate, LifetimeViolationType Violation)>();
+        var nonViolating = new List<LifetimeImplCandidate>();
+
+        foreach (var candidate in candidates)
+        {
+            var v = LifetimeCompatibilityChecker.GetViolationType(consumerLifetime, candidate.Lifetime);
+            if (v == LifetimeViolationType.Compatible)
+                nonViolating.Add(candidate);
+            else
+                violations.Add((candidate, v));
+        }
+
+        if (violations.Count == 0)
             return;
 
+        var allViolate = nonViolating.Count == 0;
+        var displayInterface = TypeNameUtilities.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
         var location = classDeclaration.GetLocation();
         var serviceName = classSymbol.Name;
 
-        switch (violationType)
+        if (!allViolate)
+        {
+            // Mixed — ambiguous. Fire IOC110 with every impl + its lifetime so the consumer
+            // sees both the violating and the safe candidates.
+            var implList = FormatImplListWithFallback(candidates, dependencyTypeName, allRegisteredServices);
+            var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                DiagnosticDescriptors.AmbiguousLifetimeMultipleImpls, lifetimeValidationSeverity);
+            var diagnostic = Diagnostic.Create(
+                descriptor,
+                location,
+                consumerLifetime,
+                serviceName,
+                displayInterface,
+                implList);
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
+
+        // All-violating. Pivot the descriptor on the first violation kind. Because all violate,
+        // every candidate produces the same descriptor (Singleton-vs-Scoped is uniform across all
+        // candidates when each candidate is Scoped, etc.), so picking the first is correct.
+        var primaryViolation = violations[0].Violation;
+        // If candidates carry mixed *kinds* of violations (e.g. one Scoped and one Transient under a
+        // Singleton consumer), prefer the more severe one (Scoped > Transient).
+        foreach (var (_, v) in violations)
+        {
+            if (v == LifetimeViolationType.SingletonDependsOnScoped ||
+                v == LifetimeViolationType.TransientDependsOnScoped)
+            {
+                primaryViolation = v;
+                break;
+            }
+        }
+
+        var allImplList = FormatImplListWithFallback(candidates, dependencyTypeName, allRegisteredServices);
+        switch (primaryViolation)
         {
             case LifetimeViolationType.SingletonDependsOnScoped:
-                var scopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
-                var scopedDiagnostic = Diagnostic.Create(scopedDescriptor, location, serviceName, dependencyTypeName);
-                context.ReportDiagnostic(scopedDiagnostic);
-                break;
+                {
+                    var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
+                    var diagnostic = Diagnostic.Create(descriptor, location, serviceName, displayInterface, allImplList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
             case LifetimeViolationType.SingletonDependsOnTransient:
-                var displayName = implementationName ??
-                                  DependencyLifetimeResolver.FindImplementationNameForInterface(dependencyTypeName,
-                                      allRegisteredServices) ??
-                                  TypeNameUtilities.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
-                var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                    location, serviceName, displayName);
-                context.ReportDiagnostic(transientDiagnostic);
-                break;
+                {
+                    var diagnostic = Diagnostic.Create(
+                        DiagnosticDescriptors.SingletonDependsOnTransient,
+                        location, serviceName, displayInterface, allImplList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
             case LifetimeViolationType.TransientDependsOnScoped:
-                var transientScopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
-                var transientScopedDiagnostic = Diagnostic.Create(transientScopedDescriptor, location, serviceName, dependencyTypeName);
-                context.ReportDiagnostic(transientScopedDiagnostic);
-                break;
+                {
+                    var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
+                    var diagnostic = Diagnostic.Create(descriptor, location, serviceName, displayInterface, allImplList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
         }
     }
 
-    private static void ReportLifetimeViolationDiagnostics(SourceProductionContext context,
-        TypeDeclarationSyntax classDeclaration,
-        INamedTypeSymbol classSymbol,
-        LifetimeViolationType violationType,
+    private static string FormatImplListWithFallback(
+        IReadOnlyList<LifetimeImplCandidate> candidates,
         string dependencyTypeName,
-        DiagnosticSeverity lifetimeValidationSeverity)
+        HashSet<string> allRegisteredServices)
     {
-        var location = classDeclaration.GetLocation();
-        var serviceName = classSymbol.Name;
-
-        switch (violationType)
+        var sb = new StringBuilder();
+        var displayInterface = TypeNameUtilities.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
+        for (var i = 0; i < candidates.Count; i++)
         {
-            case LifetimeViolationType.SingletonDependsOnScoped:
-                var scopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
-                var scopedDiagnostic = Diagnostic.Create(scopedDescriptor,
-                    location, serviceName, dependencyTypeName);
-                context.ReportDiagnostic(scopedDiagnostic);
-                break;
-            case LifetimeViolationType.SingletonDependsOnTransient:
-                // IOC013 keeps its default Warning severity (not configurable)
-                var transientDiagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
-                    location, serviceName, dependencyTypeName);
-                context.ReportDiagnostic(transientDiagnostic);
-                break;
-            case LifetimeViolationType.TransientDependsOnScoped:
-                var transientScopedDescriptor = DiagnosticUtilities.CreateDynamicDescriptor(
-                    DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
-                var transientScopedDiagnostic = Diagnostic.Create(transientScopedDescriptor,
-                    location, serviceName, dependencyTypeName);
-                context.ReportDiagnostic(transientScopedDiagnostic);
-                break;
+            var c = candidates[i];
+            var displayName = c.ImplName;
+            if (string.IsNullOrEmpty(displayName))
+            {
+                // Registered against the interface key directly — fall back to a synthesized name
+                // so the message never reads "  • (Lifetime)".
+                displayName = DependencyLifetimeResolver.FindImplementationNameForInterface(
+                                  dependencyTypeName, allRegisteredServices)
+                              ?? $"<registered {displayInterface}>";
+            }
+
+            sb.Append("  • ");
+            sb.Append(displayName);
+            sb.Append(" (");
+            sb.Append(c.Lifetime);
+            if (c.IsImplicit)
+                sb.Append(" — implicit, no [Singleton]/[Scoped]/[Transient]");
+            sb.Append(')');
+            if (i < candidates.Count - 1)
+                sb.Append('\n');
         }
+        return sb.ToString();
     }
 
     internal static void ValidateIEnumerableLifetimes(SourceProductionContext context,
@@ -238,7 +300,7 @@ internal static class LifetimeDependencyValidator
         {
             foundImplementations = true;
             ValidateImplementationSet(direct, processed, serviceLifetime, implicitLifetime, context,
-                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
+                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity, allRegisteredServices);
         }
 
         if (innerType.Contains('<') && innerType.Contains('>'))
@@ -248,7 +310,7 @@ internal static class LifetimeDependencyValidator
             {
                 foundImplementations = true;
                 ValidateImplementationSet(generics, processed, serviceLifetime, implicitLifetime, context,
-                    classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
+                    classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity, allRegisteredServices);
             }
         }
 
@@ -262,7 +324,7 @@ internal static class LifetimeDependencyValidator
                     if (!interfaces.Contains(innerType)) continue;
 
                     ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
-                        classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
+                        classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity, allRegisteredServices);
                 }
         }
     }
@@ -276,14 +338,15 @@ internal static class LifetimeDependencyValidator
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         string dependencyTypeName,
-        DiagnosticSeverity lifetimeValidationSeverity)
+        DiagnosticSeverity lifetimeValidationSeverity,
+        HashSet<string> allRegisteredServices)
     {
         foreach (var implementation in implementations)
         {
             if (!processed.Add(implementation.ToDisplayString())) continue;
 
             ValidateImplementationLifetime(implementation, serviceLifetime, implicitLifetime, context,
-                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity);
+                classDeclaration, classSymbol, dependencyTypeName, lifetimeValidationSeverity, allRegisteredServices);
         }
     }
 
@@ -295,17 +358,53 @@ internal static class LifetimeDependencyValidator
         TypeDeclarationSyntax classDeclaration,
         INamedTypeSymbol classSymbol,
         string dependencyTypeName,
-        DiagnosticSeverity lifetimeValidationSeverity)
+        DiagnosticSeverity lifetimeValidationSeverity,
+        HashSet<string> allRegisteredServices)
     {
-        var implLifetime = LifetimeUtilities.GetServiceLifetimeFromSymbol(implementation, implicitLifetime);
+        var (implLifetime, isImplicit) =
+            LifetimeUtilities.GetServiceLifetimeFromSymbolWithSource(implementation, implicitLifetime);
         if (implLifetime == null) return;
 
         var violationType = LifetimeCompatibilityChecker.GetViolationType(serviceLifetime, implLifetime);
-        if (violationType != LifetimeViolationType.Compatible)
+        if (violationType == LifetimeViolationType.Compatible) return;
+
+        // IEnumerable<T> resolves all impls, so each impl is reportable on its own. Render
+        // a single-row list keeping the new message format consistent with the multi-impl path.
+        var implName = TypeNameUtilities.FormatTypeNameForDiagnostic(implementation);
+        var candidates = new List<LifetimeImplCandidate>
         {
-            var displayDependencyName = $"{dependencyTypeName} -> {implementation.Name}";
-            ReportLifetimeViolationDiagnostics(context, classDeclaration, classSymbol, violationType,
-                displayDependencyName, lifetimeValidationSeverity);
+            new(implName, implLifetime, isImplicit)
+        };
+        var displayInterface = TypeNameUtilities.ExtractSimpleTypeNameFromFullName(dependencyTypeName);
+        var implList = FormatImplListWithFallback(candidates, dependencyTypeName, allRegisteredServices);
+        var location = classDeclaration.GetLocation();
+        var serviceName = classSymbol.Name;
+
+        switch (violationType)
+        {
+            case LifetimeViolationType.SingletonDependsOnScoped:
+                {
+                    var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.SingletonDependsOnScoped, lifetimeValidationSeverity);
+                    var diagnostic = Diagnostic.Create(descriptor, location, serviceName, displayInterface, implList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
+            case LifetimeViolationType.SingletonDependsOnTransient:
+                {
+                    var diagnostic = Diagnostic.Create(DiagnosticDescriptors.SingletonDependsOnTransient,
+                        location, serviceName, displayInterface, implList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
+            case LifetimeViolationType.TransientDependsOnScoped:
+                {
+                    var descriptor = DiagnosticUtilities.CreateDynamicDescriptor(
+                        DiagnosticDescriptors.TransientDependsOnScoped, lifetimeValidationSeverity);
+                    var diagnostic = Diagnostic.Create(descriptor, location, serviceName, displayInterface, implList);
+                    context.ReportDiagnostic(diagnostic);
+                    break;
+                }
         }
     }
 }
