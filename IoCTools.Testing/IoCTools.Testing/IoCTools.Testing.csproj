@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.7.1</Version>
-        <PackageVersion>1.7.1</PackageVersion>
-        <AssemblyVersion>1.7.1.0</AssemblyVersion>
-        <FileVersion>1.7.1.0</FileVersion>
+        <Version>1.7.2</Version>
+        <PackageVersion>1.7.2</PackageVersion>
+        <AssemblyVersion>1.7.2.0</AssemblyVersion>
+        <FileVersion>1.7.2.0</FileVersion>
         <Title>IoC Tools Testing Source Generator</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,7 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.7.1: patch over withdrawn v1.7.0 — CLI fixture-evidence build fix. Fixture generator v2 (FixtureMemberPlanner, nullable context, GetRequiredSection, binder-style reads, concrete dependency helpers). See CHANGELOG.md for full notes.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.2: consumer regression fixes — restore [Cover&lt;T&gt;] source-compat via global using injection, fix IOC997 scalar TypedConstant params parsing, downgrade TDIAG08 to Info. See CHANGELOG.md for full notes.</PackageReleaseNotes>
         <Description>Source generator for IoCTools test fixture generation - generates Mock&lt;T&gt; fields, CreateSut() factories, and typed setup helpers for test classes marked with [Cover&lt;TService&gt;].</Description>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>

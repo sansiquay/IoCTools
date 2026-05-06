@@ -1444,11 +1444,17 @@ public void Test()
 
 ### TDIAG08
 
-**Severity:** [!Warning](#) | **Category:** IoCTools.Testing
+**Severity:** [!Info](#) | **Category:** IoCTools.Testing
 
 **Cause:** A test class manually constructs an IoCTools-managed service using `new ServiceType(...)`
 but does not use `[Cover<T>]`. The service has source-generator constructor metadata available,
 meaning the fixture generator could produce mock fields, `CreateSut()`, and setup helpers.
+
+**Note:** TDIAG08 is advisory — legitimate manual construction exists (e.g. surface tests with bespoke
+stubs where `[Cover<T>]` would defeat the test's purpose). Severity is `Info` and will not block
+compilation even in projects with `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`. Consumers
+who want stricter enforcement can set `<IoCToolsTestingDiagnosticSeverity>Warning</IoCToolsTestingDiagnosticSeverity>`
+in their project to escalate TDIAG08 to Warning (and thus to Error when TreatWarningsAsErrors is enabled).
 
 **Fix:** Add `[Cover<ServiceType>]` to the test class (must be `partial`) to auto-generate the fixture
 and eliminate manual mock/constructor boilerplate.

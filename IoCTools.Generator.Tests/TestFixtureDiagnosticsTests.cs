@@ -705,7 +705,7 @@ public partial class MyServiceTests
         descriptor.Id.Should().Be("TDIAG08");
         descriptor.Title.ToString().Should().Contain("Cover");
         descriptor.Category.Should().Be("IoCTools.Testing");
-        descriptor.DefaultSeverity.Should().Be(DiagnosticSeverity.Warning);
+        descriptor.DefaultSeverity.Should().Be(DiagnosticSeverity.Info); // downgraded from Warning in 1.7.2 — advisory, not blocking
         descriptor.IsEnabledByDefault.Should().BeTrue();
         descriptor.Description.ToString().Should().Contain("Cover");
     }
@@ -817,6 +817,48 @@ public partial class MyServiceTests
         var result = CompileWithCover(source);
         var tdiag08 = result.Diagnostics.Where(d => d.Id == "TDIAG08").ToList();
         tdiag08.Should().BeEmpty("class with [Cover<T>] should not emit TDIAG08");
+    }
+
+    [Fact]
+    public void TDIAG08_RespectsIoCToolsTestingDiagnosticSeverity_WhenSetToWarning()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+
+public interface IDep { }
+
+[Scoped]
+[DependsOn<IDep>]
+public partial class MyService { }
+
+public class ManualTests
+{
+    [Fact]
+    public void Test()
+    {
+        var dep = new Moq.Mock<IDep>().Object;
+        var sut = new MyService(dep);
+    }
+}";
+
+        var iocTestingAssembly = typeof(IoCTools.Testing.Annotations.CoverAttribute<>).Assembly;
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(
+            source,
+            analyzerBuildProperties: new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["build_property.IsTestProject"] = "true",
+                ["build_property.IoCToolsTestingDiagnosticSeverity"] = "Warning"
+            },
+            additionalMetadataReferences: new MetadataReference[]
+            {
+                MetadataReference.CreateFromFile(iocTestingAssembly.Location),
+                MetadataReference.CreateFromFile(typeof(FactAttribute).Assembly.Location)
+            });
+
+        var tdiag08 = result.Diagnostics.Where(d => d.Id == "TDIAG08").ToList();
+        tdiag08.Should().NotBeEmpty("manual construction should emit TDIAG08 when property is set");
+        tdiag08.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning),
+            "IoCToolsTestingDiagnosticSeverity=Warning should escalate TDIAG08 from Info to Warning");
     }
 
     #endregion

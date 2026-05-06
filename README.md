@@ -42,9 +42,16 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.7.1
+## What's New in v1.7.2
 
-> v1.7.0 was tagged but never published to NuGet — CI failed in the CLI fixture-evidence build step before the publish job ran. v1.7.1 is the first published release with these features.
+### Fixed in 1.7.2
+- **`[Cover<T>]` source compatibility restored** — `IoCTools.Testing` now injects `IoCTools.Testing.Annotations` as a global using via its MSBuild `.targets` file. Consumers using `PrivateAssets="all"` with no explicit `using` directive no longer receive CS0246 on `Cover<>`, `CoverAttribute<>`, or `FixtureLoggerProfile`.
+- **IOC997 crash on scalar `nameof()` args fixed** — `TestFixtureAnalyzer` now correctly handles `params string[]` attribute arguments stored as scalar `TypedConstant` by the C# compiler (e.g. `[ProjectSignalFrom<T>(nameof(T.Id))]`).
+- **TDIAG08 downgraded to `Info`** — no longer blocks compilation in `TreatWarningsAsErrors=true` projects. Escalate with `<IoCToolsTestingDiagnosticSeverity>Warning</IoCToolsTestingDiagnosticSeverity>` for strict mode.
+
+### Features introduced in v1.7.x (all in 1.7.2)
+
+> v1.7.0 was tagged but never published to NuGet — CI failed in the CLI fixture-evidence build step before the publish job ran. v1.7.1 is the first published release with the 1.7 features, but had consumer regressions fixed in 1.7.2.
 
 - **`AnalysisScope` model + `DiagnosticGate`** — each diagnostic declares
   whether it fires in production projects, test projects, or both.

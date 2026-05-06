@@ -51,6 +51,9 @@ internal static class DiagnosticUtilities
         if (tryGetValue("build_property.IoCToolsInjectDeprecationSeverity", out var injectDeprecationSeverity) &&
             !string.IsNullOrWhiteSpace(injectDeprecationSeverity))
             config.InjectDeprecationSeverity = ParseDiagnosticSeverity(injectDeprecationSeverity!);
+        if (tryGetValue("build_property.IoCToolsTestingDiagnosticSeverity", out var testingDiagnosticSeverity) &&
+            !string.IsNullOrWhiteSpace(testingDiagnosticSeverity))
+            config.TestingDiagnosticSeverity = ParseDiagnosticSeverity(testingDiagnosticSeverity!);
 
         // Parse IoCToolsIgnoredTypePatterns for cross-assembly interface matching
         if (tryGetValue("build_property.IoCToolsIgnoredTypePatterns", out var ignoredPatterns) &&

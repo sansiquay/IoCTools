@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-05-06
+
+### Fixed
+- **`[Cover<T>]` / `CoverAttribute<>` / `FixtureLoggerProfile` source compatibility restored.** `IoCTools.Testing` now injects `<Using Include="IoCTools.Testing.Annotations" />` as a global using via its `build/` and `buildTransitive/` MSBuild `.targets` file. Consumers using `IoCTools.Testing` with `PrivateAssets="all"` (the standard pattern) and no explicit `using IoCTools.Testing.Annotations;` directive no longer receive CS0246. No explicit `IoCTools.Testing.Abstractions` reference required.
+- **IOC997 scalar `TypedConstant` params parsing crash fixed.** `TestFixtureAnalyzer.AddTypedConstantDependency` now checks `value.Kind != TypedConstantKind.Array` before iterating `value.Values`. Previously, a single `nameof()` argument to a `params string[]` attribute parameter was stored by the C# compiler as a scalar `TypedConstant`, causing `InvalidOperationException: TypedConstant is not an array` which surfaced as IOC997. Multi-arg array paths are unchanged.
+- **TDIAG08 severity downgraded from `Warning` to `Info`.** Legitimate manual construction of IoCTools-managed services exists (e.g. surface tests with bespoke stubs). `Info` means TDIAG08 is purely advisory and will not block compilation in projects with `TreatWarningsAsErrors=true`. Consumers who want strict mode can escalate via `<IoCToolsTestingDiagnosticSeverity>Warning</IoCToolsTestingDiagnosticSeverity>`.
+
+[1.7.2]: https://github.com/sansiquay/IoCTools/compare/v1.7.1...v1.7.2
+
 ## [1.7.1] - 2026-05-06
 
 ### Fixed

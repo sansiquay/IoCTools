@@ -3,4 +3,14 @@
     <CompilerVisibleProperty Include="IoCToolsTestingDiagnosticSeverity" />
     <CompilerVisibleProperty Include="IsTestProject" />
   </ItemGroup>
+  <!--
+    Restore the no-import consumer shape for IoCTools.Testing.Annotations types
+    (Cover<T>, CoverAttribute<T>, FixtureLoggerProfile) that were emitted inline
+    by the generator in v1.6.x. In v1.7+ these live in the Abstractions assembly;
+    injecting a global using here preserves source compatibility for consumers
+    using PrivateAssets="all" (no explicit Abstractions package reference).
+  -->
+  <ItemGroup>
+    <Using Include="IoCTools.Testing.Annotations" />
+  </ItemGroup>
 </Project>

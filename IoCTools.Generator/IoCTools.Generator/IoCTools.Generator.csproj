@@ -17,10 +17,10 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-        <Version>1.7.1</Version>
-        <PackageVersion>1.7.1</PackageVersion>
-        <AssemblyVersion>1.7.1.0</AssemblyVersion>
-        <FileVersion>1.7.1.0</FileVersion>
+        <Version>1.7.2</Version>
+        <PackageVersion>1.7.2</PackageVersion>
+        <AssemblyVersion>1.7.2.0</AssemblyVersion>
+        <FileVersion>1.7.2.0</FileVersion>
         <Title>IoC Tools Generator Package</Title>
         <Description>Advanced .NET source generator that automates dependency injection configuration and service registration. Features comprehensive diagnostic validation, inheritance support, and zero-runtime overhead.</Description>
         <Copyright>MIT</Copyright>
@@ -29,7 +29,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.7.1: patch over withdrawn v1.7.0 — CLI fixture-evidence build fix. AnalysisScope model + DiagnosticGate (IOC081/IOC082/IOC086 reclassified Production-only), IOC110 deterministic multi-impl lifetime Warning, IOC073/IOC066, [RegisterAs]+[RegisterAsAll]+IHostedService composition, IOC032 InstanceSharing.Shared exemption, IOC081/082/086 carve-outs, buildTransitive generator targets. See CHANGELOG.md for full notes.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.7.2: consumer regression fixes — restore [Cover&lt;T&gt;] source-compat via global using injection, fix IOC997 scalar TypedConstant params parsing, downgrade TDIAG08 to Info. See CHANGELOG.md for full notes.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

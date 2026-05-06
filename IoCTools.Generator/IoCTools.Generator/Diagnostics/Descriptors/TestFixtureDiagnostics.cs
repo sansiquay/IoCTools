@@ -95,14 +95,17 @@ internal static partial class DiagnosticDescriptors
 
     /// <summary>
     /// TDIAG08: Manual construction of IoCTools-owned service detected, could use [Cover&lt;T&gt;]
+    /// Default severity: Info. Legitimate manual construction exists (e.g. surface tests with bespoke stubs).
+    /// Can be escalated to Warning or Error by setting
+    /// &lt;IoCToolsTestingDiagnosticSeverity&gt;Warning&lt;/IoCToolsTestingDiagnosticSeverity&gt; in the consumer project.
     /// </summary>
     public static readonly DiagnosticDescriptor CouldUseCoverAttribute = new(
         "TDIAG08",
         "Manual service construction detected - consider using [Cover<T>]",
         "Test class '{0}' manually constructs service '{1}' which is IoCTools-managed. Consider adding [Cover<{1}>] to generate fixture members automatically.",
         "IoCTools.Testing",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info,
         true,
-        "Add [Cover<TService>] attribute to the test class (must be partial) to auto-generate Mock<T> fields, CreateSut() factory, typed setup helpers, configuration helpers, and options helpers.",
+        "Add [Cover<TService>] attribute to the test class (must be partial) to auto-generate Mock<T> fields, CreateSut() factory, typed setup helpers, configuration helpers, and options helpers. Legitimate manual construction (e.g. surface tests with custom stubs) can suppress or ignore this suggestion.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag08");
 }

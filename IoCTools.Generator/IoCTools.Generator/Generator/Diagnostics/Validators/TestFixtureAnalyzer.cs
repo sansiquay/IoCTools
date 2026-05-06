@@ -3,6 +3,7 @@ namespace IoCTools.Generator.Generator.Diagnostics.Validators;
 using System.Collections.Immutable;
 
 using IoCTools.Generator.Diagnostics;
+using IoCTools.Generator.Diagnostics.Helpers;
 using IoCTools.Generator.Models;
 using IoCTools.Generator.Utilities;
 
@@ -269,7 +270,7 @@ internal static class TestFixtureAnalyzer
         {
             AnalyzeFixtureOpportunity(testClass, compilation, reportDiagnostic);
             // TDIAG-08: Check for manual construction of IoCTools-owned services
-            EmitCoverOpportunityDiagnostics(testClass, compilation, reportDiagnostic);
+            EmitCoverOpportunityDiagnostics(testClass, compilation, reportDiagnostic, config);
         }
     }
 
@@ -608,6 +609,13 @@ internal static class TestFixtureAnalyzer
             return;
         }
 
+        // Guard: scalar TypedConstants (Primitive, Enum, Error) do not support .Values.
+        // Calling .Values on a non-Array TypedConstant throws "TypedConstant is not an array.
+        // Use Value property". This occurs when a params string[] attribute argument is stored
+        // by the C# compiler as a scalar TypedConstant (e.g. a single nameof() arg).
+        if (value.Kind != TypedConstantKind.Array)
+            return;
+
         foreach (var nested in value.Values)
         {
             AddTypedConstantDependency(nested, dependencies);
@@ -676,7 +684,8 @@ internal static class TestFixtureAnalyzer
     private static void EmitCoverOpportunityDiagnostics(
         INamedTypeSymbol testClass,
         Compilation compilation,
-        Action<Diagnostic> reportDiagnostic)
+        Action<Diagnostic> reportDiagnostic,
+        DiagnosticConfiguration config)
     {
         // Skip if already has [Cover<T>] (we only get here for non-Cover classes, but double-check)
         var hasCover = testClass.GetAttributes().Any(a =>
@@ -725,10 +734,13 @@ internal static class TestFixtureAnalyzer
         }
 
         // Emit TDIAG-08 for each distinct IoCTools-managed service constructed manually
+        var tdiag08Descriptor = DiagnosticDescriptorFactory.WithSeverity(
+            DiagnosticDescriptors.CouldUseCoverAttribute,
+            config.TestingDiagnosticSeverity);
         foreach (var service in constructedServices)
         {
             reportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.CouldUseCoverAttribute,
+                tdiag08Descriptor,
                 testClass.Locations.FirstOrDefault(),
                 testClass.Name,
                 service.Name));

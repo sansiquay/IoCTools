@@ -9,6 +9,7 @@ public class DiagnosticConfiguration
     public bool ManualImplementationSeverityConfigured { get; set; }
     public DiagnosticSeverity LifetimeValidationSeverity { get; set; } = DiagnosticSeverity.Error;
     public DiagnosticSeverity InjectDeprecationSeverity { get; set; } = DiagnosticSeverity.Warning;
+    public DiagnosticSeverity TestingDiagnosticSeverity { get; set; } = DiagnosticSeverity.Info;
     public bool DiagnosticsEnabled { get; set; } = true;
     public bool LifetimeValidationEnabled { get; set; } = true;
 
