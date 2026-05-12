@@ -2,8 +2,11 @@ namespace IoCTools.Generator.Tests;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration;
 
 /// <summary>
@@ -101,6 +104,85 @@ public partial class AbstractConsumer
         var ctor = result.GetConstructorSourceText("AbstractConsumer");
         ctor.Should().Contain("Get<AbstractSettings>()!");
         ctor.Should().NotContain("?? new AbstractSettings()");
+    }
+
+    [Fact]
+    public void OptionalSection_ExternalAssemblyTypeWithInternalCtor_KeepsBangSuppression()
+    {
+        // Codex round-1 must-fix: an external assembly's type with `internal T()` ctor is NOT
+        // accessible to the consumer's compilation. Emitting `new T()` against it would break
+        // the consumer build. The generator must fall through to `!` for this shape.
+        var externalSource = @"
+namespace External;
+public class ExternalOptions
+{
+    internal ExternalOptions() { }
+    public string Value { get; set; } = """";
+}";
+
+        var externalRef = CompileExternalAssemblyAsMetadataReference(externalSource, "ExternalOptionsAssembly");
+
+        var consumerSource = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+using External;
+
+namespace Test;
+public partial class ExternalConsumer
+{
+    [InjectConfiguration(""External"", Required = false)] private readonly ExternalOptions _settings;
+}";
+
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(
+            consumerSource,
+            additionalMetadataReferences: new[] { externalRef });
+        result.HasErrors.Should().BeFalse();
+
+        var ctor = result.GetConstructorSourceText("ExternalConsumer");
+        ctor.Should().Contain(
+            "Get<ExternalOptions>()!",
+            "external type with internal-only parameterless ctor is inaccessible to consumer code");
+        ctor.Should().NotContain(
+            "?? new ExternalOptions()",
+            "emitting `new ExternalOptions()` would not compile in the consumer assembly");
+    }
+
+    private static MetadataReference CompileExternalAssemblyAsMetadataReference(string source, string assemblyName)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Preview));
+        var refs = new List<MetadataReference>
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)
+        };
+        foreach (var name in new[] { "netstandard", "System.Runtime", "System.Private.CoreLib" })
+            try
+            {
+                refs.Add(MetadataReference.CreateFromFile(Assembly.Load(name).Location));
+            }
+            catch
+            {
+                // best-effort
+            }
+
+        var compilation = CSharpCompilation.Create(
+            assemblyName,
+            new[] { syntaxTree },
+            refs,
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable));
+
+        using var ms = new MemoryStream();
+        var emit = compilation.Emit(ms);
+        if (!emit.Success)
+        {
+            var errs = string.Join("\n", emit.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+            throw new InvalidOperationException($"External assembly compile failed:\n{errs}");
+        }
+
+        ms.Position = 0;
+        return MetadataReference.CreateFromStream(ms);
     }
 
     [Fact]

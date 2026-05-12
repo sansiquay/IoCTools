@@ -314,17 +314,34 @@ internal static partial class ConstructorGenerator
         if (type.IsValueType)
             return true;
         if (type is not INamedTypeSymbol nts) return false;
-        // No explicit instance ctors => implicit public parameterless ctor exists.
+        // Only public explicit parameterless ctors are safe to emit `new T()` for.
+        // `internal` ctors are inaccessible from referenced/consuming assemblies — emitting
+        // `new T()` against an external type with `internal T()` would break consumer compilation.
+        // Fall through to `!` in that case (handled by the caller).
+        //
+        // Note on implicit ctors and metadata-loaded symbols:
+        //  - Roslyn's default MetadataImportOptions only surfaces PUBLIC members for referenced
+        //    assemblies, so `InstanceConstructors` on an external type with only an `internal`
+        //    ctor can come back EMPTY. We therefore cannot infer "implicit public parameterless
+        //    ctor" from an empty list when the type lives in a different assembly than the
+        //    compilation under analysis.
         var instanceCtors = nts.InstanceConstructors;
-        if (instanceCtors.IsDefaultOrEmpty) return true;
+        if (instanceCtors.IsDefaultOrEmpty)
+            return IsTypeInCurrentCompilation(nts);
         foreach (var ctor in instanceCtors)
         {
             if (ctor.Parameters.Length == 0 &&
-                (ctor.DeclaredAccessibility == Accessibility.Public ||
-                 ctor.DeclaredAccessibility == Accessibility.Internal))
+                ctor.DeclaredAccessibility == Accessibility.Public)
                 return true;
         }
         return false;
+    }
+
+    private static bool IsTypeInCurrentCompilation(INamedTypeSymbol type)
+    {
+        // Source declarations always have a non-empty DeclaringSyntaxReferences list;
+        // metadata-loaded symbols do not.
+        return !type.DeclaringSyntaxReferences.IsDefaultOrEmpty;
     }
 
     private static bool IsReferenceTypeOrNullable(ITypeSymbol typeSymbol) =>
