@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-05-12
+
+### Changed
+- **`[InjectConfiguration]` / `[DependsOnConfiguration<T>]` optional complex-type sections now fall back to `new T()` when the section is absent, instead of forwarding `null` through the null-forgiving operator.** Previously the generator emitted `configuration.GetSection("X").Get<T>()!`, which silently assigned `null` to the field when the section was absent in `IConfiguration` — every subsequent dereference NPE'd. This was observed end-to-end in Delta's `DeadLetterDiagnosticsProjector`, which crashed when its diagnostics section was missing from `appsettings.*.json`. The generator now emits `configuration.GetSection("X").Get<T>() ?? new T()` for complex-type fields whose type has an accessible parameterless constructor (concrete classes/structs). Required sections (`Required = true`, the default) still throw `InvalidOperationException` when absent — fail-fast semantics are unchanged. Interfaces, abstract classes, and types without a parameterless constructor continue to emit the `!` suppression (unchanged), since `new T()` is not a valid fallback for them. Collection bindings (`List<T>`, `Dictionary<,>`, arrays, …) and primitive `GetValue<T>` bindings are unchanged. Consumers who previously relied on `_field == null` to detect an absent optional section will now observe a default-constructed instance instead; this is a behavior change and the rationale for the minor version bump rather than a patch.
+
 ## [1.7.3] - 2026-05-06
 
 ### Fixed

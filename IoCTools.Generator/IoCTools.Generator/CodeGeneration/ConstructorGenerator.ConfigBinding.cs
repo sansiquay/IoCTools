@@ -89,6 +89,12 @@ internal static partial class ConstructorGenerator
                     if (configField.Required && !hasInheritance)
                         assignment =
                             $"this.{configField.FieldName} = {configurationParameterName}.GetSection(\"{sectionName}\").Get<{fieldTypeName}>() ?? throw new global::System.InvalidOperationException(\"Required configuration section '{sectionName}' is missing\");";
+                    else if (HasAccessibleParameterlessConstructor(configField.FieldType))
+                        // T61: when the config section is absent, Get<T>() returns null. Default-construct T
+                        // instead of forwarding a null reference (which would NRE on field-read in
+                        // non-nullable contexts; the previous `!` only suppressed the warning).
+                        assignment =
+                            $"this.{configField.FieldName} = {configurationParameterName}.GetSection(\"{sectionName}\").Get<{fieldTypeName}>() ?? new {fieldTypeName}();";
                     else
                         assignment =
                             $"this.{configField.FieldName} = {configurationParameterName}.GetSection(\"{sectionName}\").Get<{fieldTypeName}>()!;";
@@ -290,6 +296,36 @@ internal static partial class ConstructorGenerator
     private static string EscapeStringLiteral(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"")
             .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
+
+    /// <summary>
+    /// T61: returns true if <paramref name="type"/> is a concrete class or struct that can be
+    /// default-constructed via <c>new T()</c> from the generated constructor. Used to emit a
+    /// safe fallback (<c>?? new T()</c>) when an absent configuration section yields a null
+    /// from <c>IConfiguration.GetSection(...).Get&lt;T&gt;()</c>.
+    /// Excludes: interfaces, abstract classes, type parameters, types with no accessible
+    /// parameterless constructor. Structs always qualify (default ctor synthesized by the runtime).
+    /// </summary>
+    private static bool HasAccessibleParameterlessConstructor(ITypeSymbol type)
+    {
+        if (type is null) return false;
+        if (type.TypeKind == TypeKind.Interface) return false;
+        if (type.TypeKind == TypeKind.TypeParameter) return false;
+        if (type is INamedTypeSymbol named && named.IsAbstract) return false;
+        if (type.IsValueType)
+            return true;
+        if (type is not INamedTypeSymbol nts) return false;
+        // No explicit instance ctors => implicit public parameterless ctor exists.
+        var instanceCtors = nts.InstanceConstructors;
+        if (instanceCtors.IsDefaultOrEmpty) return true;
+        foreach (var ctor in instanceCtors)
+        {
+            if (ctor.Parameters.Length == 0 &&
+                (ctor.DeclaredAccessibility == Accessibility.Public ||
+                 ctor.DeclaredAccessibility == Accessibility.Internal))
+                return true;
+        }
+        return false;
+    }
 
     private static bool IsReferenceTypeOrNullable(ITypeSymbol typeSymbol) =>
         typeSymbol.IsReferenceType || (typeSymbol is INamedTypeSymbol namedType &&
