@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Documentation
+- **Clarified `ConcreteHandling.ForceMock` requires virtual public methods on the concrete target type.** The 1.9.0 release notes implied broader applicability than reality. Moq can only intercept `virtual`/`abstract` instance methods on classes, so `ForceMock` fixtures targeting a concrete with non-virtual public methods (the C# default — and the dominant Delta shape: `[Scoped] partial class` with sealed-by-default methods) compile cleanly, then `Setup(...)` silently no-ops and the real method body runs against default backing fields, typically throwing `NullReferenceException` at runtime. XML doc comments on `CoverAttribute<>.ConcreteHandling` and `ConcreteHandling.ForceMock` updated; `docs/testing.md` gained a "Concrete Handling Modes" section documenting the constraint and recommending interface extraction for sealed concretes. Empirical basis: workbench re-audit `docs/cover-migration-iocstools-1.9.0-reaudit-2026-05-17.md` (0 of 11 audited Delta candidates unblocked by `ForceMock` alone).
+
 ## [1.9.0] - 2026-05-17
 
 ### Added

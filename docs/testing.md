@@ -209,6 +209,61 @@ var result = Sut.Handle(command);
 Concrete dependencies without a public parameterless constructor are not auto-instantiated by the
 fixture generator. Keep those explicit or model them as IoCTools-managed dependencies first.
 
+### Concrete Handling Modes (`ConcreteHandling`)
+
+`[Cover<T>]` exposes a `ConcreteHandling` knob (added in 1.9.0) that controls whether
+concrete-class constructor dependencies are materialized as real instances (the default) or
+substituted with `Mock<T>`:
+
+```csharp
+[Cover<OrderHandler>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class OrderHandlerTests { ... }
+```
+
+| Mode | Behavior |
+|------|----------|
+| `Auto` (default) | Concrete classes with a public parameterless constructor are emitted as real instances (`ConfigureX(Action<X>)` helper). Everything else is mocked. Preserves historical 1.x behavior. |
+| `ForceMock` | Every non-special constructor parameter is emitted as `Mock<T>`, including concrete classes that would otherwise be auto-promoted. Use when the SUT composes a concrete collaborator from port mocks and the test wants to preserve depth-2/3 mock coverage. |
+
+#### ForceMock requires virtual methods on the target concrete
+
+**Constraint:** Moq can only intercept `virtual` (or `abstract`) instance methods on classes.
+`ForceMock` emits `Mock<TConcrete>`, but `Setup(x => x.Method(...))` against a non-virtual public
+method **compiles cleanly and silently no-ops** — the real method body then runs against default
+backing fields and typically throws `NullReferenceException` at runtime. The generated fixture
+itself builds fine; the failure surfaces only when the test invokes the unintercepted method.
+
+**When `ForceMock` works:**
+- The concrete dependency marks its public methods `virtual` (e.g. a base class designed for
+  overriding) or is `abstract`.
+- The concrete dependency is a POCO / record / property-bag whose entire surface is properties
+  (no method behavior to intercept).
+
+**When `ForceMock` does NOT work:**
+- The concrete dependency is a sealed-by-default service class with non-virtual public methods
+  (the C# default, and the dominant IoCTools `[Scoped] partial class` shape). `Mock<T>` will be
+  constructed, `Setup` calls will be silently dropped, and the SUT will execute the real method
+  body against a mock whose dependencies are still `default(T)`.
+
+**Recommended workaround:** extract an interface for the concrete dependency and consume the
+interface from the SUT. `Auto` mode then yields a working `Mock<IDependency>` with no
+interception caveat — this is the canonical path for service-shaped concretes.
+
+```csharp
+// Before — ForceMock cannot intercept ExecuteAsync on a sealed-by-default class
+[Scoped] public partial class RestartPlanExecutionService {
+    public Task ExecuteAsync(...) { ... }   // non-virtual: Setup() no-ops
+}
+
+// After — extract interface, consume from SUT, Auto mode mocks it
+public interface IRestartPlanExecutionService { Task ExecuteAsync(...); }
+[Scoped] public partial class RestartPlanExecutionService : IRestartPlanExecutionService { ... }
+```
+
+See the workbench re-audit memo `cover-migration-iocstools-1.9.0-reaudit-2026-05-17.md` for the
+empirical basis (0 of 11 audited Delta candidates unblocked by `ForceMock` alone, because all
+were sealed-by-default service classes).
+
 ### Options Helpers
 
 For `IOptions<T>`, `IOptionsSnapshot<T>`, and `IOptionsMonitor<T>` dependencies, two helpers are generated.
