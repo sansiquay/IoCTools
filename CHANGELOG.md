@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-05-17
+
+### Added
+- **`[Cover<T>(ConcreteHandling = ConcreteHandling.ForceMock)]` opt-out for the auto-concrete promotion path.** Previously, every concrete-class constructor dependency with an accessible parameterless constructor was silently materialized as a real instance (`ParameterRole.ConcreteInstance`) with a `Configure{Dep}(Action<T>)` helper. Tests whose SUT composes a concrete collaborator from port mocks lost depth-2/3 mock coverage as a result — the dominant driver of the empirically observed `[Cover<T>]` migration BAIL rate on Delta. The new `ConcreteHandling` named argument on `CoverAttribute<TService>` (enum: `Auto` (default, preserves prior behavior), `ForceMock`) lets a test opt every non-special concrete dependency into the standard `Mock<T>` substitution. `Auto` remains the default, so existing fixtures are unchanged.
+
+### Changed
+- **`TestFixturePipeline` syntax predicate tightened.** The pipeline used to run the semantic model on every `TypeDeclarationSyntax` in the compilation and then filter by attribute. It now syntactically pre-filters to types whose attribute lists name `Cover` / `CoverAttribute` (covering `[Cover<T>]`, `[CoverAttribute<T>]`, and the fully-qualified form), eliminating semantic-model invocations on the entire production codebase referenced by a test project. IDE responsiveness improvement; no consumer-visible behavior change beyond the namespace-match fix below.
+- **`TestFixturePipeline` namespace match now exact instead of substring.** Previously `a.AttributeClass?.ToDisplayString().Contains("IoCTools.Testing")` would false-positive on consumer namespaces containing the substring (e.g. `MyCorp.IoCTools.Testing.Extensions.CoverAttribute<T>`), causing a duplicate fixture to be emitted under the wrong attribute resolution. The check is now an exact comparison against `IoCTools.Testing.Annotations`. Consumers who happened to name their own attribute `CoverAttribute<T>` inside an unrelated namespace are no longer incorrectly picked up.
+- **`Cover<T>.Logger` named argument now parsed by enum-member symbol name** rather than raw int value, so future reorderings of `FixtureLoggerProfile` enum members cannot silently misclassify. Falls back to the prior integer comparison defensively.
+
+### Fixed
+- **`FixtureEmitter.CurrentOptionsProfile` mutable-static state removed.** Roslyn incremental generators must be pure functions of their inputs; a mutable static property breaks the generator cache and can race when multiple compilations run concurrently in the same generator-host AppDomain (long-lived IDE sessions, multi-project solutions). The property was unread outside its own declaration in production code; it has been deleted. No consumer-visible behavior change.
+
 ## [1.8.0] - 2026-05-12
 
 ### Changed

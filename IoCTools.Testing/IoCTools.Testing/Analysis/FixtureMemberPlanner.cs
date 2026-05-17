@@ -19,9 +19,10 @@ internal static class FixtureMemberPlanner
     /// </summary>
     public static ImmutableArray<FixtureMember> Plan(
         ImmutableArray<IParameterSymbol> parameters,
-        CodeGeneration.LoggerProfile loggerProfile = CodeGeneration.LoggerProfile.Mock)
+        CodeGeneration.LoggerProfile loggerProfile = CodeGeneration.LoggerProfile.Mock,
+        CodeGeneration.ConcreteHandlingMode concreteHandling = CodeGeneration.ConcreteHandlingMode.Auto)
     {
-        var members = parameters.Select(p => CreateMember(p, loggerProfile)).ToArray();
+        var members = parameters.Select(p => CreateMember(p, loggerProfile, concreteHandling)).ToArray();
 
         // Detect and resolve naming collisions
         ResolveCollisions(members);
@@ -47,9 +48,10 @@ internal static class FixtureMemberPlanner
 
     private static FixtureMember CreateMember(
         IParameterSymbol parameter,
-        CodeGeneration.LoggerProfile loggerProfile)
+        CodeGeneration.LoggerProfile loggerProfile,
+        CodeGeneration.ConcreteHandlingMode concreteHandling)
     {
-        var role = DetectRole(parameter);
+        var role = DetectRole(parameter, concreteHandling);
         role = AdjustRoleForProfile(parameter, role, loggerProfile);
         var fieldName = GetFieldName(parameter, role);
         var setupMethodName = GetSetupMethodName(parameter, role);
@@ -67,6 +69,17 @@ internal static class FixtureMemberPlanner
     /// Detects the special role of a constructor parameter based on its type.
     /// </summary>
     public static ParameterRole DetectRole(IParameterSymbol parameter)
+        => DetectRole(parameter, CodeGeneration.ConcreteHandlingMode.Auto);
+
+    /// <summary>
+    /// Detects the special role of a constructor parameter based on its type and the
+    /// fixture's concrete-handling mode. <see cref="CodeGeneration.ConcreteHandlingMode.ForceMock"/>
+    /// suppresses the auto-concrete promotion so concrete classes fall through to
+    /// <see cref="ParameterRole.Normal"/> (i.e. Mock&lt;T&gt;).
+    /// </summary>
+    public static ParameterRole DetectRole(
+        IParameterSymbol parameter,
+        CodeGeneration.ConcreteHandlingMode concreteHandling)
     {
         var type = parameter.Type;
         var typeName = type.ToDisplayString();
@@ -109,7 +122,7 @@ internal static class FixtureMemberPlanner
             return ParameterRole.Validator;
         }
 
-        if (CanUseConcreteInstance(type))
+        if (concreteHandling == CodeGeneration.ConcreteHandlingMode.Auto && CanUseConcreteInstance(type))
         {
             return ParameterRole.ConcreteInstance;
         }

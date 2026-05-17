@@ -15,13 +15,15 @@ internal readonly struct TestClassInfo
         TypeDeclarationSyntax testClassDeclaration,
         SemanticModel semanticModel,
         INamedTypeSymbol serviceSymbol,
-        LoggerProfile loggerProfile = LoggerProfile.Mock)
+        LoggerProfile loggerProfile = LoggerProfile.Mock,
+        ConcreteHandlingMode concreteHandling = ConcreteHandlingMode.Auto)
     {
         TestClassSymbol = testClassSymbol;
         TestClassDeclaration = testClassDeclaration;
         SemanticModel = semanticModel;
         ServiceSymbol = serviceSymbol;
         LoggerProfile = loggerProfile;
+        ConcreteHandling = concreteHandling;
     }
 
     public INamedTypeSymbol TestClassSymbol { get; }
@@ -29,6 +31,7 @@ internal readonly struct TestClassInfo
     public SemanticModel SemanticModel { get; }
     public INamedTypeSymbol ServiceSymbol { get; }
     public LoggerProfile LoggerProfile { get; }
+    public ConcreteHandlingMode ConcreteHandling { get; }
 
     public string TestClassName => TestClassSymbol.Name;
     public string TestClassNamespace => TestClassSymbol.ContainingNamespace?.ToString() ?? string.Empty;
