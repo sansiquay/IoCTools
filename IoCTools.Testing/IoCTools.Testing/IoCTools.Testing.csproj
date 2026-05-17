@@ -5,10 +5,10 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.8.0</Version>
-        <PackageVersion>1.8.0</PackageVersion>
-        <AssemblyVersion>1.8.0.0</AssemblyVersion>
-        <FileVersion>1.8.0.0</FileVersion>
+        <Version>1.9.0</Version>
+        <PackageVersion>1.9.0</PackageVersion>
+        <AssemblyVersion>1.9.0.0</AssemblyVersion>
+        <FileVersion>1.9.0.0</FileVersion>
         <Title>IoC Tools Testing Source Generator</Title>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/sansiquay/IoCTools</PackageProjectUrl>
@@ -16,7 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.8.0: [InjectConfiguration] optional complex-type sections now fall back to new T() when absent, instead of leaking null through the null-forgiving operator. Eliminates downstream NPE observed on absent config sections. Required sections unchanged. See CHANGELOG.md.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.9.0: [Cover&lt;T&gt;] adds ConcreteHandling knob (Auto default; ForceMock opts out of auto-concrete promotion so concrete-class deps materialize as Mock&lt;T&gt;). Pipeline namespace match tightened to exact IoCTools.Testing.Annotations (no false-positives on consumer namespaces containing that substring). Generator state purity restored — static-mutable CurrentOptionsProfile removed. All changes additive and non-breaking. See CHANGELOG.md.</PackageReleaseNotes>
         <Description>Source generator for IoCTools test fixture generation - generates Mock&lt;T&gt; fields, CreateSut() factories, and typed setup helpers for test classes marked with [Cover&lt;TService&gt;].</Description>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>

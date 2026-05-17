@@ -16,8 +16,6 @@ using Microsoft.CodeAnalysis.Text;
 
 internal static class FixtureEmitter
 {
-    public static OptionsHelperProfile CurrentOptionsProfile { get; set; } = OptionsHelperProfile.Full;
-
     public static void Emit(SourceProductionContext context, TestClassInfo testClass)
     {
         var parameters = ConstructorReader.GetConstructorParameters(testClass.ServiceSymbol);
@@ -35,7 +33,7 @@ internal static class FixtureEmitter
         ImmutableArray<IParameterSymbol> parameters,
         bool hasFluentValidation)
     {
-        var planned = FixtureMemberPlanner.Plan(parameters, testClass.LoggerProfile);
+        var planned = FixtureMemberPlanner.Plan(parameters, testClass.LoggerProfile, testClass.ConcreteHandling);
         var sb = new StringBuilder();
 
         var classNs = testClass.TestClassNamespace;
@@ -651,4 +649,15 @@ internal enum OptionsHelperProfile
 {
     Full,
     Minimal,
+}
+
+/// <summary>
+/// Internal mirror of the public <c>IoCTools.Testing.Annotations.ConcreteHandling</c> enum,
+/// used by pipeline + planner to decide whether concrete-class params are emitted as real
+/// instances (Auto, default) or as Mock&lt;T&gt; substitutes (ForceMock).
+/// </summary>
+internal enum ConcreteHandlingMode
+{
+    Auto,
+    ForceMock,
 }
