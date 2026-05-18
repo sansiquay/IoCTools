@@ -71,7 +71,7 @@ namespace TestApp
     }
 
     [Fact]
-    public void RegisterAsWithoutLifetime_RegistersInterfaceOnly()
+    public void RegisterAsWithoutLifetime_RegistersConcreteAndInterface()
     {
         var source = @"
 using IoCTools.Abstractions.Annotations;
@@ -89,13 +89,16 @@ namespace TestApp
 
         var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
 
-        // TODO: GENERATOR BUG - Same issue, generator is producing error diagnostics when it shouldn't
-        // Skip the diagnostic verification for now (expected no errors).
+        // [RegisterAs<T>] without an explicit lifetime attribute uses intelligent inference
+        // and emits no error diagnostics.
+        result.HasErrors.Should()
+            .BeFalse($"Compilation errors: {string.Join(", ", result.Diagnostics.Select(d => d.GetMessage()))}");
 
         var registrationContent = result.GetServiceRegistrationText();
-        // TODO: GENERATOR BUG - Same issue as above test
-        // Expected: RegisterAs without Lifetime should only register interfaces
-        // Skip the concrete-registration check for now.
+
+        // Concrete class is registered alongside the specified interface.
+        registrationContent.Should()
+            .Contain("services.AddScoped<global::TestApp.SpecificRegistrationService, global::TestApp.SpecificRegistrationService>");
 
         // Should register the interface specified in RegisterAs
         registrationContent.Should()
