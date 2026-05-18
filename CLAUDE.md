@@ -45,8 +45,8 @@ Severity options: `Error`, `Warning`, `Info`, `Hidden`. Full diagnostic table in
 - Services must be `partial` (enforced by IOC080)
 - `[Inject]` deprecated in 1.6.0 (IOC095); `[DependsOn<T>]` is canonical for declarative deps
 - Auto-deps (1.6.0+): `[assembly: AutoDep<T>]`, `[assembly: AutoDepOpen(typeof(ILogger<>))]`, profiles via `IAutoDepsProfile` + `[AutoDepIn<TProfile, T>]` / `[AutoDepsApply<TProfile, TBase>]`. `Microsoft.Extensions.Logging.ILogger<T>` auto-detects when referenced.
-- `[RegisterAs<T>(InstanceSharing.Shared)]` for factory pattern (same instance across interfaces)
-- `[RegisterAs<T>]` without lifetime = RegisterAs-only (e.g., EF DbContext registered externally)
+- `[RegisterAs<T>(InstanceSharing.Shared)]` for factory pattern (same instance across interfaces); without explicit lifetime this is interface-only (concrete registered externally, e.g. EF DbContext)
+- `[RegisterAs<T>]` without explicit lifetime uses intelligent inference (Scoped default) and registers concrete + specified interfaces
 - `[InjectConfiguration]` for config binding; `[ExternalService]` for cross-assembly deps
 - `[RegisterAsAll]` with `RegistrationMode` for multi-interface registration
 - Constructor gen: base deps first, then derived; indexed vars (`d1`, `d2`); `base()` chaining
