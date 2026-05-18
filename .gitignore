@@ -37,3 +37,9 @@ artifacts/
 
 # Per-developer planning workspace (GSD)
 .planning/
+
+# Test-fixture residue from CliEvidenceCommandTests (six `{Type}Tests_{Guid:N}.cs`
+# patterns written into the FixtureEvidence test project root and deleted in
+# `finally`). Orphans when the test process is killed mid-run. Committed
+# fixture tests live in `Tests/` subdirs, so this top-level glob is safe.
+IoCTools.Tools.Cli.Tests/TestProjects/FixtureEvidence.TestsProject/*Tests_*.cs
