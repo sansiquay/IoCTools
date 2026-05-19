@@ -284,9 +284,9 @@ internal static partial class ConstructorGenerator
         var typeName = targetType.ToDisplayString();
         return typeName switch
         {
-            "System.TimeSpan" => $"global::System.TimeSpan.Parse(\"{EscapeStringLiteral(stringValue)}\")",
-            "System.DateTime" => $"global::System.DateTime.Parse(\"{EscapeStringLiteral(stringValue)}\")",
-            "System.DateTimeOffset" => $"global::System.DateTimeOffset.Parse(\"{EscapeStringLiteral(stringValue)}\")",
+            "System.TimeSpan" => $"global::System.TimeSpan.Parse(\"{EscapeStringLiteral(stringValue)}\", global::System.Globalization.CultureInfo.InvariantCulture)",
+            "System.DateTime" => $"global::System.DateTime.Parse(\"{EscapeStringLiteral(stringValue)}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
+            "System.DateTimeOffset" => $"global::System.DateTimeOffset.Parse(\"{EscapeStringLiteral(stringValue)}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
             "System.Guid" => $"global::System.Guid.Parse(\"{EscapeStringLiteral(stringValue)}\")",
             "System.Uri" => $"new global::System.Uri(\"{EscapeStringLiteral(stringValue)}\")",
             _ => $"\"{EscapeStringLiteral(stringValue)}\""
@@ -359,9 +359,9 @@ internal static partial class ConstructorGenerator
             string str => targetTypeName switch
             {
                 "string" => $"\"{str}\"",
-                "TimeSpan" => $"TimeSpan.Parse(\"{str}\")",
-                "DateTime" => $"DateTime.Parse(\"{str}\")",
-                "DateTimeOffset" => $"DateTimeOffset.Parse(\"{str}\")",
+                "TimeSpan" => $"global::System.TimeSpan.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture)",
+                "DateTime" => $"global::System.DateTime.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
+                "DateTimeOffset" => $"global::System.DateTimeOffset.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
                 "Guid" => $"Guid.Parse(\"{str}\")",
                 "Uri" => $"new Uri(\"{str}\")",
                 _ => $"\"{str}\""

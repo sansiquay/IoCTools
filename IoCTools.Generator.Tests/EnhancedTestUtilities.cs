@@ -618,9 +618,11 @@ public static class EnhancedTestUtilities
         if (type.Contains("bool"))
             return defaultValue.ToLowerInvariant();
         if (type.Contains("TimeSpan"))
-            return $"global::System.TimeSpan.Parse(\"{defaultValue}\")";
+            return $"global::System.TimeSpan.Parse(\"{defaultValue}\", global::System.Globalization.CultureInfo.InvariantCulture)";
+        if (type.Contains("DateTimeOffset"))
+            return $"global::System.DateTimeOffset.Parse(\"{defaultValue}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)";
         if (type.Contains("DateTime"))
-            return $"global::System.DateTime.Parse(\"{defaultValue}\")";
+            return $"global::System.DateTime.Parse(\"{defaultValue}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)";
         return defaultValue;
     }
 

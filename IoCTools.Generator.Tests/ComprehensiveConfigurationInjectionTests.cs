@@ -682,7 +682,7 @@ public partial class DefaultValueService
         // TimeSpan default values are handled with proper parsing
         constructorSource.Content.Should()
             .Contain(
-                "this._cacheTtl = configuration.GetValue<global::System.TimeSpan>(\"Cache:TTL\", global::System.TimeSpan.Parse(\"00:05:00\"))");
+                "this._cacheTtl = configuration.GetValue<global::System.TimeSpan>(\"Cache:TTL\", global::System.TimeSpan.Parse(\"00:05:00\", global::System.Globalization.CultureInfo.InvariantCulture))");
     }
 
     [Fact]
