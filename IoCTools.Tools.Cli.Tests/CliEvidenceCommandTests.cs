@@ -183,7 +183,7 @@ public interface IClock
 
 public sealed class TestClock : IClock
 {
-    public DateTimeOffset UtcNow { get; } = DateTimeOffset.Parse("2026-05-05T00:00:00Z");
+    public DateTimeOffset UtcNow { get; } = DateTimeOffset.Parse("2026-05-05T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 public interface IClockBackedRepository

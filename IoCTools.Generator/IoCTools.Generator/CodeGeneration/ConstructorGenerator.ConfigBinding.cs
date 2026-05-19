@@ -359,9 +359,9 @@ internal static partial class ConstructorGenerator
             string str => targetTypeName switch
             {
                 "string" => $"\"{str}\"",
-                "TimeSpan" => $"TimeSpan.Parse(\"{str}\")",
-                "DateTime" => $"DateTime.Parse(\"{str}\")",
-                "DateTimeOffset" => $"DateTimeOffset.Parse(\"{str}\")",
+                "TimeSpan" => $"global::System.TimeSpan.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture)",
+                "DateTime" => $"global::System.DateTime.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
+                "DateTimeOffset" => $"global::System.DateTimeOffset.Parse(\"{str}\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)",
                 "Guid" => $"Guid.Parse(\"{str}\")",
                 "Uri" => $"new Uri(\"{str}\")",
                 _ => $"\"{str}\""
