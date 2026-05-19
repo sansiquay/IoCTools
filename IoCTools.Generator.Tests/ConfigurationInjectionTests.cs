@@ -40,7 +40,7 @@ public partial class DefaultValueService
         // Configuration calls should include default values when specified
         constructorContent.Should().Contain("configuration.GetValue<int>(\"Database:Timeout\", 30)");
         constructorContent.Should().Contain(
-            "configuration.GetValue<global::System.TimeSpan>(\"Cache:TTL\", global::System.TimeSpan.Parse(\"00:05:00\"))");
+            "configuration.GetValue<global::System.TimeSpan>(\"Cache:TTL\", global::System.TimeSpan.Parse(\"00:05:00\", global::System.Globalization.CultureInfo.InvariantCulture))");
         constructorContent.Should().Contain("configuration.GetValue<string>(\"App:Name\", \"MyApp\")");
         constructorContent.Should().Contain("configuration.GetValue<bool>(\"Features:EnableDebug\", false)");
     }
@@ -149,6 +149,84 @@ public partial class CarriageReturnValueService
         result.HasErrors.Should().BeFalse();
         var constructorContent = result.GetConstructorSourceText("CarriageReturnValueService");
         constructorContent.Should().Contain("configuration.GetValue<string>(\"Message\", \"Line1\\rLine2\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueDateTime_EmitsInvariantCultureParse()
+    {
+        // Arrange — ISO 8601 round-trip value; culture-sensitive parse would break on non-en-US hosts
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+using System;
+
+namespace Test;
+public partial class DateTimeDefaultService
+{
+    [InjectConfiguration(""App:StartDate"", DefaultValue = ""2024-01-15T08:30:00"")]
+    private readonly DateTime _startDate;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("DateTimeDefaultService");
+        constructorContent.Should().Contain(
+            "global::System.DateTime.Parse(\"2024-01-15T08:30:00\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)");
+        constructorContent.Should().NotContain("DateTime.Parse(\"2024-01-15T08:30:00\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueDateTimeOffset_EmitsInvariantCultureParse()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+using System;
+
+namespace Test;
+public partial class DateTimeOffsetDefaultService
+{
+    [InjectConfiguration(""App:CreatedAt"", DefaultValue = ""2024-01-15T08:30:00+02:00"")]
+    private readonly DateTimeOffset _createdAt;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("DateTimeOffsetDefaultService");
+        constructorContent.Should().Contain(
+            "global::System.DateTimeOffset.Parse(\"2024-01-15T08:30:00+02:00\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind)");
+        constructorContent.Should().NotContain("DateTimeOffset.Parse(\"2024-01-15T08:30:00+02:00\")");
+    }
+
+    [Fact]
+    public void ConfigurationInjection_DefaultValueTimeSpan_EmitsInvariantCultureParse()
+    {
+        // Arrange
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using Microsoft.Extensions.Configuration;
+using System;
+
+namespace Test;
+public partial class TimeSpanDefaultService
+{
+    [InjectConfiguration(""Cache:TTL"", DefaultValue = ""00:05:00"")]
+    private readonly TimeSpan _cacheTtl;
+}";
+        // Act
+        var result = SourceGeneratorTestHelper.CompileWithGenerator(source);
+
+        // Assert
+        result.HasErrors.Should().BeFalse();
+        var constructorContent = result.GetConstructorSourceText("TimeSpanDefaultService");
+        constructorContent.Should().Contain(
+            "global::System.TimeSpan.Parse(\"00:05:00\", global::System.Globalization.CultureInfo.InvariantCulture)");
+        constructorContent.Should().NotContain("TimeSpan.Parse(\"00:05:00\")");
     }
 
     #endregion
