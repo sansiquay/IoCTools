@@ -538,6 +538,12 @@ ioc-tools evidence \
   --json
 ```
 
+Verified CLI signature (from `dotnet ioc-tools` usage banner):
+
+```
+dotnet ioc-tools evidence --project <csproj> --test-fixtures [--production-project <csproj>] [--settings appsettings.json]
+```
+
 Evidence mode detects manual `Mock<T>` fields matching constructor
 dependencies, manual `new Service(...)` and `CreateSut() => new Service(...)`
 helpers, logger/null-logger wiring, `Options.Create(...)` patterns, and
@@ -545,6 +551,51 @@ test classes that already use `[Cover<T>]` but still carry duplicate setup.
 It classifies each candidate as safe migration, partial migration, already
 covered, not a target, or unknown/manual review. It does not generate or
 recommend business assertions.
+
+### Before / After
+
+A typical hand-wired Moq fixture the evidence pass flags as a `safe migration`
+candidate:
+
+```csharp
+// Before — hand-wired mocks, hand-rolled SUT factory
+public class UserServiceTests
+{
+    private readonly Mock<IUserRepository> _userRepository = new();
+    private readonly Mock<IEmailService> _emailService = new();
+    private readonly Mock<ILogger<UserService>> _logger = new();
+
+    private UserService CreateSut() =>
+        new UserService(_userRepository.Object, _emailService.Object, _logger.Object);
+}
+```
+
+After migration the test class declares `[Cover<T>]` and the fixture is
+compile-time generated — mock fields, `Sut`, and `CreateSut()` come from the
+source generator:
+
+```csharp
+// After — generated fixture via [Cover<T>]
+[Cover<UserService>]
+public partial class UserServiceTests
+{
+    // _userRepository / _emailService / _logger and Sut / CreateSut() are generated.
+}
+```
+
+### Do not replace fixture generation with runtime reflection
+
+`[Cover<T>]` is intentionally a compile-time source-generator pathway — the
+generator inspects the SUT's constructor signature at build time and emits
+strongly-typed `Mock<T>` fields, accessor properties, and a `CreateSut()`
+factory. **Do not** replace this with runtime scanning, reflection-based mock
+factories, or a service-locator that builds the SUT from a registered mock
+bag. That pathway is rejected by IoCTools doctrine: it defeats compile-time
+TDIAG diagnostics, breaks IDE navigation/refactor, and re-introduces the
+runtime-failure mode `[Cover<T>]` exists to eliminate. If you find yourself
+needing reflection to generate or wire a fixture, file an issue against
+IoCTools instead of working around it — the gap should be closed in the
+generator, not in consumer test code.
 
 ---
 

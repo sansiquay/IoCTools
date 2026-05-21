@@ -19,14 +19,21 @@ dotnet tool install --global --add-source ./artifacts IoCTools.Tools.Cli
 
 ```bash
 ioc-tools evidence --project MyProject.csproj --json
+ioc-tools evidence --project tests/MyApp.Tests.csproj --test-fixtures --production-project src/MyApp.csproj --json
 ioc-tools suppress --project MyProject.csproj --codes IOC035,IOC092 --json
 ioc-tools validator-graph --project MyProject.csproj --why MyValidator --json
 ```
 
 - `evidence` emits one correlated bundle across registrations, diagnostics, configuration, validators, migration hints, and generated artifacts.
+- `evidence --test-fixtures --production-project <csproj>` scans a test project for hand-wired `Mock<T>` fields, manual `new Service(...)` helpers, and `Options.Create(...)` boilerplate that can move to `[Cover<T>]`. Each candidate is classified as `safe migration`, `partial migration`, `already covered`, `not a target`, or `unknown/manual review`. See [`docs/testing.md` → CLI Fixture Evidence](../docs/testing.md#cli-fixture-evidence) for the before/after example.
 - `evidence --baseline <dir> --output <dir> --json` adds stable artifact fingerprints and structured compare deltas with `added`, `removed`, `changed`, and `unchanged` status.
 - `suppress --json` emits structured suppression metadata alongside the `.editorconfig` recipe.
 - `validator-graph --json` and `validator-graph --why --json` emit structured contracts for validator topology and lifetime reasoning.
+
+> **Do not** replace `[Cover<T>]` compile-time fixture generation with runtime
+> scanning/reflection. That pathway is rejected by IoCTools doctrine — file an
+> issue against IoCTools if you hit a gap in the generator instead of working
+> around it.
 
 ## Authoring Guidance
 
