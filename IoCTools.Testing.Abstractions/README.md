@@ -51,4 +51,4 @@ pass does not modify code — it lists the manual setup that can move to
 > issue against IoCTools if you hit a gap in the generator instead of working
 > around it in consumer test code.
 
-[Full testing guide](../../docs/testing.md)
+[Full testing guide](../docs/testing.md)
