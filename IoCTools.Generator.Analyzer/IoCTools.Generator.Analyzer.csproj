@@ -34,7 +34,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.8.0: [InjectConfiguration] optional complex-type sections now fall back to new T() when absent, instead of leaking null through the null-forgiving operator. Eliminates downstream NPE observed on absent config sections. Required sections unchanged. See CHANGELOG.md.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.9.0: version-coherence rebuild — no functional changes in this package. The 1.9.0 feature work landed in IoCTools.Testing / IoCTools.Testing.Abstractions ([Cover&lt;T&gt;] ConcreteHandling knob, TestFixturePipeline namespace-exact match, FixtureEmitter static-mutable purge). Carries forward the 1.8.0 [InjectConfiguration] null-fallback behavior change. See CHANGELOG.md.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
