@@ -42,56 +42,31 @@ Or directly in your project file:
 </ItemGroup>
 ```
 
-## What's New in v1.7.3
+## What's New in v1.9.0
 
-### Fixed in 1.7.3
-- **IOC997 crash on array `TypedConstant` args fixed** — `TestFixtureAnalyzer` and `AttributeParser` now guard against calling `.Value` on Array-kinded `TypedConstant`s, which occurs when a `DependsOn`-prefixed attribute is called with multiple `typeof()` args (e.g. `[DependsOnExtras(typeof(IFoo), typeof(IBar))]`).
-- **TDIAG04 false positive for `[GeneratedCode("IoCTools")]` constructors fixed** — `HasConstructorGenerationIntent` now recognizes constructors tagged by IoCTools in a prior pass, preventing false TDIAG04 on Keel `LoggedHandler<T>` subclasses.
+See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
-### Fixed in 1.7.2
-- **`[Cover<T>]` source compatibility restored** — `IoCTools.Testing` now injects `IoCTools.Testing.Annotations` as a global using via its MSBuild `.targets` file. Consumers using `PrivateAssets="all"` with no explicit `using` directive no longer receive CS0246 on `Cover<>`, `CoverAttribute<>`, or `FixtureLoggerProfile`.
-- **IOC997 crash on scalar `nameof()` args fixed** — `TestFixtureAnalyzer` now correctly handles `params string[]` attribute arguments stored as scalar `TypedConstant` by the C# compiler (e.g. `[ProjectSignalFrom<T>(nameof(T.Id))]`).
-- **TDIAG08 downgraded to `Info`** — no longer blocks compilation in `TreatWarningsAsErrors=true` projects. Escalate with `<IoCToolsTestingDiagnosticSeverity>Warning</IoCToolsTestingDiagnosticSeverity>` for strict mode.
+### Added in 1.9.0
+- **`[Cover<T>(ConcreteHandling = ConcreteHandling.ForceMock)]`** — opt-out for the auto-concrete promotion path. Previously, every concrete-class constructor dependency with an accessible parameterless constructor was silently materialized as a real instance (`ParameterRole.ConcreteInstance`) with a `Configure{Dep}(Action<T>)` helper, which lost depth-2/3 mock coverage when the SUT composed a concrete collaborator from port mocks. The new `ConcreteHandling` named argument (enum: `Auto` (default, preserves prior behavior), `ForceMock`) lets a test opt every non-special concrete dependency into the standard `Mock<T>` substitution. Existing fixtures are unchanged.
+  - **Constraint:** `ForceMock` requires `virtual` (or `abstract`) public methods on the concrete target type. Moq can only intercept virtual instance methods on classes; concretes with sealed-by-default methods (the C# default) compile cleanly but `Setup(...)` silently no-ops and the real method body runs against default backing fields. See `docs/testing.md` § "Concrete Handling Modes" and the XML doc comments on `CoverAttribute<>.ConcreteHandling` for the interface-extraction recommendation.
 
-### Features introduced in v1.7.x (all in 1.7.2)
+### Changed in 1.9.0
+- **`TestFixturePipeline` syntax predicate tightened** — the pipeline now syntactically pre-filters to types whose attribute lists name `Cover` / `CoverAttribute` before invoking the semantic model. IDE responsiveness improvement; no consumer-visible behavior change.
+- **`TestFixturePipeline` namespace match is now exact** — previously a `Contains("IoCTools.Testing")` substring check false-positived on consumer namespaces like `MyCorp.IoCTools.Testing.Extensions.CoverAttribute<T>`, emitting a duplicate fixture under the wrong attribute resolution. The check is now an exact comparison against `IoCTools.Testing.Annotations`.
+- **`Cover<T>.Logger` named argument now parsed by enum-member symbol name** rather than raw int value, so future reorderings of `FixtureLoggerProfile` enum members cannot silently misclassify. Falls back to the prior integer comparison defensively.
 
-> v1.7.0 was tagged but never published to NuGet — CI failed in the CLI fixture-evidence build step before the publish job ran. v1.7.1 is the first published release with the 1.7 features, but had consumer regressions fixed in 1.7.2.
+### Fixed in 1.9.0
+- **`FixtureEmitter.CurrentOptionsProfile` mutable-static state removed** — Roslyn incremental generators must be pure functions of their inputs; a mutable static property breaks the generator cache and can race when multiple compilations run concurrently in the same generator-host AppDomain. The property was unread outside its own declaration; it has been deleted. No consumer-visible behavior change.
 
-- **`AnalysisScope` model + `DiagnosticGate`** — each diagnostic declares
-  whether it fires in production projects, test projects, or both.
-  `IOC081`/`IOC082`/`IOC086` are reclassified as `AnalysisScope.Production`;
-  test projects are auto-exempt via the `IsTestProject` MSBuild property
-  (forwarded as a `CompilerVisibleProperty` from `Microsoft.NET.Test.Sdk`).
-  No naming heuristics.
-- **IOC110** (Warning, configurable via `IoCToolsLifetimeValidationSeverity`)
-  — deterministic multi-impl lifetime diagnostic. Fires when *some* (not all)
-  implementations of an interface violate the lifetime dependency rule.
-  Replaces the previous non-deterministic single-impl selection that caused
-  IOC012 to fire in Rider but pass silently in CLI.
-- **IOC073 / IOC066** — open-generic and inaccessible `IHostedService`
-  implementers are skipped at registration with observable diagnostics
-  (rather than emitting CS0246/CS0122 in consumer code).
-- **`[RegisterAs<T>]` + `[RegisterAsAll]` compose with `IHostedService`** —
-  the concrete class is registered once at the declared lifetime, companion
-  interfaces bridged via `GetRequiredService<TImpl>()`, and `IHostedService`
-  bridged to the same instance.
-- **Test fixture generator v2** (`IoCTools.Testing`) — `FixtureMemberPlanner`
-  separates planning from emission. Generated fixtures enable nullable
-  context, emit `new` modifier on derived hidden members, support
-  `GetRequiredSection` and binder-style configuration reads, and treat
-  `IClock` as fixture-provided.
-- **IOC032 InstanceSharing.Shared exemption**, **IOC081/082/086 carve-outs**
-  for `Replace`, factory lambdas, `TryAddEnumerable`, and IoCTools-unaware
-  assemblies, **buildTransitive packaging** of `IoCTools.Generator.targets`,
-  and **CLI host-path resolver** that walks `PATH` before throwing.
-- **Multitarget CLI** — `IoCTools.Tools.Cli` ships for both `net9.0` and
-  `net10.0`. Existing .NET 9 global-tool consumers are not broken.
-- **CI build fix (1.7.1)** — removed accidental `IoCTools.Testing` analyzer
-  reference from `FixtureEvidence.TestsProject` (CLI evidence corpus only needs
-  `IoCTools.Testing.Abstractions` for `[Cover<T>]`); removed unused
-  `ProductionPreferenceHelperTests` helper that combined IoCTools deps with a
-  manual constructor, triggering IOC041 through diagnostics core (`net9.0`
-  builds pass; `net8.0` CI now installs SDK `8.0.x`).
+### Changed in 1.8.0
+- **`[InjectConfiguration]` / `[DependsOnConfiguration<T>]` optional complex-type sections now fall back to `new T()` when the section is absent** — instead of forwarding `null` through the null-forgiving operator. Previously the generator emitted `configuration.GetSection("X").Get<T>()!`, which silently assigned `null` when the section was missing and NPE'd on first dereference. The generator now emits `configuration.GetSection("X").Get<T>() ?? new T()` for complex-type fields whose type has an accessible parameterless constructor. Required sections (`Required = true`, the default) still throw fast. Interfaces, abstract classes, and types without a parameterless constructor continue to emit the `!` suppression. Collection bindings and primitive `GetValue<T>` bindings are unchanged. **Behavior change** — consumers who relied on `_field == null` to detect an absent optional section will now observe a default-constructed instance instead; this drove the minor-version bump rather than a patch.
+
+### Earlier — 1.7.x highlights
+- **`AnalysisScope` model + `DiagnosticGate`** — production-only diagnostics (`IOC081`/`IOC082`/`IOC086`) auto-exempt test projects via the `IsTestProject` MSBuild property forwarded from `Microsoft.NET.Test.Sdk`. No naming heuristics.
+- **IOC110** (Warning, configurable) — deterministic multi-impl lifetime diagnostic; replaces the previous non-deterministic single-impl selection that caused IOC012 to fire in Rider but pass silently in CLI.
+- **`[RegisterAs<T>]` + `[RegisterAsAll]` compose with `IHostedService`** — concrete registered once at the declared lifetime, companion interfaces bridged via `GetRequiredService<TImpl>()`, and `IHostedService` bridged to the same instance.
+- **Test fixture generator v2** (`IoCTools.Testing`) — `FixtureMemberPlanner` separates planning from emission; generated fixtures enable nullable context, emit `new` modifier on derived hidden members, support `GetRequiredSection`/binder-style configuration reads, and treat `IClock` as fixture-provided.
+- **Multitarget CLI** — `IoCTools.Tools.Cli` ships for both `net9.0` and `net10.0`.
 
 ## Getting Started in Three Steps
 
