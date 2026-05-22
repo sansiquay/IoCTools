@@ -1,0 +1,95 @@
+name: CI
+
+# PR-required gate. Operator must add the `tests` job below to GitHub branch
+# protection's "Required status checks" list to block merges on red.
+# Required-status-check name: `CI / tests`
+#
+# Mirrors daedalus#340, keel#121, sansiquay-it#255. IoCTools is the 5th and
+# final repo in the chain. Public-facing: any failing test would ship to
+# external users, so this gate is hard-blocking before merge.
+#
+# Scope: full IoCTools.sln test suite (~1650 generator tests + CLI tests),
+# plus a `dotnet pack` smoke that exercises every NuGet output the
+# release.yml workflow ships. Catches pack-only breakage (e.g., missing
+# README/icon/PackageReleaseNotes drift) before a tag push surfaces it.
+#
+# Replaces the prior ci-pr.yml + ci-main.yml pair so a single workflow
+# covers both pull_request and push-to-main. The job name `tests` matches
+# the chain so branch-protection rules are consistent across the 5 repos.
+#
+# Known-failing baseline (pre-existing on main as of 2026-05-22): none.
+# Full solution test suite is green on main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_NOLOGO: true
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore IoCTools.sln
+
+      - name: Restore CLI test projects
+        run: |
+          for proj in IoCTools.Tools.Cli.Tests/TestProjects/*/; do
+            dotnet restore "$proj"
+          done
+
+      - name: Build solution
+        run: dotnet build IoCTools.sln --configuration Release --no-restore
+
+      - name: Build CLI test projects
+        run: |
+          for proj in IoCTools.Tools.Cli.Tests/TestProjects/*/; do
+            dotnet build "$proj" --configuration Release --no-restore
+          done
+
+      - name: Run tests
+        run: dotnet test IoCTools.sln --configuration Release --no-build --no-restore --verbosity normal
+        timeout-minutes: 15
+
+      # Public-facing: pack smoke catches NuGet-only breakage (missing
+      # README, icon, PackageReleaseNotes drift, etc.) before tag push.
+      # Mirrors the package list in release.yml exactly.
+      - name: Pack smoke (NuGet outputs)
+        run: |
+          mkdir -p artifacts
+          for proj in \
+            IoCTools.Testing.Abstractions/IoCTools.Testing.Abstractions.csproj \
+            IoCTools.Abstractions/IoCTools.Abstractions.csproj \
+            IoCTools.Generator/IoCTools.Generator/IoCTools.Generator.csproj \
+            IoCTools.Generator.Analyzer/IoCTools.Generator.Analyzer.csproj \
+            IoCTools.Tools.Cli/IoCTools.Tools.Cli.csproj \
+            IoCTools.Testing/IoCTools.Testing/IoCTools.Testing.csproj \
+            IoCTools.FluentValidation/IoCTools.FluentValidation/IoCTools.FluentValidation.csproj; do
+            dotnet pack "$proj" --configuration Release --no-build --output artifacts
+          done
