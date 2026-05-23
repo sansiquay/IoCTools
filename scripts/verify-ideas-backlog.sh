@@ -40,7 +40,7 @@ fi
 # occurrences of the same words in normal prose (e.g., "Track merged
 # registration sources", "Support closed generic fallbacks") are NOT
 # flagged. Case-SENSITIVE on purpose.
-tag_word='(SHIPPED|DONE|COMPLETED|CLOSED|MERGED|REMOVED|DROPPED|SUPERSEDED|OBSOLETE|WONTFIX|WONT DO)'
+tag_word="(SHIPPED|DONE|COMPLETED|CLOSED|MERGED|REMOVED|DROPPED|SUPERSEDED|OBSOLETE|WONTFIX|WON.?T DO)"
 # Wrapped: ( ) [ ] { } < > or HTML comment markers around the tag word.
 # Note on char-class escaping: ']' must be FIRST inside a bracket class
 # to be literal in POSIX ERE (no backslash escape works portably).
