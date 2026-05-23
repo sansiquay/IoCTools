@@ -5,8 +5,8 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>1.9.0</Version>
-        <PackageVersion>1.9.0</PackageVersion>
+        <Version>1.9.1</Version>
+        <PackageVersion>1.9.1</PackageVersion>
         <AssemblyVersion>1.9.0.0</AssemblyVersion>
         <FileVersion>1.9.0.0</FileVersion>
         <Title>IoC Tools Testing Source Generator</Title>
