@@ -47,6 +47,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Mechanical guard against shipped/closed/removed ideas re-entering
+      # the backlog. See scripts/verify-ideas-backlog.sh and IoCTools#21.
+      - name: Verify ideas.md backlog hygiene
+        run: bash scripts/verify-ideas-backlog.sh
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
