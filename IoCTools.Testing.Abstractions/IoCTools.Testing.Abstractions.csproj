@@ -16,7 +16,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.9.0: [Cover&lt;T&gt;] adds ConcreteHandling knob (Auto default; ForceMock opts out of auto-concrete promotion so concrete-class deps materialize as Mock&lt;T&gt;). Pipeline namespace match tightened to exact IoCTools.Testing.Annotations (no false-positives on consumer namespaces containing that substring). Generator state purity restored — static-mutable CurrentOptionsProfile removed. All changes additive and non-breaking. See CHANGELOG.md.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.9.1: version-coherence rebuild — no functional changes in this package. The 1.9.1 fix (InvariantCulture parsing of [InjectConfiguration] DateTime / DateTimeOffset / TimeSpan default values) landed in IoCTools.Generator. Carries forward the 1.9.0 [Cover&lt;T&gt;] ConcreteHandling knob (Auto default; ForceMock opts out of auto-concrete promotion — requires virtual public methods on the concrete target), TestFixturePipeline namespace-exact match, and FixtureEmitter static-mutable purge. See CHANGELOG.md.</PackageReleaseNotes>
         <Description>Test fixture generation attributes for IoCTools - mark test classes with [Cover&lt;TService&gt;] to auto-generate Mock&lt;T&gt; fields and CreateSut() factories.</Description>
     </PropertyGroup>
     <ItemGroup>
