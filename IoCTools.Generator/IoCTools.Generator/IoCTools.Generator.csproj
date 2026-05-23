@@ -29,7 +29,7 @@
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageReleaseNotes>v1.9.0: version-coherence rebuild — no functional changes in this package. The 1.9.0 feature work landed in IoCTools.Testing / IoCTools.Testing.Abstractions ([Cover&lt;T&gt;] ConcreteHandling knob, TestFixturePipeline namespace-exact match, FixtureEmitter static-mutable purge). Carries forward the 1.8.0 [InjectConfiguration] null-fallback behavior change. See CHANGELOG.md.</PackageReleaseNotes>
+        <PackageReleaseNotes>v1.9.1: Fixed — generated [InjectConfiguration] binding now parses DateTime / DateTimeOffset / TimeSpan default values with CultureInfo.InvariantCulture (DateTime / DateTimeOffset also use DateTimeStyles.RoundtripKind), preventing locale-dependent parse failures on non-en-US hosts (#7, PR #8). Carries forward 1.9.0 IoCTools.Testing work and the 1.8.0 [InjectConfiguration] null-fallback behavior change. See CHANGELOG.md.</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>
