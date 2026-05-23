@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Internal
+- **`ideas.md` SHIPPED entries removed from backlog.** PR #16 converted four shipped items into `— SHIPPED` markers, but codex backlog audits kept re-recommending them because they still lived in the implementation-backlog sections. Removed the IOC032 + `InstanceSharing.Shared` awareness section, the `HelpLinkUri`/category-grouping bullets under Diagnostic UX, and the Inheritance-Aware Service Intent (1.6.3-dev.2) section. Each removed claim was re-verified against HEAD (`RedundantConfigurationValidator.GetRegisterAsInstanceSharing == "Shared"` skip; 115 descriptors with `HelpLinkUri` via `AutoDepsHelpBase`/`MigrationHelpBase`; `IoCTools.*` namespaced categories; `ServiceDiscovery.InheritsFromIoCToolsManagedBase` wired into `ServiceClassPipeline`) before deletion. No code, public API, or generated output is affected.
+
 ## [1.9.1] - 2026-05-23
 
 ### Fixed
