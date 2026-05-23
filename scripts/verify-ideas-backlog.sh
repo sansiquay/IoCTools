@@ -33,17 +33,34 @@ if [[ ! -f "${target}" ]]; then
 fi
 
 # Patterns are POSIX-ERE so grep -E works portably (macOS BSD + GNU).
-# Tag pattern: word-boundary-ish, case-insensitive, allows surrounding
-# punctuation like (SHIPPED), [DONE], <!-- SHIPPED -->.
-tag_pattern='(^|[^A-Za-z])(SHIPPED|DONE|COMPLETED|CLOSED|MERGED|REMOVED|DROPPED|SUPERSEDED|OBSOLETE|WONTFIX|WON.?T DO)([^A-Za-z]|$)'
-closes_pattern='(^|[^A-Za-z])(Closes|Closed|Fixes|Fixed|Resolves|Resolved) +(in +)?#[0-9]+'
+#
+# Tag pattern: ALL-CAPS only, and must be in a tag-like context — either
+# wrapped in punctuation ((SHIPPED), [DONE], <!-- SHIPPED -->) or used as a
+# trailing/leading marker (`- foo SHIPPED`, `SHIPPED: foo`). Mixed-case
+# occurrences of the same words in normal prose (e.g., "Track merged
+# registration sources", "Support closed generic fallbacks") are NOT
+# flagged. Case-SENSITIVE on purpose.
+tag_word='(SHIPPED|DONE|COMPLETED|CLOSED|MERGED|REMOVED|DROPPED|SUPERSEDED|OBSOLETE|WONTFIX|WONT DO)'
+# Wrapped: ( ) [ ] { } < > or HTML comment markers around the tag word.
+# Note on char-class escaping: ']' must be FIRST inside a bracket class
+# to be literal in POSIX ERE (no backslash escape works portably).
+tag_wrapped="[([{<]${tag_word}([[:space:]]|[])>}!.,:;-])|<!--[[:space:]]*${tag_word}"
+# Trailing/leading: tag word followed/preceded by ':' / '-' / end-of-line.
+tag_decorated="(^|[[:space:]])${tag_word}([[:space:]]*[:.-]|[[:space:]]*\$)"
+
+# Closes/Fixes are GitHub-canonical PR keywords that close an issue. Match
+# the canonical case-sensitive forms only ("closed" lowercase is also a
+# common English word; we already cover the ALL-CAPS CLOSED above).
+closes_pattern='(^|[^A-Za-z])(Closes|Closed|Fixes|Fixed|Resolves|Resolved):? +(in +)?#[0-9]+'
 strike_pattern='~~[^~]+~~'
 checked_pattern='^[[:space:]]*[-*+] +\[[xX]\] '
 
 # grep -nE returns non-zero when no match; we capture and union manually.
+# Note: NO -i flag on tag patterns — case-sensitive ALL-CAPS only.
 hits="$(
   {
-    grep -nEi  "${tag_pattern}"    "${target}" || true
+    grep -nE   "${tag_wrapped}"    "${target}" || true
+    grep -nE   "${tag_decorated}"  "${target}" || true
     grep -nE   "${closes_pattern}" "${target}" || true
     grep -nE   "${strike_pattern}" "${target}" || true
     grep -nE   "${checked_pattern}" "${target}" || true
