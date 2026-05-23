@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-05-23
+
+### Fixed
+- Generated config binding now uses InvariantCulture for DateTime/DateTimeOffset/TimeSpan default-value parsing, preventing locale-dependent parse failures on non-en-US hosts ([#7], PR [#8]).
+
 ### Internal
 - **`ideas.md` backlog pruned for shipped items.** Removed the IOC032 + `InstanceSharing.Shared` awareness section (already shipped in `RedundantConfigurationValidator.ValidateRegisterAsMatchesImplementedInterfaces` — `Shared` attributes are skipped, so `[RegisterAs<I1, I2>(InstanceSharing.Shared)]` no longer triggers a false-positive IOC032). Removed the "Add HelpLinkUri to all 87 diagnostic descriptors" bullet — all 115 current descriptors set `HelpLinkUri` either directly or via the `AutoDepsHelpBase` / `MigrationHelpBase` constants. Removed the "Use specific categories for IDE grouping" bullet — descriptors already use the target namespaced categories (`IoCTools.AutoDeps`, `.Configuration`, `.Dependency`, `.Lifetime`, `.Registration`, `.Structural`, `.Testing`, `.Usage`). Corrected the CS8603 sample-code count to match the current state (6 occurrences across four sample files, not 3 in `MultiInterfaceExamples.cs`) so the next person to pick up that bullet does not chase a stale repro. No code, public API, or generated output is affected.
 
@@ -162,7 +167,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 5 new typeof() diagnostics (IOC090-IOC094)
 - 5 new test fixture diagnostics (TDIAG-01 through TDIAG-05)
 
-[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.7.3...HEAD
+[Unreleased]: https://github.com/sansiquay/IoCTools/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/sansiquay/IoCTools/compare/v1.9.0...v1.9.1
+[1.9.0]: https://github.com/sansiquay/IoCTools/compare/v1.8.0...v1.9.0
+[1.8.0]: https://github.com/sansiquay/IoCTools/compare/v1.7.3...v1.8.0
+[#7]: https://github.com/sansiquay/IoCTools/issues/7
+[#8]: https://github.com/sansiquay/IoCTools/pull/8
 [1.7.3]: https://github.com/sansiquay/IoCTools/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/sansiquay/IoCTools/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/sansiquay/IoCTools/compare/v1.6.1...v1.7.1
