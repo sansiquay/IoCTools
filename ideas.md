@@ -13,32 +13,17 @@
 - Add typeof() diagnostic examples to sample project
 - Update CLAUDE.md diagnostic reference for IOC090-094
 
-### IOC032 + InstanceSharing.Shared awareness
+### IOC032 + InstanceSharing.Shared awareness — SHIPPED
 
-**Gap:** `ValidateRegisterAsMatchesImplementedInterfaces` in `RedundantConfigurationValidator.cs` flags `[RegisterAs<I1, I2>]` as redundant whenever the type-argument set equals the implemented-interface set. The check ignores the `InstanceSharing` argument. When the user explicitly opts into `InstanceSharing.Shared`, the attribute is **not** redundant — removing it switches generated registration from a single shared instance (factory pattern) to default direct bindings (one instance per interface), which is a real semantic regression.
-
-**Repro:**
-
-```csharp
-[Singleton]
-[RegisterAs<IFoo, IBar>(InstanceSharing.Shared)]
-public partial class MyService : IFoo, IBar { ... }
-// IOC032: Class 'MyService' already registers interfaces IBar, IFoo by default. ❌
-```
-
-With `[RegisterAs Shared]`, generated code creates one singleton + factory aliases. Without it, IoCTools generates `services.AddSingleton<IFoo, MyService>(); services.AddSingleton<IBar, MyService>();` — two singleton instances.
-
-**Fix sketch:** in `ValidateRegisterAsMatchesImplementedInterfaces`, after the interface-set equality check, inspect the attribute's `InstanceSharing` argument. If `Shared`, do not report IOC032 (the attribute is the only way to opt into shared-instance semantics).
-
-Currently suppressed by downstream consumers with documented per-site `#pragma warning disable IOC032`.
+`ValidateRegisterAsMatchesImplementedInterfaces` in `RedundantConfigurationValidator.cs` now skips IOC032 when `GetRegisterAsInstanceSharing(attribute) == "Shared"` (see line ~73). `[RegisterAs<I1, I2>(InstanceSharing.Shared)]` is the only way to opt into shared-instance/factory semantics, so the attribute is not redundant in that case.
 
 ### Diagnostic UX
 
-- Add HelpLinkUri to all 87 diagnostic descriptors
-- Use specific categories for IDE grouping (Lifetime, Dependency, Configuration, Registration, Structural)
 - Suggest IServiceProvider/CreateScope() pattern in IOC012/013 for intentional lifetime violations
 - Better config error messages with examples for IOC016-019
 - Show full inheritance path in IOC015 diagnostic
+- HelpLinkUri: SHIPPED — all 115 `DiagnosticDescriptor`s in `IoCTools.Generator/Diagnostics/Descriptors/*.cs` set the property either directly or via the `AutoDepsHelpBase` / `MigrationHelpBase` constants.
+- Category grouping: SHIPPED — descriptors use the namespaced categories `IoCTools.{AutoDeps,Configuration,Dependency,Lifetime,Registration,Structural,Testing,Usage}`.
 
 ### CLI Improvements
 
@@ -54,7 +39,7 @@ Currently suppressed by downstream consumers with documented per-site `#pragma w
 
 - Centralize RegisterAsAllAttribute checks using AttributeTypeChecker (20 inconsistent locations)
 - Adopt ReportDiagnosticDelegate pattern in 3-4 more validators
-- Resolve CS8603 null reference warnings in sample code (3 instances in MultiInterfaceExamples.cs)
+- Resolve CS8603 null reference warnings in sample code (6 instances across MultiInterfaceExamples.cs, GenericServiceExamples.cs, ConfigurationInjectionExamples.cs, ConditionalServiceExamples.cs — re-count before scoping)
 - Add code comments explaining InstanceSharing.Separate default behavior
 
 ### Documentation
