@@ -30,6 +30,25 @@ ioc-tools validator-graph --project MyProject.csproj --why MyValidator --json
 - `suppress --json` emits structured suppression metadata alongside the `.editorconfig` recipe.
 - `validator-graph --json` and `validator-graph --why --json` emit structured contracts for validator topology and lifetime reasoning.
 
+### `--json` receipt envelope
+
+Every `--json` output is wrapped in an agent-receipt envelope so downstream automations can verify the contract version and timestamp the receipt:
+
+```json
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-24T12:34:56Z",
+  "project": { ... },
+  "services": { ... }
+}
+```
+
+- `schema_version` (string) — receipt envelope contract version. Starts at `1.0` and only bumps when the envelope shape changes; payload-specific shape changes do not bump it.
+- `generated_at` (string) — ISO8601 UTC (`yyyy-MM-ddTHH:mm:ssZ`).
+- Array-shaped payloads (e.g. `validator-graph --json`) are wrapped under a `data` field so the envelope remains a JSON object.
+
+The headers are additive — existing parsers that ignore unknown top-level fields keep working without changes.
+
 > **Do not** replace `[Cover<T>]` compile-time fixture generation with runtime
 > scanning/reflection. That pathway is rejected by IoCTools doctrine — file an
 > issue against IoCTools if you hit a gap in the generator instead of working

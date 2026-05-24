@@ -76,7 +76,7 @@ internal static class GraphPrinter
             if (output.IsJson)
                 output.WriteJson(payload);
             else
-                Console.WriteLine(JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+                Console.WriteLine(OutputContext.SerializeWithReceiptHeaders(payload));
             return;
         }
 

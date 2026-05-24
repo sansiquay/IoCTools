@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Receipt headers (`schema_version`, `generated_at`) on all `--json` outputs (`evidence`, `validator-graph`, `validator-graph --why`, `suppress`).** Every `--json` payload is now wrapped in an agent-receipt envelope with a `schema_version` string (starts at `"1.0"`) and an ISO8601 UTC `generated_at` timestamp (`yyyy-MM-ddTHH:mm:ssZ`), emitted as the first two top-level fields. Array-shaped payloads (notably `validator-graph --json`) are wrapped under a `data` field so the envelope stays a JSON object. Additive — existing parsers that ignore unknown fields keep working without changes. The envelope is centralized in `OutputContext.WriteJson` / `OutputContext.SerializeWithReceiptHeaders`, so future `--json` surfaces inherit the headers for free. `schema_version` is the envelope contract version; bump only when envelope shape (not payload shape) changes.
+
 ### Internal
 - **`ideas.md` SHIPPED entries removed from backlog.** PR #16 converted four shipped items into `— SHIPPED` markers, but codex backlog audits kept re-recommending them because they still lived in the implementation-backlog sections. Removed the IOC032 + `InstanceSharing.Shared` awareness section, the `HelpLinkUri`/category-grouping bullets under Diagnostic UX, and the Inheritance-Aware Service Intent (1.6.3-dev.2) section. Each removed claim was re-verified against HEAD (`RedundantConfigurationValidator.GetRegisterAsInstanceSharing == "Shared"` skip; 115 descriptors with `HelpLinkUri` via `AutoDepsHelpBase`/`MigrationHelpBase`; `IoCTools.*` namespaced categories; `ServiceDiscovery.InheritsFromIoCToolsManagedBase` wired into `ServiceClassPipeline`) before deletion. No code, public API, or generated output is affected.
 
