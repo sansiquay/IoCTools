@@ -1,6 +1,7 @@
 namespace IoCTools.Tools.Cli;
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -97,7 +98,7 @@ internal sealed class OutputContext
         var ordered = new JsonObject
         {
             ["schema_version"] = JsonSchemaVersion,
-            ["generated_at"] = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            ["generated_at"] = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
         };
         foreach (var kvp in envelope.ToArray())
         {

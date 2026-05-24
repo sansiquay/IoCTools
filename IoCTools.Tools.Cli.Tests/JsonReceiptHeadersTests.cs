@@ -82,6 +82,25 @@ public sealed class JsonReceiptHeadersTests
     }
 
     [Fact]
+    public void SerializeWithReceiptHeaders_emits_schema_version_then_generated_at_as_first_two_properties()
+    {
+        // Order matters: agents consuming the receipt envelope read schema_version first to
+        // verify the contract version before parsing the rest. Locking the property order
+        // means a refactor cannot silently move the headers below payload fields.
+        var json = OutputContext.SerializeWithReceiptHeaders(new { foo = 1, bar = "baz", schema_version_lookalike = "x" });
+
+        using var doc = JsonDocument.Parse(json);
+        var properties = doc.RootElement.EnumerateObject().ToList();
+
+        properties.Should().HaveCountGreaterThanOrEqualTo(2,
+            "envelope must always have at least schema_version + generated_at at the top");
+        properties[0].Name.Should().Be("schema_version",
+            "schema_version must be the FIRST top-level property in the receipt envelope");
+        properties[1].Name.Should().Be("generated_at",
+            "generated_at must be the SECOND top-level property in the receipt envelope");
+    }
+
+    [Fact]
     public void SerializeWithReceiptHeaders_array_payload_wraps_under_data()
     {
         var json = OutputContext.SerializeWithReceiptHeaders(new[] { 1, 2, 3 });

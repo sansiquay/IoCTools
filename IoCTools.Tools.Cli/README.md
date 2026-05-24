@@ -43,11 +43,13 @@ Every `--json` output is wrapped in an agent-receipt envelope so downstream auto
 }
 ```
 
-- `schema_version` (string) — receipt envelope contract version. Starts at `1.0` and only bumps when the envelope shape changes; payload-specific shape changes do not bump it.
-- `generated_at` (string) — ISO8601 UTC (`yyyy-MM-ddTHH:mm:ssZ`).
-- Array-shaped payloads (e.g. `validator-graph --json`) are wrapped under a `data` field so the envelope remains a JSON object.
+- `schema_version` (string, currently `"1.0"`) — receipt envelope contract version. Always the first top-level property. Only bumps when the envelope shape changes; payload-specific shape changes do not bump it.
+- `generated_at` (string) — ISO8601 UTC, formatted with `CultureInfo.InvariantCulture` as `yyyy-MM-ddTHH:mm:ssZ`. Always the second top-level property.
 
-The headers are additive — existing parsers that ignore unknown top-level fields keep working without changes.
+#### Compatibility
+
+- **Object-shaped surfaces — additive only.** `evidence --json`, `suppress --json`, `validator-graph --why --json`, `doctor --json`, `explain --json`, `profile --json`, `profiles --json`, `config-audit --json`, `why --json`, `test scaffold --json`, and `graph --json` / `graph --format json` were already JSON objects. The two headers are merged at the top of the existing object — consumers that ignore unknown top-level keys see zero impact.
+- **Array-shaped surfaces — BREAKING shape change.** `services --json`, `validators --json`, and `validator-graph --json` previously emitted a top-level JSON array (`[ ... ]`). They now emit `{ "schema_version": "1.0", "generated_at": "...", "data": [ ... ] }`. Consumers that read a top-level array from these three commands must update to read `.data[]`.
 
 > **Do not** replace `[Cover<T>]` compile-time fixture generation with runtime
 > scanning/reflection. That pathway is rejected by IoCTools doctrine — file an
