@@ -105,4 +105,3 @@ IoCTools is a .NET source generator library that simplifies dependency injection
 - **IoCTools.Testing target**: Can target net8.0+ since it's test-project-only
 - **Moq dependency**: IoCTools.Testing will take a dependency on Moq — version should align with common usage (latest stable)
 - **Source generator limitations**: Generated test fixtures must work within Roslyn source generator constraints (no runtime reflection)
-
