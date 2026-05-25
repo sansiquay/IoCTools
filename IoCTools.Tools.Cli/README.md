@@ -30,6 +30,27 @@ ioc-tools validator-graph --project MyProject.csproj --why MyValidator --json
 - `suppress --json` emits structured suppression metadata alongside the `.editorconfig` recipe.
 - `validator-graph --json` and `validator-graph --why --json` emit structured contracts for validator topology and lifetime reasoning.
 
+### `--json` receipt envelope
+
+Every `--json` output is wrapped in an agent-receipt envelope so downstream automations can verify the contract version and timestamp the receipt:
+
+```json
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-24T12:34:56Z",
+  "project": { ... },
+  "services": { ... }
+}
+```
+
+- `schema_version` (string, currently `"1.0"`) — receipt envelope contract version. Always the first top-level property. Only bumps when the envelope shape changes; payload-specific shape changes do not bump it.
+- `generated_at` (string) — ISO8601 UTC, formatted with `CultureInfo.InvariantCulture` as `yyyy-MM-ddTHH:mm:ssZ`. Always the second top-level property.
+
+#### Compatibility
+
+- **Object-shaped surfaces — additive only.** `evidence --json`, `suppress --json`, `validator-graph --why --json`, `doctor --json`, `explain --json`, `profile --json`, `profiles --json`, `config-audit --json`, `why --json`, `test scaffold --json`, and `graph --json` / `graph --format json` were already JSON objects. The two headers are merged at the top of the existing object — consumers that ignore unknown top-level keys see zero impact.
+- **Array-shaped surfaces — BREAKING shape change.** `services --json`, `validators --json`, and `validator-graph --json` previously emitted a top-level JSON array (`[ ... ]`). They now emit `{ "schema_version": "1.0", "generated_at": "...", "data": [ ... ] }`. Consumers that read a top-level array from these three commands must update to read `.data[]`.
+
 > **Do not** replace `[Cover<T>]` compile-time fixture generation with runtime
 > scanning/reflection. That pathway is rejected by IoCTools doctrine — file an
 > issue against IoCTools if you hit a gap in the generator instead of working

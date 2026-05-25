@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added (additive, object-shaped `--json` outputs)
+- **Receipt headers (`schema_version`, `generated_at`) on all `--json` outputs.** Every `--json` payload is now wrapped in an agent-receipt envelope with a `schema_version` string (starts at `"1.0"`) and an ISO8601 UTC `generated_at` timestamp (`yyyy-MM-ddTHH:mm:ssZ`), emitted as the first two top-level fields in that order. For surfaces whose payload was already a JSON object (e.g. `evidence --json`, `suppress --json`, `validator-graph --why --json`, `doctor --json`, `explain --json`, `profile --json`, `profiles --json`, `config-audit --json`, `why --json`, `test scaffold --json`, `graph --json` / `graph --format json`), the two headers are merged in at the top of the existing object. Consumers that ignore unknown top-level keys: zero impact. The envelope is centralized in `OutputContext.WriteJson` / `OutputContext.SerializeWithReceiptHeaders`, so future `--json` surfaces inherit the headers for free. `schema_version` is the envelope contract version; bump only when envelope shape (not payload shape) changes. Format hygiene: `generated_at` is now formatted with `CultureInfo.InvariantCulture` so the timestamp shape is locked against culture-dependent locales.
+
+### Changed — BREAKING for array-shaped `--json` outputs
+- **Top-level JSON arrays on `services --json`, `validators --json`, and `validator-graph --json` are now wrapped under a `data` field** so the receipt envelope can stay a JSON object. Pre-change shape was `[ ... ]`; new shape is:
+
+  ```json
+  {
+    "schema_version": "1.0",
+    "generated_at": "2026-05-24T12:34:56Z",
+    "data": [ ... ]
+  }
+  ```
+
+  This is a breaking shape change for any consumer that was reading a top-level array from these three surfaces. Update consumers to read `.data[]` instead of `[]`. No other `--json` surface is affected by this wrap (all others were already object-shaped pre-change). Recommend a minor version bump.
+
 ### Internal
 - **`ideas.md` SHIPPED entries removed from backlog.** PR #16 converted four shipped items into `— SHIPPED` markers, but codex backlog audits kept re-recommending them because they still lived in the implementation-backlog sections. Removed the IOC032 + `InstanceSharing.Shared` awareness section, the `HelpLinkUri`/category-grouping bullets under Diagnostic UX, and the Inheritance-Aware Service Intent (1.6.3-dev.2) section. Each removed claim was re-verified against HEAD (`RedundantConfigurationValidator.GetRegisterAsInstanceSharing == "Shared"` skip; 115 descriptors with `HelpLinkUri` via `AutoDepsHelpBase`/`MigrationHelpBase`; `IoCTools.*` namespaced categories; `ServiceDiscovery.InheritsFromIoCToolsManagedBase` wired into `ServiceClassPipeline`) before deletion. No code, public API, or generated output is affected.
 
