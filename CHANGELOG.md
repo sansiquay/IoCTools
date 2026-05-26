@@ -6,9 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Internal
-- **Version bump 1.10.0.** Breaking change (array-shaped `--json` output wrapped in `data` field) tagged as 1.10.0.
-
 ## [1.10.0] - 2026-05-25
 
 ### Added (additive, object-shaped `--json` outputs)
