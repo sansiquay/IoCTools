@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-05-25
+
 ### Added (additive, object-shaped `--json` outputs)
 - **Receipt headers (`schema_version`, `generated_at`) on all `--json` outputs.** Every `--json` payload is now wrapped in an agent-receipt envelope with a `schema_version` string (starts at `"1.0"`) and an ISO8601 UTC `generated_at` timestamp (`yyyy-MM-ddTHH:mm:ssZ`), emitted as the first two top-level fields in that order. For surfaces whose payload was already a JSON object (e.g. `evidence --json`, `suppress --json`, `validator-graph --why --json`, `doctor --json`, `explain --json`, `profile --json`, `profiles --json`, `config-audit --json`, `why --json`, `test scaffold --json`, `graph --json` / `graph --format json`), the two headers are merged in at the top of the existing object. Consumers that ignore unknown top-level keys: zero impact. The envelope is centralized in `OutputContext.WriteJson` / `OutputContext.SerializeWithReceiptHeaders`, so future `--json` surfaces inherit the headers for free. `schema_version` is the envelope contract version; bump only when envelope shape (not payload shape) changes. Format hygiene: `generated_at` is now formatted with `CultureInfo.InvariantCulture` so the timestamp shape is locked against culture-dependent locales.
 
