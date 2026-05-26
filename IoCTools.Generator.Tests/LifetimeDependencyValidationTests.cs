@@ -1107,8 +1107,8 @@ public partial class SingletonService{i}
         stopwatch.Stop();
 
         // Keep a meaningful upper bound while allowing for slower full-solution runs on loaded machines.
-        // Observed CI variance: 25-55s on GitHub Actions ubuntu-latest runners.
-        (stopwatch.ElapsedMilliseconds < 60000).Should()
+        // Observed CI variance: 25-80s on GitHub Actions ubuntu-latest runners.
+        (stopwatch.ElapsedMilliseconds < 120000).Should()
             .BeTrue($"Many services validation took {stopwatch.ElapsedMilliseconds}ms");
 
         // Should detect appropriate violations based on service lifetimes
