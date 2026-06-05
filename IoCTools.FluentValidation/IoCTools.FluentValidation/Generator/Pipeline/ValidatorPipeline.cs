@@ -26,7 +26,7 @@ internal static class ValidatorPipeline
         return context.SyntaxProvider
             .CreateSyntaxProvider(
                 static (node, _) => node is TypeDeclarationSyntax,
-                static (ctx, _) =>
+                static (ctx, ct) =>
                 {
                     var typeDecl = (TypeDeclarationSyntax)ctx.Node;
                     var symbol = ctx.SemanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
@@ -44,7 +44,7 @@ internal static class ValidatorPipeline
 
                     var lifetime = FluentValidationTypeChecker.GetLifetimeFromAttributes(symbol);
                     var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    var compositionEdges = CompositionGraphBuilder.BuildEdges(typeDecl, ctx.SemanticModel, fqn, out var graphBuildError);
+                    var compositionEdges = CompositionGraphBuilder.BuildEdges(typeDecl, ctx.SemanticModel, fqn, out var graphBuildError, ct);
 
                     return new ValidatorClassInfo(
                         symbol,

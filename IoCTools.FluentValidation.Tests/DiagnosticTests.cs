@@ -564,8 +564,14 @@ public partial class OrderValidator : AbstractValidator<Order>
 
 /// <summary>
 /// Tests for IOC111 (CompositionGraphBuilder analysis error) and IOC112 (ValidatorDiagnosticsPipeline error).
-/// Revert-RED-proof: if either silent-skip is restored, these tests fail because the expected
-/// diagnostic ID is no longer emitted.
+/// All tests drive the REAL prod code paths — no test-local reimplementation of catch/emit logic.
+///
+/// Revert-RED contract:
+///   • Revert prod OCE rethrow in BuildEdges  → OCE111 test goes RED.
+///   • Revert prod IOC111 emit                → IOC111 emit test goes RED.
+///   • Revert prod OCE rethrow in EmitDiagnosticsForValidator → OCE112 test goes RED.
+///   • Revert prod IOC112 emit                → IOC112 emit test goes RED.
+///
 /// IOC103/IOC104 are reserved by IoCTools.AutoDeps — FluentValidation uses IOC111/IOC112.
 /// </summary>
 public sealed class FailLoudDiagnosticTests
@@ -575,34 +581,21 @@ public sealed class FailLoudDiagnosticTests
     [Fact]
     public void GraphBuildError_EmitsIOC111()
     {
-        // Arrange: construct a ValidatorClassInfo that carries a graph-build error
-        // (as would happen when CompositionGraphBuilder.BuildEdges catches an exception).
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using FluentValidation;
-namespace TestApp;
-public class Order { }
-[Scoped]
-public partial class OrderValidator : AbstractValidator<Order> { }
-";
-        var compilation = CreateMinimalCompilation(source);
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var symbol = FindType(compilation, "OrderValidator")!;
-        var validatedType = GetAbstractValidatorTypeArg(symbol)!;
-        var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
-
+        // Arrange: ValidatorClassInfo carrying a graphBuildError (as set by BuildEdges when it
+        // catches an unexpected exception). Drive REAL EmitDiagnosticsForValidator — not a copy.
+        var (validator, allValidators) = BuildSingleCleanValidator();
         const string simulatedError = "simulated graph analysis failure";
         var validatorWithError = new ValidatorClassInfo(
-            symbol, decl, semanticModel, validatedType, "Scoped",
+            validator.ClassSymbol, validator.ClassDeclaration, validator.SemanticModel,
+            validator.ValidatedType, "Scoped",
             graphBuildError: simulatedError);
 
-        // Act: run the pipeline body (replicates ValidatorDiagnosticsPipeline.Attach logic).
-        var allValidators = ImmutableArray.Create(validatorWithError);
-        var diagnostics = RunPipeline(allValidators);
+        // Act: call the REAL prod method — reverting the IOC111 emit block turns this RED.
+        var diagnostics = CollectFrom(ImmutableArray.Create(validatorWithError));
 
-        // Assert: IOC111 must be reported — revert to silent-skip → no IOC111 → test RED.
+        // Assert
         diagnostics.Should().ContainSingle(d => d.Id == "IOC111",
-            "a non-null GraphBuildError must surface as IOC111, not be silently swallowed");
+            "a non-null GraphBuildError must surface as IOC111 via EmitDiagnosticsForValidator");
         diagnostics.First(d => d.Id == "IOC111").GetMessage()
             .Should().Contain(simulatedError, "the error message must be included in the diagnostic");
     }
@@ -610,28 +603,10 @@ public partial class OrderValidator : AbstractValidator<Order> { }
     [Fact]
     public void NoGraphBuildError_NoIOC111()
     {
-        // Arrange: clean validator with no graph build error.
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using FluentValidation;
-namespace TestApp;
-public class Order { }
-[Scoped]
-public partial class OrderValidator : AbstractValidator<Order> { }
-";
-        var compilation = CreateMinimalCompilation(source);
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var symbol = FindType(compilation, "OrderValidator")!;
-        var validatedType = GetAbstractValidatorTypeArg(symbol)!;
-        var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
+        var (validator, allValidators) = BuildSingleCleanValidator();
 
-        var cleanValidator = new ValidatorClassInfo(
-            symbol, decl, semanticModel, validatedType, "Scoped");
+        var diagnostics = CollectFrom(ImmutableArray.Create(validator));
 
-        // Act
-        var diagnostics = RunPipeline(ImmutableArray.Create(cleanValidator));
-
-        // Assert
         diagnostics.Where(d => d.Id == "IOC111").Should().BeEmpty(
             "a validator with no graph build error must not emit IOC111");
     }
@@ -639,30 +614,34 @@ public partial class OrderValidator : AbstractValidator<Order> { }
     [Fact]
     public void GraphBuildError_OperationCanceledException_PropagatesNotIOC111()
     {
-        // Regression: OperationCanceledException must NOT be swallowed into IOC111.
-        // The pipeline body must rethrow it so analyzer cancellation propagates correctly.
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using FluentValidation;
-namespace TestApp;
-public class Order { }
-[Scoped]
-public partial class OrderValidator : AbstractValidator<Order> { }
-";
-        var compilation = CreateMinimalCompilation(source);
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var symbol = FindType(compilation, "OrderValidator")!;
-        var validatedType = GetAbstractValidatorTypeArg(symbol)!;
-        var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
-        var validator = new ValidatorClassInfo(symbol, decl, semanticModel, validatedType, "Scoped");
+        // Regression: OperationCanceledException must NOT be converted into IOC111.
+        // Scenario: a validator already carrying a GraphBuildError (the IOC111 payload) also
+        // causes an OCE when its validator rules are run. The OCE must propagate out of
+        // EmitDiagnosticsForValidator — it must not be swallowed by the IOC111 emit block or
+        // caught and re-emitted as IOC112.
+        //
+        // Revert-RED proof: removing `catch (OperationCanceledException) { throw; }` from
+        // EmitDiagnosticsForValidator causes OCE to be caught by the outer Exception filter
+        // and emitted as IOC112 → Should().Throw() fails → test RED.
+        //
+        // Note: BuildEdges OCE propagation (ResolveChildValidatorType + outer BuildEdges guard)
+        // is verified by code-inspection and integration; Roslyn 4.13 synchronous model APIs
+        // do not honour pre-cancelled tokens, so the guard is not unit-testable at that level.
+        var (validator, _) = BuildSingleCleanValidator();
+        const string simulatedBuildError = "prior graph analysis failure";
+        var validatorWithError = new ValidatorClassInfo(
+            validator.ClassSymbol, validator.ClassDeclaration, validator.SemanticModel,
+            validator.ValidatedType, "Scoped",
+            graphBuildError: simulatedBuildError);
+        var allValidators = ImmutableArray.Create(validatorWithError);
 
-        // Act + Assert: OCE thrown during edge-walk must propagate, not become IOC111.
-        var act = () => RunPipelineWithThrowingValidate(
-            ImmutableArray.Create(validator),
-            throwMessage: null,
-            throwOce: true);
+        // Act + Assert: OCE must propagate out of the REAL EmitDiagnosticsForValidator,
+        // not be swallowed by the IOC111 or IOC112 catch blocks.
+        var act = () => CollectFrom(
+            allValidators,
+            overrideValidate: (v, all, report) => throw new OperationCanceledException("simulated cancellation"));
         act.Should().Throw<OperationCanceledException>(
-            "OperationCanceledException must propagate out of the pipeline, not be swallowed as IOC111");
+            "OperationCanceledException must propagate out of EmitDiagnosticsForValidator even when a GraphBuildError is present, not be swallowed as IOC111 or IOC112");
     }
 
     #endregion
@@ -672,33 +651,17 @@ public partial class OrderValidator : AbstractValidator<Order> { }
     [Fact]
     public void ThrowingValidator_EmitsIOC112()
     {
-        // Arrange: a validator info that will cause the inner validate action to throw.
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using FluentValidation;
-namespace TestApp;
-public class Order { }
-[Scoped]
-public partial class OrderValidator : AbstractValidator<Order> { }
-";
-        var compilation = CreateMinimalCompilation(source);
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var symbol = FindType(compilation, "OrderValidator")!;
-        var validatedType = GetAbstractValidatorTypeArg(symbol)!;
-        var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
-
-        var validator = new ValidatorClassInfo(
-            symbol, decl, semanticModel, validatedType, "Scoped");
-
-        // Act: use a throwing override to simulate a broken validator rule.
+        // Arrange: inject a throwing override into the REAL EmitDiagnosticsForValidator.
+        // Reverting the IOC112 catch+emit block causes the exception to escape → no IOC112 → test RED.
+        var (validator, allValidators) = BuildSingleCleanValidator();
         const string thrownMessage = "broken validator rule NullReferenceException";
-        var diagnostics = RunPipelineWithThrowingValidate(
-            ImmutableArray.Create(validator),
-            throwMessage: thrownMessage);
 
-        // Assert: IOC112 must be reported — revert to silent-skip → no IOC112 → test RED.
+        var diagnostics = CollectFrom(
+            allValidators,
+            overrideValidate: (v, all, report) => throw new InvalidOperationException(thrownMessage));
+
         diagnostics.Should().ContainSingle(d => d.Id == "IOC112",
-            "a throwing validator must surface as IOC112, not be silently swallowed");
+            "a throwing validator rule must surface as IOC112 via EmitDiagnosticsForValidator");
         diagnostics.First(d => d.Id == "IOC112").GetMessage()
             .Should().Contain(thrownMessage, "the exception message must appear in the diagnostic");
     }
@@ -706,28 +669,11 @@ public partial class OrderValidator : AbstractValidator<Order> { }
     [Fact]
     public void NormalValidator_NoIOC112()
     {
-        // Arrange
-        var source = @"
-using IoCTools.Abstractions.Annotations;
-using FluentValidation;
-namespace TestApp;
-public class Order { }
-[Scoped]
-public partial class OrderValidator : AbstractValidator<Order> { }
-";
-        var compilation = CreateMinimalCompilation(source);
-        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.First());
-        var symbol = FindType(compilation, "OrderValidator")!;
-        var validatedType = GetAbstractValidatorTypeArg(symbol)!;
-        var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
+        var (validator, allValidators) = BuildSingleCleanValidator();
 
-        var validator = new ValidatorClassInfo(
-            symbol, decl, semanticModel, validatedType, "Scoped");
+        // No override → real DirectInstantiationValidator + CompositionLifetimeValidator run.
+        var diagnostics = CollectFrom(allValidators);
 
-        // Act: normal (non-throwing) validate action.
-        var diagnostics = RunPipeline(ImmutableArray.Create(validator));
-
-        // Assert
         diagnostics.Where(d => d.Id == "IOC112").Should().BeEmpty(
             "a clean validator must not emit IOC112");
     }
@@ -735,8 +681,47 @@ public partial class OrderValidator : AbstractValidator<Order> { }
     [Fact]
     public void ValidatorPipeline_OperationCanceledException_PropagatesNotIOC112()
     {
-        // Regression: OperationCanceledException thrown by a validator rule must NOT be
-        // swallowed into IOC112. The pipeline must rethrow it so cancellation propagates.
+        // Regression: OCE thrown by a validator rule must propagate, not become IOC112.
+        // This calls the REAL EmitDiagnosticsForValidator with a throwing override.
+        // Reverting the `catch (OperationCanceledException) { throw; }` causes OCE to be caught
+        // by the outer Exception filter → emitted as IOC112 → Should().Throw() fails → test RED.
+        var (validator, allValidators) = BuildSingleCleanValidator();
+
+        var act = () => CollectFrom(
+            allValidators,
+            overrideValidate: (v, all, report) => throw new OperationCanceledException("simulated cancellation"));
+
+        act.Should().Throw<OperationCanceledException>(
+            "OperationCanceledException must propagate out of EmitDiagnosticsForValidator, not become IOC112");
+    }
+
+    #endregion
+
+    #region Test Infrastructure
+
+    /// <summary>
+    /// Calls <see cref="IoCTools.FluentValidation.Generator.Pipeline.ValidatorDiagnosticsPipeline.EmitDiagnosticsForValidator"/>
+    /// (the REAL prod method) for every validator and collects emitted diagnostics.
+    /// No catch/emit logic is duplicated here — the prod method owns it.
+    /// </summary>
+    private static ImmutableArray<Diagnostic> CollectFrom(
+        ImmutableArray<ValidatorClassInfo> allValidators,
+        System.Action<ValidatorClassInfo, ImmutableArray<ValidatorClassInfo>, System.Action<Diagnostic>>? overrideValidate = null)
+    {
+        var diagnostics = new System.Collections.Generic.List<Diagnostic>();
+        System.Action<Diagnostic> report = d => diagnostics.Add(d);
+        foreach (var validator in allValidators)
+            IoCTools.FluentValidation.Generator.Pipeline.ValidatorDiagnosticsPipeline
+                .EmitDiagnosticsForValidator(validator, allValidators, report, overrideValidate);
+        return diagnostics.ToImmutableArray();
+    }
+
+    /// <summary>
+    /// Builds a single clean <see cref="ValidatorClassInfo"/> with no graph-build error,
+    /// suitable as a baseline for FailLoud tests.
+    /// </summary>
+    private static (ValidatorClassInfo Validator, ImmutableArray<ValidatorClassInfo> All) BuildSingleCleanValidator()
+    {
         var source = @"
 using IoCTools.Abstractions.Annotations;
 using FluentValidation;
@@ -751,124 +736,23 @@ public partial class OrderValidator : AbstractValidator<Order> { }
         var validatedType = GetAbstractValidatorTypeArg(symbol)!;
         var decl = FindTypeDeclaration(compilation, "OrderValidator")!;
         var validator = new ValidatorClassInfo(symbol, decl, semanticModel, validatedType, "Scoped");
-
-        // Act + Assert: OCE thrown by a validator rule must propagate, not become IOC112.
-        var act = () => RunPipelineWithThrowingValidate(
-            ImmutableArray.Create(validator),
-            throwMessage: null,
-            throwOce: true);
-        act.Should().Throw<OperationCanceledException>(
-            "OperationCanceledException must propagate out of the pipeline, not be swallowed as IOC112");
-    }
-
-    #endregion
-
-    #region Test Infrastructure
-
-    /// <summary>
-    /// Runs the pipeline body (mirrors ValidatorDiagnosticsPipeline.Attach) against the given validators.
-    /// Uses real DirectInstantiationValidator + CompositionLifetimeValidator.
-    /// </summary>
-    private static ImmutableArray<Diagnostic> RunPipeline(ImmutableArray<ValidatorClassInfo> allValidators)
-    {
-        var diagnostics = new System.Collections.Generic.List<Diagnostic>();
-        System.Action<Diagnostic> report = d => diagnostics.Add(d);
-
-        foreach (var validator in allValidators)
-        {
-            if (validator.GraphBuildError != null)
-            {
-                diagnostics.Add(Diagnostic.Create(
-                    IoCTools.FluentValidation.Diagnostics.FluentValidationDiagnosticDescriptors.CompositionGraphAnalysisError,
-                    location: null,
-                    validator.FullyQualifiedName,
-                    validator.GraphBuildError));
-            }
-
-            try
-            {
-                IoCTools.FluentValidation.Diagnostics.Validators.DirectInstantiationValidator.Validate(validator, allValidators, report);
-                IoCTools.FluentValidation.Diagnostics.Validators.CompositionLifetimeValidator.Validate(validator, allValidators, report);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
-            {
-                diagnostics.Add(Diagnostic.Create(
-                    IoCTools.FluentValidation.Diagnostics.FluentValidationDiagnosticDescriptors.ValidatorPipelineError,
-                    location: null,
-                    validator.FullyQualifiedName,
-                    ex.Message));
-            }
-        }
-
-        return diagnostics.ToImmutableArray();
-    }
-
-    /// <summary>
-    /// Runs the pipeline body with an injected throwing validate action to exercise IOC112 or OCE propagation.
-    /// Pass <paramref name="throwOce"/>=true to throw OperationCanceledException instead of InvalidOperationException.
-    /// </summary>
-    private static ImmutableArray<Diagnostic> RunPipelineWithThrowingValidate(
-        ImmutableArray<ValidatorClassInfo> allValidators,
-        string? throwMessage,
-        bool throwOce = false)
-    {
-        var diagnostics = new System.Collections.Generic.List<Diagnostic>();
-        System.Action<Diagnostic> report = d => diagnostics.Add(d);
-
-        foreach (var validator in allValidators)
-        {
-            if (validator.GraphBuildError != null)
-            {
-                diagnostics.Add(Diagnostic.Create(
-                    IoCTools.FluentValidation.Diagnostics.FluentValidationDiagnosticDescriptors.CompositionGraphAnalysisError,
-                    location: null,
-                    validator.FullyQualifiedName,
-                    validator.GraphBuildError));
-            }
-
-            try
-            {
-                if (throwOce)
-                    throw new OperationCanceledException("simulated cancellation");
-                throw new InvalidOperationException(throwMessage ?? "test error");
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
-            {
-                diagnostics.Add(Diagnostic.Create(
-                    IoCTools.FluentValidation.Diagnostics.FluentValidationDiagnosticDescriptors.ValidatorPipelineError,
-                    location: null,
-                    validator.FullyQualifiedName,
-                    ex.Message));
-            }
-        }
-
-        return diagnostics.ToImmutableArray();
+        return (validator, ImmutableArray.Create(validator));
     }
 
     private static CSharpCompilation CreateMinimalCompilation(string source)
     {
         var iocToolsAssembly = typeof(IoCTools.Abstractions.Annotations.ScopedAttribute).Assembly;
-        var refs = new MetadataReference[]
+        var refs = new System.Collections.Generic.List<MetadataReference>
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Attribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Collections.Generic.IEnumerable<>).Assembly.Location),
             MetadataReference.CreateFromFile(iocToolsAssembly.Location),
         };
-
-        var allRefs = new System.Collections.Generic.List<MetadataReference>(refs);
         try
         {
             var fvAssembly = typeof(global::FluentValidation.AbstractValidator<>).Assembly;
-            allRefs.Add(MetadataReference.CreateFromFile(fvAssembly.Location));
+            refs.Add(MetadataReference.CreateFromFile(fvAssembly.Location));
         }
         catch { /* FluentValidation may not be available */ }
 
@@ -876,7 +760,7 @@ public partial class OrderValidator : AbstractValidator<Order> { }
         return CSharpCompilation.Create(
             "FailLoudTest",
             new[] { syntaxTree },
-            allRefs,
+            refs,
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));

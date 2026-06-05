@@ -24,7 +24,7 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// <param name="validatedType">The T from AbstractValidator&lt;T&gt;.</param>
     /// <param name="lifetime">The IoCTools lifetime attribute value, or null if none.</param>
     /// <param name="compositionEdges">Edges to child validators discovered in the class body.</param>
-    /// <param name="graphBuildError">Non-null when CompositionGraphBuilder caught an exception; carries the error message for IOC103 emission.</param>
+    /// <param name="graphBuildError">Non-null when CompositionGraphBuilder caught an exception; carries the error message for IOC111 emission.</param>
     public ValidatorClassInfo(
         INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration,
@@ -88,7 +88,7 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
 
     /// <summary>
     /// Non-null when <see cref="Generator.CompositionGraph.CompositionGraphBuilder.BuildEdges"/> caught
-    /// an unexpected exception. Carried here so the IOC103 diagnostic can be emitted from
+    /// an unexpected exception. Carried here so the IOC111 diagnostic can be emitted from
     /// <see cref="Generator.Pipeline.ValidatorDiagnosticsPipeline"/>, which has access to a
     /// <c>ReportDiagnostic</c> sink.
     /// </summary>
