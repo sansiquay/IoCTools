@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **`config-audit --json` now surfaces settings read/parse errors in the JSON payload and stderr.**
+  The `settingsReadError` field is always present in the `config-audit --json` output: `null` on
+  success, or a string describing the failure when the settings file cannot be read or parsed.
+  Errors are also written to stderr so they are visible in CI without consuming the JSON payload.
+  Previously, parse failures were silently ignored and all keys appeared missing.
+  `OperationCanceledException` during settings read propagates instead of being swallowed
+  into `settingsReadError`/exit 0. Closes #30, #31.
+
 ## [1.10.0] - 2026-05-25
 
 ### Added (additive, object-shaped `--json` outputs)

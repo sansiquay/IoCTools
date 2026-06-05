@@ -38,7 +38,7 @@ public class AnalysisScopeTests
         "IOC084", "IOC085", "IOC086", "IOC087", "IOC090", "IOC091",
         "IOC092", "IOC094", "IOC096", "IOC097", "IOC098", "IOC099",
         "IOC103", "IOC104", "IOC105", "IOC106", "IOC107", "IOC108",
-        "IOC110"
+        "IOC110", "IOC113"
     };
 
     public static TheoryData<string> TestOnlyDiagnosticIds => new()

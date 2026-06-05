@@ -103,6 +103,7 @@ internal static class DiagnosticGate
             { "IOC107", AnalysisScope.Production },
             { "IOC108", AnalysisScope.Production },
             { "IOC110", AnalysisScope.Production },
+            { "IOC113", AnalysisScope.Production },
 
             // Test fixture diagnostics are useful only in test projects.
             { "TDIAG01", AnalysisScope.Test },

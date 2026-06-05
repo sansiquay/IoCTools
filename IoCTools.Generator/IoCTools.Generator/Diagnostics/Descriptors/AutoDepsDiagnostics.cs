@@ -89,6 +89,16 @@ internal static partial class DiagnosticDescriptors
         "The service type does not satisfy the open generic's constraint. Add [NoAutoDepOpen(typeof(T<>))] to the service, or change the open generic to a compatible one.",
         AutoDepsHelpBase + "ioc108");
 
+    public static readonly DiagnosticDescriptor ProfileTypeUnresolved = new(
+        "IOC113",
+        "Profile type could not be resolved",
+        "Profile type '{0}' could not be resolved. Ensure the assembly containing the profile is referenced and the type name is correct.",
+        "IoCTools.AutoDeps",
+        DiagnosticSeverity.Error,
+        true,
+        "Check that the assembly defining the profile type is referenced by this project. An unresolved profile type is treated as invalid — the annotation does not pass validation silently.",
+        AutoDepsHelpBase + "ioc113");
+
     public static readonly DiagnosticDescriptor AutoDepsApplyGlobInvalid = new(
         "IOC103",
         "AutoDepsApplyGlob pattern is invalid",

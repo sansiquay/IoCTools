@@ -6,7 +6,8 @@ internal static class ConfigAuditPrinter
 {
     public static void Write(IReadOnlyList<ServiceFieldReport> reports,
         string? settingsPath,
-        OutputContext output)
+        OutputContext output,
+        CancellationToken cancellationToken = default)
     {
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var report in reports)
@@ -21,16 +22,23 @@ internal static class ConfigAuditPrinter
         if (output.IsJson)
         {
             HashSet<string> jsonSettingsKeys = new(StringComparer.OrdinalIgnoreCase);
+            string? settingsReadError = null;
             if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
                 try
                 {
                     using var stream = File.OpenRead(settingsPath);
-                    using var doc = JsonDocument.Parse(stream);
+                    using var doc = JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                        .GetAwaiter().GetResult();
                     Flatten(doc.RootElement, jsonSettingsKeys, string.Empty);
                 }
-                catch
+                catch (OperationCanceledException)
                 {
-                    // Silently ignore settings read errors in JSON mode
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    settingsReadError = $"Failed to read settings file '{settingsPath}': {ex.Message}";
+                    output.WriteError(settingsReadError);
                 }
 
             var jsonMissing = jsonSettingsKeys.Count == 0
@@ -42,6 +50,7 @@ internal static class ConfigAuditPrinter
                 requiredBindings = keys.Count,
                 settingsKeysDiscovered = jsonSettingsKeys.Count,
                 missingKeys = jsonMissing,
+                settingsReadError,
                 allKeys = keys
             };
             output.WriteJson(payload);
@@ -59,8 +68,13 @@ internal static class ConfigAuditPrinter
             try
             {
                 using var stream = File.OpenRead(settingsPath);
-                using var doc = JsonDocument.Parse(stream);
+                using var doc = JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                    .GetAwaiter().GetResult();
                 Flatten(doc.RootElement, settingsKeys, string.Empty);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
