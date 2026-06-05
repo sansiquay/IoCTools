@@ -160,6 +160,13 @@ internal static class DiagnosticCatalog
 
             // IoCTools.Usage (1.6 — [Inject] deprecation)
             new("IOC095", "[Inject] is deprecated; use [DependsOn<T>]", "IoCTools.Usage", "Warning"),
+
+            // IoCTools.FluentValidation
+            new("IOC100", "Validator directly instantiates DI-managed child validator", "IoCTools.FluentValidation", "Warning"),
+            new("IOC101", "Validator composition creates lifetime mismatch", "IoCTools.FluentValidation", "Warning"),
+            new("IOC102", "Validator class missing partial modifier", "IoCTools.FluentValidation", "Error"),
+            new("IOC111", "Composition graph analysis error", "IoCTools.FluentValidation", "Error"),
+            new("IOC112", "Validator diagnostic pipeline error", "IoCTools.FluentValidation", "Error"),
         };
     }
 }

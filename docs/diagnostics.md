@@ -13,7 +13,7 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
 - [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC099, IOC103-IOC108
 - [Testing Diagnostics](#testing-diagnostics) - TDIAG01 through TDIAG08
-- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102
+- [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102, IOC111-IOC112
 
 ## Severity Legend
 
@@ -966,7 +966,9 @@ The auto-deps feature introduced in 1.6.0 ships diagnostics IOC095-IOC099
 and IOC103-IOC108. (IOC100-IOC102 remained assigned to
 `IoCTools.FluentValidation` from 1.5.1; the three `AutoDepOpen`-validation
 diagnostics that were originally planned for those IDs were re-numbered to
-IOC106-IOC108 before the 1.6.0 release to avoid a suppression collision.)
+IOC106-IOC108 before the 1.6.0 release to avoid a suppression collision.
+IOC103/IOC104 are therefore owned by IoCTools.AutoDeps — the FluentValidation
+fail-loud infrastructure diagnostics use IOC111/IOC112 to avoid collision.)
 For concept documentation see [docs/auto-deps.md](auto-deps.md); every
 descriptor's `HelpLinkUri` points at the `#iocXXX` anchor on that page.
 
@@ -1587,6 +1589,38 @@ public partial class OrderValidator : AbstractValidator<Order>
 ```
 
 **Related:** [IOC080](#ioc080) (partial class requirement for services), [IOC100](#ioc100) (direct instantiation)
+
+---
+
+### IOC111
+
+**Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
+
+**Cause:** `CompositionGraphBuilder` encountered an unexpected exception while walking a validator's syntax tree to build composition edges. One or more edges may be missing, which can cause false-negative results for [IOC100](#ioc100) and [IOC101](#ioc101).
+
+This is a generator bug — the exception message is included in the diagnostic to aid reporting.
+
+**Note on severity:** Raised as `Error` rather than `Warning` because missing edges silently suppress real IOC100/IOC101 violations. A visible error is preferable to undetected captive-dependency or direct-instantiation bugs.
+
+**Fix:** File an issue at the IoCTools repository with the diagnostic message. As a workaround, suppress `IOC111` on the affected validator and manually verify its composition graph.
+
+**Related:** [IOC100](#ioc100) (direct instantiation), [IOC101](#ioc101) (lifetime mismatch), [IOC112](#ioc112) (pipeline error)
+
+---
+
+### IOC112
+
+**Severity:** [!Error](#) | **Category:** IoCTools.FluentValidation
+
+**Cause:** `ValidatorDiagnosticsPipeline` encountered an unexpected exception while running diagnostic validators against a `ValidatorClassInfo`. All diagnostics for the affected validator were skipped, which can cause false-negative results for [IOC100](#ioc100) and [IOC101](#ioc101).
+
+This is a generator bug — the exception message is included in the diagnostic to aid reporting.
+
+**Note on severity:** Raised as `Error` rather than `Warning` because a dropped validator silently masks real IOC100/IOC101 violations. A visible error is preferable to undetected captive-dependency or direct-instantiation bugs.
+
+**Fix:** File an issue at the IoCTools repository with the diagnostic message. As a workaround, suppress `IOC112` on the affected validator and manually verify it has no direct-instantiation or lifetime-mismatch issues.
+
+**Related:** [IOC100](#ioc100) (direct instantiation), [IOC101](#ioc101) (lifetime mismatch), [IOC111](#ioc111) (graph build error)
 
 ---
 

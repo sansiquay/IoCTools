@@ -57,9 +57,14 @@ internal static class CompositionGraphBuilder
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Analyzer cancellation must propagate — do not convert to IOC111.
+            throw;
+        }
         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
         {
-            // Capture the error message so the caller can emit IOC103; do not rethrow.
+            // Capture the error message so the caller can emit IOC111; do not rethrow.
             buildError = ex.Message;
         }
 

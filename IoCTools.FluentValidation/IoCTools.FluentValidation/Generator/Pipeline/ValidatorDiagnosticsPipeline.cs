@@ -30,7 +30,7 @@ internal static class ValidatorDiagnosticsPipeline
         {
             foreach (var validator in allValidators)
             {
-                // IOC103: composition graph build caught an exception in the SyntaxProvider phase
+                // IOC111: composition graph build caught an exception in the SyntaxProvider phase
                 // (where no ReportDiagnostic sink is available). Surface it here.
                 if (validator.GraphBuildError != null)
                 {
@@ -46,9 +46,14 @@ internal static class ValidatorDiagnosticsPipeline
                     DirectInstantiationValidator.Validate(validator, allValidators, ctx.ReportDiagnostic);
                     CompositionLifetimeValidator.Validate(validator, allValidators, ctx.ReportDiagnostic);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Analyzer cancellation must propagate — do not convert to IOC112.
+                    throw;
+                }
                 catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
                 {
-                    // IOC104: a validator rule threw — emit diagnostic instead of silently skipping.
+                    // IOC112: a validator rule threw — emit diagnostic instead of silently skipping.
                     ctx.ReportDiagnostic(Diagnostic.Create(
                         FluentValidationDiagnosticDescriptors.ValidatorPipelineError,
                         location: null,

@@ -5,6 +5,8 @@ using Microsoft.CodeAnalysis;
 /// <summary>
 /// Diagnostic descriptors for the IoCTools FluentValidation source generator.
 /// Starts at IOC100 to avoid collision with existing IoCTools diagnostics (IOC001-IOC094, TDIAG-01-TDIAG-05).
+/// IOC103 and IOC104 are reserved by IoCTools.AutoDeps (AutoDepsApplyGlobInvalid / ProfileIsGeneric).
+/// Fail-loud infrastructure diagnostics use IOC111/IOC112 to avoid the collision.
 /// </summary>
 internal static class FluentValidationDiagnosticDescriptors
 {
@@ -56,32 +58,36 @@ internal static class FluentValidationDiagnosticDescriptors
         helpLinkUri: HelpLinkBase + "#ioc102");
 
     /// <summary>
-    /// IOC103: CompositionGraphBuilder encountered an internal analysis error while building edges.
+    /// IOC111: CompositionGraphBuilder encountered an internal analysis error while building edges.
     /// Emitted instead of silently skipping, so the failure is visible to the consumer.
+    /// Severity is Error because a missing edge can cause false-negative IOC100/IOC101 results —
+    /// silent data loss is worse than a visible error.
     /// {0} = parent validator FQN, {1} = exception message
     /// </summary>
     internal static readonly DiagnosticDescriptor CompositionGraphAnalysisError = new DiagnosticDescriptor(
-        "IOC103",
+        "IOC111",
         "Composition graph analysis error",
         "IoCTools: composition graph analysis for '{0}' encountered an internal error and one or more edges may be missing: {1}. This is likely a generator bug — please file an issue.",
         Category,
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "CompositionGraphBuilder caught an unexpected exception while analyzing a validator's composition edges. The affected validator's edges were skipped, which may cause false-negative results for IOC100/IOC101. The error is surfaced so it is not silently lost.",
-        helpLinkUri: HelpLinkBase + "#ioc103");
+        description: "CompositionGraphBuilder caught an unexpected exception while analyzing a validator's composition edges. The affected validator's edges were skipped, which may cause false-negative results for IOC100/IOC101. Raised as Error because missing edges silently suppress real diagnostics.",
+        helpLinkUri: HelpLinkBase + "#ioc111");
 
     /// <summary>
-    /// IOC104: ValidatorDiagnosticsPipeline encountered an internal error for a validator.
+    /// IOC112: ValidatorDiagnosticsPipeline encountered an internal error for a validator.
     /// Emitted instead of silently skipping, so a broken validator rule is visible.
+    /// Severity is Error because a pipeline failure drops all diagnostics for the affected validator,
+    /// potentially masking real IOC100/IOC101 violations.
     /// {0} = validator FQN, {1} = exception message
     /// </summary>
     internal static readonly DiagnosticDescriptor ValidatorPipelineError = new DiagnosticDescriptor(
-        "IOC104",
+        "IOC112",
         "Validator diagnostic pipeline error",
         "IoCTools: diagnostics pipeline for validator '{0}' encountered an internal error and its diagnostics may be incomplete: {1}. This is likely a generator bug — please file an issue.",
         Category,
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "ValidatorDiagnosticsPipeline caught an unexpected exception while running validators against a ValidatorClassInfo. The affected validator's diagnostics were skipped, which may cause false-negative results for IOC100/IOC101. The error is surfaced so it is not silently lost.",
-        helpLinkUri: HelpLinkBase + "#ioc104");
+        description: "ValidatorDiagnosticsPipeline caught an unexpected exception while running validators against a ValidatorClassInfo. The affected validator's diagnostics were skipped, which may cause false-negative results for IOC100/IOC101. Raised as Error because dropped validators silently mask real violations.",
+        helpLinkUri: HelpLinkBase + "#ioc112");
 }
