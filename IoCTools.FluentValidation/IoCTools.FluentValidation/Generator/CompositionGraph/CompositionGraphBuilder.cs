@@ -3,6 +3,7 @@ namespace IoCTools.FluentValidation.Generator.CompositionGraph;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,19 +15,24 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 internal static class CompositionGraphBuilder
 {
     /// <summary>
-    /// Builds composition edges by walking the validator's syntax tree for known
-    /// FluentValidation composition invocations.
+    /// Builds composition edges by walking the validator's syntax tree.
+    /// Returns the edge list and, if an unexpected exception was caught, its message
+    /// so the caller can emit an IOC111 diagnostic via a <c>ReportDiagnostic</c> sink.
     /// </summary>
     /// <param name="validatorDecl">The syntax node for the validator class.</param>
     /// <param name="model">The semantic model for type resolution.</param>
     /// <param name="parentValidatorFqn">Fully-qualified name of the parent validator.</param>
-    /// <returns>A list of composition edges found in the validator body.</returns>
+    /// <param name="buildError">Non-null when an unexpected exception was caught; carries the message for IOC111 emission.</param>
+    /// <param name="cancellationToken">Token forwarded to semantic model queries; propagates analyzer cancellation.</param>
     internal static List<CompositionEdge> BuildEdges(
         TypeDeclarationSyntax validatorDecl,
         SemanticModel model,
-        string parentValidatorFqn)
+        string parentValidatorFqn,
+        out string? buildError,
+        CancellationToken cancellationToken = default)
     {
         var edges = new List<CompositionEdge>();
+        buildError = null;
 
         try
         {
@@ -39,20 +45,26 @@ internal static class CompositionGraphBuilder
                 switch (methodName)
                 {
                     case "SetValidator":
-                        HandleSetValidatorOrInclude(invocation, model, parentValidatorFqn, CompositionType.SetValidator, edges);
+                        HandleSetValidatorOrInclude(invocation, model, parentValidatorFqn, CompositionType.SetValidator, edges, cancellationToken);
                         break;
                     case "Include":
-                        HandleSetValidatorOrInclude(invocation, model, parentValidatorFqn, CompositionType.Include, edges);
+                        HandleSetValidatorOrInclude(invocation, model, parentValidatorFqn, CompositionType.Include, edges, cancellationToken);
                         break;
                     case "SetInheritanceValidator":
-                        HandleSetInheritanceValidator(invocation, model, parentValidatorFqn, edges);
+                        HandleSetInheritanceValidator(invocation, model, parentValidatorFqn, edges, cancellationToken);
                         break;
                 }
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Analyzer cancellation must propagate — do not convert to IOC111.
+            throw;
+        }
         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
         {
-            // Generator never throws — skip edges if analysis fails
+            // Capture the error message so the caller can emit IOC111; do not rethrow.
+            buildError = ex.Message;
         }
 
         return edges;
@@ -84,14 +96,15 @@ internal static class CompositionGraphBuilder
         SemanticModel model,
         string parentValidatorFqn,
         CompositionType compositionType,
-        List<CompositionEdge> edges)
+        List<CompositionEdge> edges,
+        CancellationToken cancellationToken)
     {
         var args = invocation.ArgumentList?.Arguments;
         if (args == null || args.Value.Count == 0)
             return;
 
         var firstArg = args.Value[0].Expression;
-        var resolved = ResolveChildValidatorType(firstArg, model);
+        var resolved = ResolveChildValidatorType(firstArg, model, cancellationToken);
         if (resolved == null)
             return;
 
@@ -112,7 +125,8 @@ internal static class CompositionGraphBuilder
         InvocationExpressionSyntax invocation,
         SemanticModel model,
         string parentValidatorFqn,
-        List<CompositionEdge> edges)
+        List<CompositionEdge> edges,
+        CancellationToken cancellationToken)
     {
         var args = invocation.ArgumentList?.Arguments;
         if (args == null || args.Value.Count == 0)
@@ -133,7 +147,7 @@ internal static class CompositionGraphBuilder
                 continue;
 
             var validatorArg = innerArgs.Value[0].Expression;
-            var resolved = ResolveChildValidatorType(validatorArg, model);
+            var resolved = ResolveChildValidatorType(validatorArg, model, cancellationToken);
             if (resolved == null)
                 continue;
 
@@ -150,19 +164,21 @@ internal static class CompositionGraphBuilder
     /// <summary>
     /// Resolves the child validator type from an argument expression.
     /// Handles direct instantiation (<c>new X()</c>) and injected references (fields, parameters, properties).
+    /// OperationCanceledException propagates so analyzer cancellation is not swallowed.
     /// </summary>
     /// <returns>A tuple with the fully-qualified name, short name, and whether it is direct instantiation;
     /// or null if the type cannot be resolved.</returns>
     private static (string fullyQualifiedName, string shortName, bool isDirectInstantiation)? ResolveChildValidatorType(
         ExpressionSyntax expression,
-        SemanticModel model)
+        SemanticModel model,
+        CancellationToken cancellationToken)
     {
         try
         {
             // Direct instantiation: new SomeValidator() or new SomeValidator(args)
             if (expression is ObjectCreationExpressionSyntax creation)
             {
-                var typeInfo = model.GetTypeInfo(creation);
+                var typeInfo = model.GetTypeInfo(creation, cancellationToken);
                 var typeSymbol = typeInfo.Type as INamedTypeSymbol;
                 if (typeSymbol == null)
                     return null;
@@ -174,7 +190,7 @@ internal static class CompositionGraphBuilder
             }
 
             // Injected reference: field, parameter, property, or local variable
-            var symbolInfo = model.GetSymbolInfo(expression);
+            var symbolInfo = model.GetSymbolInfo(expression, cancellationToken);
             var symbol = symbolInfo.Symbol;
             if (symbol == null)
                 return null;
@@ -205,6 +221,11 @@ internal static class CompositionGraphBuilder
             }
 
             return null;
+        }
+        catch (OperationCanceledException)
+        {
+            // Analyzer cancellation must propagate — do not swallow into a null return.
+            throw;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
         {
