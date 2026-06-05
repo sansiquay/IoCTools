@@ -1624,4 +1624,24 @@ This is a generator bug — the exception message is included in the diagnostic 
 
 ---
 
+<a id="ioc113"></a>
+### IOC113 — Profile type could not be resolved
+
+**Severity:** Error | **Category:** IoCTools.AutoDeps
+
+**Cause:** The profile type argument in `AutoDepIn`, `AutoDepsApply`, `AutoDepsApplyGlob`, or
+`AutoDeps` could not be resolved by Roslyn — the symbol binds as `IErrorTypeSymbol`. This
+typically indicates a missing assembly reference or a typo in the type name.
+
+Previously the validator silently passed unresolved symbols (fail-open), which masked
+misconfiguration. IOC113 makes the failure visible.
+
+**Fix:** Ensure the assembly containing the profile type is referenced by this project, and
+that the type name is spelled correctly.
+
+**Related:** [IOC097](#ioc097) (profile does not implement IAutoDepsProfile),
+[IOC104](#ioc104) (profile type is generic)
+
+---
+
 **Back to [main README](../README.md)**

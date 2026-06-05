@@ -18,6 +18,7 @@ public sealed class NewDiagnosticDescriptorTests
     [InlineData("IOC103", nameof(DiagnosticDescriptors.AutoDepsApplyGlobInvalid))]
     [InlineData("IOC104", nameof(DiagnosticDescriptors.ProfileIsGeneric))]
     [InlineData("IOC105", nameof(DiagnosticDescriptors.RedundantProfileAttachment))]
+    [InlineData("IOC113", nameof(DiagnosticDescriptors.ProfileTypeUnresolved))]
     public void Descriptor_has_expected_id(string expectedId, string descriptorName)
     {
         var field = typeof(DiagnosticDescriptors).GetField(descriptorName);
@@ -45,6 +46,7 @@ public sealed class NewDiagnosticDescriptorTests
     [InlineData(nameof(DiagnosticDescriptors.AutoDepsApplyGlobInvalid), "ioc103")]
     [InlineData(nameof(DiagnosticDescriptors.ProfileIsGeneric), "ioc104")]
     [InlineData(nameof(DiagnosticDescriptors.RedundantProfileAttachment), "ioc105")]
+    [InlineData(nameof(DiagnosticDescriptors.ProfileTypeUnresolved), "ioc113")]
     public void AutoDeps_descriptor_help_link_uses_auto_deps_anchor(string descriptorName, string expectedAnchor)
     {
         var field = typeof(DiagnosticDescriptors).GetField(descriptorName);

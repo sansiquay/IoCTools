@@ -21,6 +21,7 @@ internal static class ConfigAuditPrinter
         if (output.IsJson)
         {
             HashSet<string> jsonSettingsKeys = new(StringComparer.OrdinalIgnoreCase);
+            string? settingsReadError = null;
             if (!string.IsNullOrWhiteSpace(settingsPath) && File.Exists(settingsPath))
                 try
                 {
@@ -28,9 +29,10 @@ internal static class ConfigAuditPrinter
                     using var doc = JsonDocument.Parse(stream);
                     Flatten(doc.RootElement, jsonSettingsKeys, string.Empty);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Silently ignore settings read errors in JSON mode
+                    settingsReadError = $"Failed to read settings file '{settingsPath}': {ex.Message}";
+                    output.WriteError(settingsReadError);
                 }
 
             var jsonMissing = jsonSettingsKeys.Count == 0
@@ -42,6 +44,7 @@ internal static class ConfigAuditPrinter
                 requiredBindings = keys.Count,
                 settingsKeysDiscovered = jsonSettingsKeys.Count,
                 missingKeys = jsonMissing,
+                settingsReadError,
                 allKeys = keys
             };
             output.WriteJson(payload);

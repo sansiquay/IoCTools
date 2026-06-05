@@ -28,6 +28,12 @@ internal static class ProfileMarkerValidator
             var profileType = GetProfileTypeArgument(attribute);
             if (profileType is null) continue;
 
+            if (IsUnresolvedSymbol(profileType))
+            {
+                ReportIoc113(context, attribute, profileType);
+                continue;
+            }
+
             if (ImplementsAutoDepsProfile(profileType)) continue;
 
             ReportIoc097(context, attribute, profileType);
@@ -50,6 +56,12 @@ internal static class ProfileMarkerValidator
 
                     var profileType = GetProfileTypeArgument(attribute);
                     if (profileType is null) continue;
+
+                    if (IsUnresolvedSymbol(profileType))
+                    {
+                        ReportIoc113(context, attribute, profileType);
+                        continue;
+                    }
 
                     if (ImplementsAutoDepsProfile(profileType)) continue;
 
@@ -74,8 +86,8 @@ internal static class ProfileMarkerValidator
 
     private static bool ImplementsAutoDepsProfile(ITypeSymbol profileType)
     {
-        if (profileType is IErrorTypeSymbol) return true; // skip unresolved symbols
-        if (profileType.TypeKind == TypeKind.Error) return true;
+        if (profileType is IErrorTypeSymbol) return false; // unresolved — emit IOC113, not fail-open
+        if (profileType.TypeKind == TypeKind.Error) return false;
 
         foreach (var iface in profileType.AllInterfaces)
         {
@@ -85,6 +97,9 @@ internal static class ProfileMarkerValidator
         return false;
     }
 
+    private static bool IsUnresolvedSymbol(ITypeSymbol profileType) =>
+        profileType is IErrorTypeSymbol || profileType.TypeKind == TypeKind.Error;
+
     private static void ReportIoc097(SourceProductionContext context,
         AttributeData attribute,
         ITypeSymbol profileType)
@@ -92,6 +107,18 @@ internal static class ProfileMarkerValidator
         var location = attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None;
         var diagnostic = Diagnostic.Create(
             DiagnosticDescriptors.ProfileMissingMarker,
+            location,
+            profileType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+        context.ReportDiagnostic(diagnostic);
+    }
+
+    private static void ReportIoc113(SourceProductionContext context,
+        AttributeData attribute,
+        ITypeSymbol profileType)
+    {
+        var location = attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? Location.None;
+        var diagnostic = Diagnostic.Create(
+            DiagnosticDescriptors.ProfileTypeUnresolved,
             location,
             profileType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
         context.ReportDiagnostic(diagnostic);
