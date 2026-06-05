@@ -54,4 +54,34 @@ internal static class FluentValidationDiagnosticDescriptors
         isEnabledByDefault: true,
         description: "FluentValidation validators that use IoCTools lifetime attributes or [Inject]/[DependsOn] must be marked partial to allow constructor generation. Add 'partial' to the class declaration.",
         helpLinkUri: HelpLinkBase + "#ioc102");
+
+    /// <summary>
+    /// IOC103: CompositionGraphBuilder encountered an internal analysis error while building edges.
+    /// Emitted instead of silently skipping, so the failure is visible to the consumer.
+    /// {0} = parent validator FQN, {1} = exception message
+    /// </summary>
+    internal static readonly DiagnosticDescriptor CompositionGraphAnalysisError = new DiagnosticDescriptor(
+        "IOC103",
+        "Composition graph analysis error",
+        "IoCTools: composition graph analysis for '{0}' encountered an internal error and one or more edges may be missing: {1}. This is likely a generator bug — please file an issue.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "CompositionGraphBuilder caught an unexpected exception while analyzing a validator's composition edges. The affected validator's edges were skipped, which may cause false-negative results for IOC100/IOC101. The error is surfaced so it is not silently lost.",
+        helpLinkUri: HelpLinkBase + "#ioc103");
+
+    /// <summary>
+    /// IOC104: ValidatorDiagnosticsPipeline encountered an internal error for a validator.
+    /// Emitted instead of silently skipping, so a broken validator rule is visible.
+    /// {0} = validator FQN, {1} = exception message
+    /// </summary>
+    internal static readonly DiagnosticDescriptor ValidatorPipelineError = new DiagnosticDescriptor(
+        "IOC104",
+        "Validator diagnostic pipeline error",
+        "IoCTools: diagnostics pipeline for validator '{0}' encountered an internal error and its diagnostics may be incomplete: {1}. This is likely a generator bug — please file an issue.",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "ValidatorDiagnosticsPipeline caught an unexpected exception while running validators against a ValidatorClassInfo. The affected validator's diagnostics were skipped, which may cause false-negative results for IOC100/IOC101. The error is surfaced so it is not silently lost.",
+        helpLinkUri: HelpLinkBase + "#ioc104");
 }

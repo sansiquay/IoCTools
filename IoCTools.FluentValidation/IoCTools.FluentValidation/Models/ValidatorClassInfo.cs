@@ -24,13 +24,15 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     /// <param name="validatedType">The T from AbstractValidator&lt;T&gt;.</param>
     /// <param name="lifetime">The IoCTools lifetime attribute value, or null if none.</param>
     /// <param name="compositionEdges">Edges to child validators discovered in the class body.</param>
+    /// <param name="graphBuildError">Non-null when CompositionGraphBuilder caught an exception; carries the error message for IOC103 emission.</param>
     public ValidatorClassInfo(
         INamedTypeSymbol classSymbol,
         TypeDeclarationSyntax classDeclaration,
         SemanticModel semanticModel,
         INamedTypeSymbol validatedType,
         string? lifetime,
-        ImmutableArray<CompositionEdge> compositionEdges = default)
+        ImmutableArray<CompositionEdge> compositionEdges = default,
+        string? graphBuildError = null)
     {
         ClassSymbol = classSymbol;
         ClassDeclaration = classDeclaration;
@@ -40,6 +42,7 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
         CompositionEdges = compositionEdges.IsDefault ? ImmutableArray<CompositionEdge>.Empty : compositionEdges;
         FullyQualifiedName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         ValidatedTypeFullyQualifiedName = validatedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        GraphBuildError = graphBuildError;
     }
 
     /// <summary>
@@ -84,12 +87,21 @@ internal readonly struct ValidatorClassInfo : IEquatable<ValidatorClassInfo>
     public string ValidatedTypeFullyQualifiedName { get; }
 
     /// <summary>
+    /// Non-null when <see cref="Generator.CompositionGraph.CompositionGraphBuilder.BuildEdges"/> caught
+    /// an unexpected exception. Carried here so the IOC103 diagnostic can be emitted from
+    /// <see cref="Generator.Pipeline.ValidatorDiagnosticsPipeline"/>, which has access to a
+    /// <c>ReportDiagnostic</c> sink.
+    /// </summary>
+    public string? GraphBuildError { get; }
+
+    /// <summary>
     /// Compares by fully qualified names for incremental pipeline caching.
     /// </summary>
     public bool Equals(ValidatorClassInfo other) =>
         FullyQualifiedName == other.FullyQualifiedName &&
         ValidatedTypeFullyQualifiedName == other.ValidatedTypeFullyQualifiedName &&
-        CompositionEdges.SequenceEqual(other.CompositionEdges);
+        CompositionEdges.SequenceEqual(other.CompositionEdges) &&
+        GraphBuildError == other.GraphBuildError;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) =>

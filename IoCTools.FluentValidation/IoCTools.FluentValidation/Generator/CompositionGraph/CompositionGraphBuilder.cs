@@ -21,12 +21,19 @@ internal static class CompositionGraphBuilder
     /// <param name="model">The semantic model for type resolution.</param>
     /// <param name="parentValidatorFqn">Fully-qualified name of the parent validator.</param>
     /// <returns>A list of composition edges found in the validator body.</returns>
+    /// <summary>
+    /// Builds composition edges by walking the validator's syntax tree.
+    /// Returns the edge list and, if an unexpected exception was caught, its message
+    /// so the caller can emit an IOC103 diagnostic via a <c>ReportDiagnostic</c> sink.
+    /// </summary>
     internal static List<CompositionEdge> BuildEdges(
         TypeDeclarationSyntax validatorDecl,
         SemanticModel model,
-        string parentValidatorFqn)
+        string parentValidatorFqn,
+        out string? buildError)
     {
         var edges = new List<CompositionEdge>();
+        buildError = null;
 
         try
         {
@@ -52,7 +59,8 @@ internal static class CompositionGraphBuilder
         }
         catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException)
         {
-            // Generator never throws — skip edges if analysis fails
+            // Capture the error message so the caller can emit IOC103; do not rethrow.
+            buildError = ex.Message;
         }
 
         return edges;

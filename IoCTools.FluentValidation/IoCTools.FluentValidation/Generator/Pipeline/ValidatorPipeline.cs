@@ -44,7 +44,7 @@ internal static class ValidatorPipeline
 
                     var lifetime = FluentValidationTypeChecker.GetLifetimeFromAttributes(symbol);
                     var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    var compositionEdges = CompositionGraphBuilder.BuildEdges(typeDecl, ctx.SemanticModel, fqn);
+                    var compositionEdges = CompositionGraphBuilder.BuildEdges(typeDecl, ctx.SemanticModel, fqn, out var graphBuildError);
 
                     return new ValidatorClassInfo(
                         symbol,
@@ -52,7 +52,8 @@ internal static class ValidatorPipeline
                         ctx.SemanticModel,
                         validatedType,
                         lifetime,
-                        compositionEdges.ToImmutableArray());
+                        compositionEdges.ToImmutableArray(),
+                        graphBuildError);
                 })
             .Where(static x => x.HasValue)
             .Select(static (x, _) => x!.Value)
