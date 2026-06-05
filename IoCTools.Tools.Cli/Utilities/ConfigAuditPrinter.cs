@@ -6,7 +6,8 @@ internal static class ConfigAuditPrinter
 {
     public static void Write(IReadOnlyList<ServiceFieldReport> reports,
         string? settingsPath,
-        OutputContext output)
+        OutputContext output,
+        CancellationToken cancellationToken = default)
     {
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var report in reports)
@@ -26,8 +27,13 @@ internal static class ConfigAuditPrinter
                 try
                 {
                     using var stream = File.OpenRead(settingsPath);
-                    using var doc = JsonDocument.Parse(stream);
+                    using var doc = JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                        .GetAwaiter().GetResult();
                     Flatten(doc.RootElement, jsonSettingsKeys, string.Empty);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -62,8 +68,13 @@ internal static class ConfigAuditPrinter
             try
             {
                 using var stream = File.OpenRead(settingsPath);
-                using var doc = JsonDocument.Parse(stream);
+                using var doc = JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)
+                    .GetAwaiter().GetResult();
                 Flatten(doc.RootElement, settingsKeys, string.Empty);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

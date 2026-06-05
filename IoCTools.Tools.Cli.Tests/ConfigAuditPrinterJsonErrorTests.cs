@@ -176,6 +176,44 @@ public sealed class ConfigAuditPrinterJsonErrorTests
         }
     }
 
+    /// <summary>
+    /// Regression fence: OperationCanceledException during settings file read must propagate out
+    /// of <see cref="ConfigAuditPrinter.Write"/>, NOT be swallowed into
+    /// <c>settingsReadError</c> / exit 0.
+    ///
+    /// Revert-RED contract: removing the <c>catch (OperationCanceledException) { throw; }</c>
+    /// guard from the JSON branch causes <see cref="JsonDocument.ParseAsync"/> to swallow the
+    /// OCE into the generic <c>catch (Exception ex)</c>, Write() returns normally with a
+    /// non-null <c>settingsReadError</c>, and <see cref="Assert.Throws{T}"/> finds nothing → RED.
+    /// </summary>
+    [Fact]
+    public void JsonMode_WhenCancellationThrown_PropagatesOperationCanceledException()
+    {
+        // Arrange: valid JSON file so File.Exists passes and the settings-read path is entered.
+        // A pre-cancelled CancellationToken is passed to Write(); it flows through to
+        // JsonDocument.ParseAsync, which throws OperationCanceledException before completing.
+        var tempFile = Path.Combine(Path.GetTempPath(), $"ioc-test-oce-{Guid.NewGuid()}.json");
+        try
+        {
+            File.WriteAllText(tempFile, """{ "TestSection": "value" }""");
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var output = OutputContext.Create(isJson: true, isVerbose: false);
+
+            // Act + Assert: Write must throw, not absorb the OCE into settingsReadError.
+            // ThrowsAny matches TaskCanceledException (subclass of OperationCanceledException)
+            // which is what JsonDocument.ParseAsync raises on a pre-cancelled token.
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                ConfigAuditPrinter.Write(OneConfigReport(), tempFile, output, cts.Token));
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
     [Fact]
     public void TextMode_WithInvalidJsonSettings_WritesError()
     {
