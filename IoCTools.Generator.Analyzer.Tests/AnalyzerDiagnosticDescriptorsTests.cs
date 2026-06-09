@@ -51,4 +51,18 @@ public sealed class AnalyzerDiagnosticDescriptorsTests
         AnalyzerDiagnosticDescriptors.InjectDeprecated.MessageFormat.ToString()
             .Should().Be("[Inject] on field '{0}' is deprecated. Use [DependsOn<{1}>] on the class. A code fix is available.");
     }
+
+    [Fact]
+    public void InjectDeprecated_description_matches_generator()
+    {
+        AnalyzerDiagnosticDescriptors.InjectDeprecated.Description.ToString()
+            .Should().Be("Migrate to [DependsOn<T>] on the class. See migration guide for full deprecation timeline (1.6 warning → 1.7 error → 2.0 removed).");
+    }
+
+    [Fact]
+    public void InjectDeprecated_help_link_matches_generator()
+    {
+        AnalyzerDiagnosticDescriptors.InjectDeprecated.HelpLinkUri
+            .Should().Be("https://github.com/sansiquay/IoCTools/blob/main/docs/migration.md#migrating-from-15x-to-16x");
+    }
 }
