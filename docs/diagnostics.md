@@ -45,7 +45,7 @@ To opt a test-support library into the test scope, set the property explicitly i
 </PropertyGroup>
 ```
 
-This mirrors what `Microsoft.NET.Test.Sdk` does for runner projects and routes the support library through the same `build_property.IsTestProject` gate — no `#pragma warning disable IOC08x` or blanket `<NoWarn>` needed.
+This mirrors what `Microsoft.NET.Test.Sdk` does for runner projects and routes the support library through the same `build_property.IsTestProject` gate — no per-diagnostic `#pragma warning disable IOC081` / `IOC082` / `IOC086` or blanket `<NoWarn>` needed.
 
 ---
 
