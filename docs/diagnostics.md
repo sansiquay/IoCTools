@@ -31,6 +31,22 @@ IoCTools diagnostics are scoped by `build_property.IsTestProject`.
 
 Test projects often define fakes, partial harnesses, manual service registrations, and incomplete DI graphs. Production-only diagnostics are intentionally suppressed there so test code sees fixture/testing guidance without production-composition noise.
 
+### Test-support libraries (no `Microsoft.NET.Test.Sdk` reference)
+
+`Microsoft.NET.Test.Sdk` sets `IsTestProject=true` **only on the runner project** (the one that discovers and executes tests). A *test-support* library — fixtures, fake services, or host-builders shared across test projects but with no `Microsoft.NET.Test.Sdk` reference of its own — does **not** receive `IsTestProject` automatically, so IoCTools treats it as a production project and the production-only diagnostics (e.g. `IOC081`/`IOC082`/`IOC086` around manual fixture registration) fire.
+
+This is the deliberate safe default: an unknown project is treated as production so production-composition defects are never silently dropped. IoCTools does **not** infer test context from project names or test-framework package references.
+
+To opt a test-support library into the test scope, set the property explicitly in its `.csproj`:
+
+```xml
+<PropertyGroup>
+  <IsTestProject>true</IsTestProject>
+</PropertyGroup>
+```
+
+This mirrors what `Microsoft.NET.Test.Sdk` does for runner projects and routes the support library through the same `build_property.IsTestProject` gate — no `#pragma warning disable IOC08x` or blanket `<NoWarn>` needed.
+
 ---
 
 ## Dependency Diagnostics
