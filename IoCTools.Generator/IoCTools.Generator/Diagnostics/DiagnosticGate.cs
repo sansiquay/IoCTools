@@ -114,6 +114,7 @@ internal static class DiagnosticGate
             { "TDIAG06", AnalysisScope.Test },
             { "TDIAG07", AnalysisScope.Test },
             { "TDIAG08", AnalysisScope.Test },
+            { "TDIAG09", AnalysisScope.Test },
 
             // All other diagnostics are implicit AnalysisScope.Both. Examples:
             //   - IOC073 (open-generic IHostedService): broken codegen — fires everywhere.

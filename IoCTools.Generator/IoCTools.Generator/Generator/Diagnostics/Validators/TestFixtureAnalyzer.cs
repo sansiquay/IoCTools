@@ -101,7 +101,13 @@ internal static class TestFixtureAnalyzer
                     serviceSymbol = serviceSym;
                 }
 
-                results.Add(new CoverClassInfo(symbol, typeDecl, serviceSymbol, UsesNullLogger(coverAttr), UsesForceMock(coverAttr)));
+                results.Add(new CoverClassInfo(
+                    symbol,
+                    typeDecl,
+                    serviceSymbol,
+                    UsesNullLogger(coverAttr),
+                    UsesForceMock(coverAttr),
+                    GetAttributeLocation(coverAttr)));
             }
         }
 
@@ -853,6 +859,16 @@ internal static class TestFixtureAnalyzer
     }
 
     /// <summary>
+    /// Returns the source location of an applied attribute (the [Cover&lt;T&gt;] syntax), or null
+    /// when no syntax reference is available (e.g. attribute applied in referenced metadata).
+    /// </summary>
+    private static Location? GetAttributeLocation(AttributeData attribute)
+    {
+        var syntaxRef = attribute.ApplicationSyntaxReference;
+        return syntaxRef?.GetSyntax().GetLocation();
+    }
+
+    /// <summary>
     /// Resolves the declared name of an enum member from a TypedConstant, falling back to null
     /// when the constant is not a recognizable enum value.
     /// </summary>
@@ -880,6 +896,11 @@ internal static class TestFixtureAnalyzer
     /// </summary>
     private static bool HasOverridableMockableMethod(INamedTypeSymbol concreteType)
     {
+        // A sealed class cannot be subclassed, so Moq cannot create a proxy for it at all —
+        // every method is effectively non-interceptable regardless of virtual modifiers.
+        if (concreteType.IsSealed)
+            return false;
+
         for (var current = concreteType; current != null; current = current.BaseType)
         {
             if (current.SpecialType == SpecialType.System_Object)
@@ -904,8 +925,8 @@ internal static class TestFixtureAnalyzer
     /// <summary>
     /// TDIAG-09: When [Cover&lt;T&gt;(ConcreteHandling = ForceMock)] forces a Mock&lt;T&gt; for a
     /// concrete-class constructor dependency whose public methods are all non-virtual, Moq cannot
-    /// intercept them — Setup(...) silently no-ops. Emit a warning at the Cover class location for
-    /// each such dependency.
+    /// intercept them — Setup(...) silently no-ops. Emit a warning at the [Cover&lt;T&gt;] location
+    /// for each such dependency.
     /// </summary>
     private static void EmitForceMockNonVirtualDiagnostics(
         CoverClassInfo coverClass,
@@ -914,15 +935,19 @@ internal static class TestFixtureAnalyzer
         if (!coverClass.UsesForceMock || coverClass.ServiceSymbol == null)
             return;
 
-        // Use the same dependency resolution the fixture planner sees: [DependsOn<T>]-declared
-        // types take precedence, falling back to the widest explicit constructor's parameters.
-        // (The IoCTools-generated constructor is not yet materialized during this analyzer pass,
-        // so iterating ServiceSymbol.Constructors alone would miss [DependsOn] dependencies.)
-        var dependencyTypes = GetServiceDependencyTypes(coverClass.ServiceSymbol);
+        // Resolve the same dependency set the fixture generator mocks under ForceMock:
+        // [DependsOn<T>] declared types unioned with [Inject] field types, falling back to the
+        // widest explicit constructor's parameters when there are no declarative dependencies.
+        // (The IoCTools-generated constructor is not materialized during this analyzer pass, so
+        // iterating ServiceSymbol.Constructors alone would miss [DependsOn]/[Inject] dependencies.)
+        var dependencyTypes = GetForceMockCandidateDependencyTypes(coverClass.ServiceSymbol);
         if (dependencyTypes.IsEmpty)
             return;
 
-        var reported = new HashSet<string>(StringComparer.Ordinal);
+        // Report each offending concrete type once. Key by symbol (not simple name) so two
+        // different types that share a short name in different namespaces both warn.
+        var reported = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var location = coverClass.CoverAttributeLocation ?? coverClass.Symbol.Locations.FirstOrDefault();
 
         foreach (var dependencyType in dependencyTypes)
         {
@@ -930,27 +955,80 @@ internal static class TestFixtureAnalyzer
                 continue;
 
             // Only concrete classes go down the Mock<T> path under ForceMock. Interfaces,
-            // abstract types, delegates, and the special-cased framework types (ILogger,
-            // IConfiguration, IOptions, TimeProvider, IValidator) are not the footgun here.
+            // abstract types, value types, and the special-cased framework types (ILogger,
+            // IConfiguration, IOptions, TimeProvider, IValidator — all interfaces or abstract)
+            // are not the footgun here.
             if (concreteType.TypeKind != TypeKind.Class || concreteType.IsAbstract)
                 continue;
             if (concreteType.SpecialType == SpecialType.System_String)
                 continue;
 
-            // A concrete with at least one overridable method can be mocked usefully — no warning.
+            // A concrete with at least one overridable method (and not sealed) can be mocked
+            // usefully — no warning.
             if (HasOverridableMockableMethod(concreteType))
                 continue;
 
-            var typeName = concreteType.Name;
-            if (!reported.Add(typeName))
+            if (!reported.Add(concreteType))
                 continue;
 
             reportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.ForceMockNonVirtual,
-                coverClass.Symbol.Locations.FirstOrDefault(),
+                location,
                 coverClass.ServiceSymbol.Name,
-                typeName));
+                concreteType.Name));
         }
+    }
+
+    /// <summary>
+    /// Resolves the dependency types the fixture generator materializes a Mock&lt;T&gt; for under
+    /// ForceMock: the union of [DependsOn&lt;T&gt;]-declared types and [Inject] field types, falling
+    /// back to the widest explicit constructor's parameter types when no declarative dependencies
+    /// are present (mirrors the constructor-generation dependency set).
+    /// </summary>
+    private static ImmutableArray<ITypeSymbol> GetForceMockCandidateDependencyTypes(INamedTypeSymbol service)
+    {
+        var dependencies = new List<ITypeSymbol>();
+        dependencies.AddRange(GetDependsOnDependencyTypes(service));
+        dependencies.AddRange(GetInjectFieldTypes(service));
+
+        if (dependencies.Count > 0)
+            return dependencies
+                .Distinct<ITypeSymbol>(SymbolEqualityComparer.Default)
+                .ToImmutableArray();
+
+        var constructor = service.Constructors
+            .OrderByDescending(c => c.Parameters.Length)
+            .FirstOrDefault(c => !c.IsStatic);
+
+        if (constructor == null)
+            return ImmutableArray<ITypeSymbol>.Empty;
+
+        return constructor.Parameters
+            .Select(p => p.Type)
+            .ToImmutableArray();
+    }
+
+    /// <summary>
+    /// Collects the types of [Inject]-annotated fields across all partial declarations of the
+    /// service (the merged INamedTypeSymbol surfaces members from every partial part).
+    /// </summary>
+    private static ImmutableArray<ITypeSymbol> GetInjectFieldTypes(INamedTypeSymbol service)
+    {
+        var types = new List<ITypeSymbol>();
+        foreach (var field in service.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (field.IsStatic || field.IsImplicitlyDeclared)
+                continue;
+
+            var isInject = field.GetAttributes().Any(attr =>
+                attr.AttributeClass?.Name == "InjectAttribute" ||
+                attr.AttributeClass?.Name == "Inject");
+
+            if (isInject)
+                types.Add(field.Type);
+        }
+
+        return types.ToImmutableArray();
     }
 
     /// <summary>
@@ -1047,13 +1125,15 @@ internal static class TestFixtureAnalyzer
             TypeDeclarationSyntax declaration,
             INamedTypeSymbol? serviceSymbol,
             bool usesNullLogger,
-            bool usesForceMock)
+            bool usesForceMock,
+            Location? coverAttributeLocation)
         {
             Symbol = symbol;
             Declaration = declaration;
             ServiceSymbol = serviceSymbol;
             UsesNullLogger = usesNullLogger;
             UsesForceMock = usesForceMock;
+            CoverAttributeLocation = coverAttributeLocation;
         }
 
         public INamedTypeSymbol Symbol { get; }
@@ -1061,5 +1141,6 @@ internal static class TestFixtureAnalyzer
         public INamedTypeSymbol? ServiceSymbol { get; }
         public bool UsesNullLogger { get; }
         public bool UsesForceMock { get; }
+        public Location? CoverAttributeLocation { get; }
     }
 }

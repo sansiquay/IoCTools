@@ -1000,5 +1000,113 @@ public partial class MyServiceTests { }";
             "a property-only POCO has no overridable methods for Moq to intercept");
     }
 
+    [Fact]
+    public void TDIAG09_Fires_ForSealedConcreteWithVirtualLikeMethods()
+    {
+        // A sealed class cannot be subclassed, so Moq cannot proxy it at all — even an override
+        // method does not help. ForceMock against it is still a footgun.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public abstract class CollaboratorBase
+{
+    public virtual int Compute(int x) => x;
+}
+
+public sealed class Collaborator : CollaboratorBase
+{
+    public override int Compute(int x) => x + 1;
+}
+
+[DependsOn<Collaborator>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().ContainSingle(
+            "a sealed concrete cannot be proxied by Moq regardless of virtual methods");
+    }
+
+    [Fact]
+    public void TDIAG09_Fires_ForInjectFieldConcreteDependency()
+    {
+        // [Inject]-field dependencies are mocked by the fixture just like [DependsOn] ones.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+[Scoped]
+public partial class MyService
+{
+    [Inject] private readonly Collaborator _collaborator;
+}
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        var tdiag09 = result.Diagnostics.Where(d => d.Id == "TDIAG09").ToList();
+        tdiag09.Should().ContainSingle("[Inject] concrete fields are mocked under ForceMock too");
+        tdiag09[0].GetMessage().Should().Contain("Collaborator");
+    }
+
+    [Fact]
+    public void TDIAG09_Fires_OncePerDistinctType_EvenWithSharedSimpleName()
+    {
+        // Two different 'Client' types in different namespaces must each warn — dedup is by symbol.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+namespace A { public partial class Client { public int Get() => 1; } }
+namespace B { public partial class Client { public int Get() => 2; } }
+
+[DependsOn<A.Client>]
+[DependsOn<B.Client>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().HaveCount(2,
+            "two distinct concrete types sharing a simple name should each warn");
+    }
+
+    [Fact]
+    public void TDIAG09_ReportsAtCoverAttributeLocation()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+[DependsOn<Collaborator>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        var tdiag09 = result.Diagnostics.Where(d => d.Id == "TDIAG09").ToList();
+        tdiag09.Should().ContainSingle();
+
+        var span = tdiag09[0].Location.SourceSpan;
+        var text = source.Substring(span.Start, span.Length);
+        text.Should().Contain("Cover", "the diagnostic should point at the [Cover<T>] attribute");
+    }
+
     #endregion
 }
