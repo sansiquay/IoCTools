@@ -108,4 +108,22 @@ internal static partial class DiagnosticDescriptors
         true,
         "Add [Cover<TService>] attribute to the test class (must be partial) to auto-generate Mock<T> fields, CreateSut() factory, typed setup helpers, configuration helpers, and options helpers. Legitimate manual construction (e.g. surface tests with custom stubs) can suppress or ignore this suggestion.",
         "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag08");
+
+    /// <summary>
+    /// TDIAG09: [Cover&lt;T&gt;(ConcreteHandling = ForceMock)] targets a concrete dependency whose
+    /// public instance methods are all non-virtual, so the generated Mock&lt;T&gt; cannot intercept
+    /// them. Moq only intercepts virtual/abstract members; Setup(...) against a non-virtual method
+    /// compiles but silently no-ops and the real method body runs against default backing fields.
+    /// Default severity: Warning. Can be escalated to Error or suppressed via the standard
+    /// &lt;IoCToolsTestingDiagnosticSeverity&gt; / NoWarn channels.
+    /// </summary>
+    public static readonly DiagnosticDescriptor ForceMockNonVirtual = new(
+        "TDIAG09",
+        "ForceMock target has no overridable methods to mock",
+        "ForceMock was requested for concrete dependency '{1}' of service '{0}', but it has no virtual/abstract public instance methods. Mock<{1}>.Setup(...) will silently no-op and the real method body will run against default backing fields. Extract an interface and depend on that, or make the relevant methods virtual.",
+        "IoCTools.Testing",
+        DiagnosticSeverity.Warning,
+        true,
+        "ConcreteHandling.ForceMock emits Mock<TConcrete>, but Moq can only intercept virtual or abstract instance methods. When the concrete type's public methods are non-virtual (the C# default), Setup(...) calls compile but no-op and the real implementation runs, hiding the collaborator from the test. Extract an interface from the concrete dependency and depend on the interface (with ConcreteHandling.Auto), or mark the relevant methods virtual.",
+        "https://github.com/sansiquay/IoCTools/blob/main/docs/diagnostics.md#tdiag09");
 }

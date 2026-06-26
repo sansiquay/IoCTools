@@ -101,7 +101,13 @@ internal static class TestFixtureAnalyzer
                     serviceSymbol = serviceSym;
                 }
 
-                results.Add(new CoverClassInfo(symbol, typeDecl, serviceSymbol, UsesNullLogger(coverAttr)));
+                results.Add(new CoverClassInfo(
+                    symbol,
+                    typeDecl,
+                    serviceSymbol,
+                    UsesNullLogger(coverAttr),
+                    UsesForceMock(coverAttr),
+                    GetAttributeLocation(coverAttr)));
             }
         }
 
@@ -139,6 +145,9 @@ internal static class TestFixtureAnalyzer
 
             // TDIAG-06: Check for fixture member name collisions
             EmitCollisionDiagnostics(coverClass, reportDiagnostic);
+
+            // TDIAG-09: ForceMock against a concrete with no overridable methods
+            EmitForceMockNonVirtualDiagnostics(coverClass, reportDiagnostic);
         }
     }
 
@@ -828,6 +837,209 @@ internal static class TestFixtureAnalyzer
     }
 
     /// <summary>
+    /// Returns true when the [Cover&lt;T&gt;] attribute sets ConcreteHandling = ForceMock.
+    /// Resolves the enum member by name (robust to value reordering) with a numeric fallback
+    /// of 1 == ForceMock based on declaration order, mirroring the generator pipeline.
+    /// </summary>
+    private static bool UsesForceMock(AttributeData coverAttribute)
+    {
+        foreach (var namedArgument in coverAttribute.NamedArguments)
+        {
+            if (namedArgument.Key != "ConcreteHandling" || namedArgument.Value.Value == null)
+                continue;
+
+            var name = ResolveEnumMemberName(namedArgument.Value);
+            if (name == "ForceMock") return true;
+            if (name == "Auto") return false;
+
+            return namedArgument.Value.Value is int v && v == 1;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns the source location of an applied attribute (the [Cover&lt;T&gt;] syntax), or null
+    /// when no syntax reference is available (e.g. attribute applied in referenced metadata).
+    /// </summary>
+    private static Location? GetAttributeLocation(AttributeData attribute)
+    {
+        var syntaxRef = attribute.ApplicationSyntaxReference;
+        return syntaxRef?.GetSyntax().GetLocation();
+    }
+
+    /// <summary>
+    /// Resolves the declared name of an enum member from a TypedConstant, falling back to null
+    /// when the constant is not a recognizable enum value.
+    /// </summary>
+    private static string? ResolveEnumMemberName(TypedConstant constant)
+    {
+        if (constant.Type is not INamedTypeSymbol enumType || enumType.TypeKind != TypeKind.Enum)
+            return null;
+        if (constant.Value is null) return null;
+
+        foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (member.HasConstantValue && Equals(member.ConstantValue, constant.Value))
+                return member.Name;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Returns true when the concrete type exposes at least one overridable (virtual or abstract)
+    /// public instance method that Moq could intercept. Property accessors and other accessor
+    /// methods are excluded — ForceMock's footgun is specifically about behavioral methods whose
+    /// Setup(...) silently no-ops. Only ordinary methods declared on the type (or an overridable
+    /// inherited method) count. Sealed overrides do not count (they cannot be further overridden).
+    /// </summary>
+    private static bool HasOverridableMockableMethod(INamedTypeSymbol concreteType)
+    {
+        // A sealed class cannot be subclassed, so Moq cannot create a proxy for it at all —
+        // every method is effectively non-interceptable regardless of virtual modifiers.
+        if (concreteType.IsSealed)
+            return false;
+
+        for (var current = concreteType; current != null; current = current.BaseType)
+        {
+            if (current.SpecialType == SpecialType.System_Object)
+                break;
+
+            foreach (var method in current.GetMembers().OfType<IMethodSymbol>())
+            {
+                if (method.MethodKind != MethodKind.Ordinary)
+                    continue;
+                if (method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
+                    continue;
+
+                // Virtual/abstract are overridable. An override is overridable unless sealed.
+                if (method.IsVirtual || method.IsAbstract || (method.IsOverride && !method.IsSealed))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// TDIAG-09: When [Cover&lt;T&gt;(ConcreteHandling = ForceMock)] forces a Mock&lt;T&gt; for a
+    /// concrete-class constructor dependency whose public methods are all non-virtual, Moq cannot
+    /// intercept them — Setup(...) silently no-ops. Emit a warning at the [Cover&lt;T&gt;] location
+    /// for each such dependency.
+    /// </summary>
+    private static void EmitForceMockNonVirtualDiagnostics(
+        CoverClassInfo coverClass,
+        Action<Diagnostic> reportDiagnostic)
+    {
+        if (!coverClass.UsesForceMock || coverClass.ServiceSymbol == null)
+            return;
+
+        // Resolve the same dependency set the fixture generator mocks under ForceMock:
+        // [DependsOn<T>] declared types unioned with [Inject] field types, falling back to the
+        // widest explicit constructor's parameters when there are no declarative dependencies.
+        // (The IoCTools-generated constructor is not materialized during this analyzer pass, so
+        // iterating ServiceSymbol.Constructors alone would miss [DependsOn]/[Inject] dependencies.)
+        var dependencyTypes = GetForceMockCandidateDependencyTypes(coverClass.ServiceSymbol);
+        if (dependencyTypes.IsEmpty)
+            return;
+
+        // Report each offending concrete type once. Key by symbol (not simple name) so two
+        // different types that share a short name in different namespaces both warn.
+        var reported = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var location = coverClass.CoverAttributeLocation ?? coverClass.Symbol.Locations.FirstOrDefault();
+
+        foreach (var dependencyType in dependencyTypes)
+        {
+            if (dependencyType is not INamedTypeSymbol concreteType)
+                continue;
+
+            // Only concrete classes go down the Mock<T> path under ForceMock. Interfaces,
+            // abstract types, value types, and the special-cased framework types (ILogger,
+            // IConfiguration, IOptions, TimeProvider, IValidator — all interfaces or abstract)
+            // are not the footgun here.
+            if (concreteType.TypeKind != TypeKind.Class || concreteType.IsAbstract)
+                continue;
+            if (concreteType.SpecialType == SpecialType.System_String)
+                continue;
+
+            // A concrete with at least one overridable method (and not sealed) can be mocked
+            // usefully — no warning.
+            if (HasOverridableMockableMethod(concreteType))
+                continue;
+
+            if (!reported.Add(concreteType))
+                continue;
+
+            reportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.ForceMockNonVirtual,
+                location,
+                coverClass.ServiceSymbol.Name,
+                concreteType.Name));
+        }
+    }
+
+    /// <summary>
+    /// Resolves the dependency types the fixture generator materializes a Mock&lt;T&gt; for under
+    /// ForceMock: the union of [DependsOn&lt;T&gt;]-declared types and [Inject] field types, falling
+    /// back to the widest explicit constructor's parameter types when no declarative dependencies
+    /// are present (mirrors the constructor-generation dependency set).
+    /// </summary>
+    private static ImmutableArray<ITypeSymbol> GetForceMockCandidateDependencyTypes(INamedTypeSymbol service)
+    {
+        var dependencies = new List<ITypeSymbol>();
+        dependencies.AddRange(GetDependsOnDependencyTypes(service));
+        dependencies.AddRange(GetInjectFieldTypes(service));
+
+        if (dependencies.Count > 0)
+            return dependencies
+                .Distinct<ITypeSymbol>(SymbolEqualityComparer.Default)
+                .ToImmutableArray();
+
+        var constructor = service.Constructors
+            .OrderByDescending(c => c.Parameters.Length)
+            .FirstOrDefault(c => !c.IsStatic);
+
+        if (constructor == null)
+            return ImmutableArray<ITypeSymbol>.Empty;
+
+        return constructor.Parameters
+            .Select(p => p.Type)
+            .ToImmutableArray();
+    }
+
+    /// <summary>
+    /// Collects the types of [Inject]-annotated fields across all partial declarations of the
+    /// service (the merged INamedTypeSymbol surfaces members from every partial part), walking the
+    /// base-type chain so inherited [Inject] dependencies are included — constructor generation
+    /// flows base [Inject] fields into the derived constructor, so the fixture mocks them too.
+    /// </summary>
+    private static ImmutableArray<ITypeSymbol> GetInjectFieldTypes(INamedTypeSymbol service)
+    {
+        var types = new List<ITypeSymbol>();
+        for (var current = service; current != null; current = current.BaseType)
+        {
+            if (current.SpecialType == SpecialType.System_Object)
+                break;
+
+            foreach (var field in current.GetMembers().OfType<IFieldSymbol>())
+            {
+                if (field.IsStatic || field.IsImplicitlyDeclared)
+                    continue;
+
+                var isInject = field.GetAttributes().Any(attr =>
+                    attr.AttributeClass?.Name == "InjectAttribute" ||
+                    attr.AttributeClass?.Name == "Inject");
+
+                if (isInject)
+                    types.Add(field.Type);
+            }
+        }
+
+        return types.ToImmutableArray();
+    }
+
+    /// <summary>
     /// Emits TDIAG-06 if the fixture member planner would produce ambiguous or colliding names.
     /// Detects duplicate field names based on the same naming algorithm used by FixtureMemberPlanner.
     /// </summary>
@@ -920,17 +1132,23 @@ internal static class TestFixtureAnalyzer
             INamedTypeSymbol symbol,
             TypeDeclarationSyntax declaration,
             INamedTypeSymbol? serviceSymbol,
-            bool usesNullLogger)
+            bool usesNullLogger,
+            bool usesForceMock,
+            Location? coverAttributeLocation)
         {
             Symbol = symbol;
             Declaration = declaration;
             ServiceSymbol = serviceSymbol;
             UsesNullLogger = usesNullLogger;
+            UsesForceMock = usesForceMock;
+            CoverAttributeLocation = coverAttributeLocation;
         }
 
         public INamedTypeSymbol Symbol { get; }
         public TypeDeclarationSyntax Declaration { get; }
         public INamedTypeSymbol? ServiceSymbol { get; }
         public bool UsesNullLogger { get; }
+        public bool UsesForceMock { get; }
+        public Location? CoverAttributeLocation { get; }
     }
 }

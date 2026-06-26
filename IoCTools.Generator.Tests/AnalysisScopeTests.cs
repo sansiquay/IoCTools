@@ -44,7 +44,8 @@ public class AnalysisScopeTests
     public static TheoryData<string> TestOnlyDiagnosticIds => new()
     {
         "TDIAG01", "TDIAG02", "TDIAG03", "TDIAG04",
-        "TDIAG05", "TDIAG06", "TDIAG07", "TDIAG08"
+        "TDIAG05", "TDIAG06", "TDIAG07", "TDIAG08",
+        "TDIAG09"
     };
 
     private static AnalyzerConfigOptionsProvider OptionsWith(string? isTestProjectValue)
