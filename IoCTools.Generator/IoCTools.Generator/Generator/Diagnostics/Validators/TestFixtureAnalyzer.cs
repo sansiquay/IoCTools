@@ -1010,22 +1010,30 @@ internal static class TestFixtureAnalyzer
 
     /// <summary>
     /// Collects the types of [Inject]-annotated fields across all partial declarations of the
-    /// service (the merged INamedTypeSymbol surfaces members from every partial part).
+    /// service (the merged INamedTypeSymbol surfaces members from every partial part), walking the
+    /// base-type chain so inherited [Inject] dependencies are included — constructor generation
+    /// flows base [Inject] fields into the derived constructor, so the fixture mocks them too.
     /// </summary>
     private static ImmutableArray<ITypeSymbol> GetInjectFieldTypes(INamedTypeSymbol service)
     {
         var types = new List<ITypeSymbol>();
-        foreach (var field in service.GetMembers().OfType<IFieldSymbol>())
+        for (var current = service; current != null; current = current.BaseType)
         {
-            if (field.IsStatic || field.IsImplicitlyDeclared)
-                continue;
+            if (current.SpecialType == SpecialType.System_Object)
+                break;
 
-            var isInject = field.GetAttributes().Any(attr =>
-                attr.AttributeClass?.Name == "InjectAttribute" ||
-                attr.AttributeClass?.Name == "Inject");
+            foreach (var field in current.GetMembers().OfType<IFieldSymbol>())
+            {
+                if (field.IsStatic || field.IsImplicitlyDeclared)
+                    continue;
 
-            if (isInject)
-                types.Add(field.Type);
+                var isInject = field.GetAttributes().Any(attr =>
+                    attr.AttributeClass?.Name == "InjectAttribute" ||
+                    attr.AttributeClass?.Name == "Inject");
+
+                if (isInject)
+                    types.Add(field.Type);
+            }
         }
 
         return types.ToImmutableArray();

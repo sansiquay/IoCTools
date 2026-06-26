@@ -1108,5 +1108,36 @@ public partial class MyServiceTests { }";
         text.Should().Contain("Cover", "the diagnostic should point at the [Cover<T>] attribute");
     }
 
+    [Fact]
+    public void TDIAG09_Fires_ForInheritedInjectConcreteDependency()
+    {
+        // Constructor generation flows a base class's [Inject] fields into the derived ctor, so the
+        // fixture mocks them under ForceMock. TDIAG09 must walk the base chain to see them.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+public partial class BaseService
+{
+    [Inject] private readonly Collaborator _collaborator;
+}
+
+[Scoped]
+public partial class DerivedService : BaseService { }
+
+[Cover<DerivedService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class DerivedServiceTests { }";
+
+        var result = CompileWithCover(source);
+        var tdiag09 = result.Diagnostics.Where(d => d.Id == "TDIAG09").ToList();
+        tdiag09.Should().ContainSingle("inherited [Inject] concrete deps are mocked under ForceMock too");
+        tdiag09[0].GetMessage().Should().Contain("Collaborator");
+    }
+
     #endregion
 }
