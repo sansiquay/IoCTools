@@ -145,6 +145,7 @@ internal static class DiagnosticCatalog
             new("TDIAG06", "Generated fixture member name collision detected", "IoCTools.Testing", "Warning"),
             new("TDIAG07", "Fixture setup helper is called after Sut access", "IoCTools.Testing", "Warning"),
             new("TDIAG08", "Test class manually constructs a service that could use Cover<T>", "IoCTools.Testing", "Warning"),
+            new("TDIAG09", "ForceMock target concrete type has no overridable methods to mock", "IoCTools.Testing", "Warning"),
 
             // IoCTools.AutoDeps (1.6 — Auto-dependencies milestone)
             new("IOC096", "NoAutoDep[Open] target is not in resolved auto-dep set", "IoCTools.AutoDeps", "Info"),

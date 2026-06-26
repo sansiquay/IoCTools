@@ -12,7 +12,7 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 - [Registration Diagnostics](#registration-diagnostics) - IOC004-IOC005, IOC027-IOC038, IOC063-IOC065, IOC069-IOC071, IOC074, IOC081-IOC086, IOC090-IOC094 *(IOC095 moved to Auto-Deps in 1.6 — legacy open-generic fallback descriptor retained under the same ID)*
 - [Structural Diagnostics](#structural-diagnostics) - IOC010-IOC011, IOC020-IOC026, IOCO41-IOC042, IOC058, IOC067-IOC068, IOC077, IOC080, IOC093
 - [Auto-Deps Diagnostics (1.6.0+)](#auto-deps-diagnostics-160) - IOC095-IOC099, IOC103-IOC108
-- [Testing Diagnostics](#testing-diagnostics) - TDIAG01 through TDIAG08
+- [Testing Diagnostics](#testing-diagnostics) - TDIAG01 through TDIAG09
 - [FluentValidation Diagnostics](#fluentvalidation-diagnostics) - IOC100-IOC102, IOC111-IOC112
 
 ## Severity Legend
@@ -25,7 +25,7 @@ Authoring posture for 1.6.0+: `[Inject]` is deprecated and fires [IOC095](#ioc09
 
 IoCTools diagnostics are scoped by `build_property.IsTestProject`.
 
-- **Test-project only:** `TDIAG01`-`TDIAG08`. These help migrate service tests to `[Cover<T>]` and catch generated fixture misuse.
+- **Test-project only:** `TDIAG01`-`TDIAG09`. These help migrate service tests to `[Cover<T>]` and catch generated fixture misuse.
 - **Production-project only:** DI graph completeness, manual registration, lifetime-policy, style, redundancy, auto-deps profile, and opportunity diagnostics such as `IOC001`-`IOC003`, `IOC012`, `IOC013`, `IOC027`, `IOC039`, `IOC043`, `IOC047`, `IOC057`, `IOC068`, `IOC079`, `IOC081`-`IOC087`, `IOC090`-`IOC094`, `IOC096`-`IOC099`, `IOC103`-`IOC108`, and `IOC110`.
 - **Both production and test projects:** code-generation correctness diagnostics where an invalid attribute shape can break generated code, such as malformed registration/configuration attributes, missing `partial` on code-generated types, invalid dependency sets, manual constructor conflicts, and `[Inject]` deprecation.
 
@@ -1505,6 +1505,56 @@ public partial class UserServiceTests
 ```
 
 **Related:** [TDIAG03](#tdiag03) (Mock<T> fields without Cover), [TDIAG04](#tdiag04) (Cover<T> service check)
+
+---
+
+### TDIAG09
+
+**Severity:** [!Warning](#) | **Category:** IoCTools.Testing
+
+**Cause:** A test class uses `[Cover<T>(ConcreteHandling = ConcreteHandling.ForceMock)]`, and one of
+the service's constructor dependencies is a **concrete class whose public instance methods are all
+non-virtual** (the C# default). `ForceMock` suppresses the auto-concrete promotion and emits a
+`Mock<TConcrete>`, but Moq can only intercept `virtual`/`abstract` instance methods. `Setup(...)`
+against a non-virtual method **compiles but silently no-ops** — the real method body runs against
+default backing fields, so the test believes it has stubbed a collaborator when it has not.
+
+**Fix:** Either extract an interface from the concrete dependency and depend on the interface (with
+the default `ConcreteHandling.Auto`), or mark the relevant methods `virtual` so Moq can intercept
+them. For a pure POCO/record whose surface is properties only, prefer `ConcreteHandling.Auto`, which
+constructs a real instance via a `Configure<T>` helper instead of an inert mock.
+
+**Example:**
+```csharp
+// Before (ForceMock against a sealed-by-default concrete — TDIAG09):
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;   // non-virtual: Moq cannot intercept
+}
+
+[DependsOn<Collaborator>]
+public partial class OrderService { }
+
+[Cover<OrderService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class OrderServiceTests { }   // _mockCollaborator.Setup(...) no-ops
+
+// After (extract an interface, default Auto):
+public interface ICollaborator { int Compute(int x); }
+
+public partial class Collaborator : ICollaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+[DependsOn<ICollaborator>]
+public partial class OrderService { }
+
+[Cover<OrderService>]
+public partial class OrderServiceTests { }   // _mockCollaborator works
+```
+
+**Related:** [TDIAG04](#tdiag04) (Cover<T> service check). See also
+[Concrete Handling Modes](testing.md#concrete-handling-modes-concretehandling) in the testing guide.
 
 ---
 

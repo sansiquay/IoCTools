@@ -233,6 +233,9 @@ method **compiles cleanly and silently no-ops** — the real method body then ru
 backing fields and typically throws `NullReferenceException` at runtime. The generated fixture
 itself builds fine; the failure surfaces only when the test invokes the unintercepted method.
 
+This constraint is flagged at build time by [TDIAG09](diagnostics.md#tdiag09) (Warning) when
+`ForceMock` targets a concrete dependency with no overridable public methods.
+
 **When `ForceMock` works:**
 - The concrete dependency marks its public methods `virtual` (e.g. a base class designed for
   overriding) or is `abstract`.
@@ -457,6 +460,7 @@ IoCTools.Testing includes analyzer diagnostics to suggest fixture usage:
 | [TDIAG06](diagnostics.md#tdiag06) | Generated fixture member names collide | Rename dependencies or add explicit test fixture setup |
 | [TDIAG07](diagnostics.md#tdiag07) | Fixture helper called after Sut access | Rearrange Arrange phase: helpers before Sut |
 | [TDIAG08](diagnostics.md#tdiag08) | Manual construction of IoCTools-managed service | Add `[Cover<T>]` to test class |
+| [TDIAG09](diagnostics.md#tdiag09) | `ForceMock` targets a concrete with no overridable methods | Extract an interface (use `Auto`), or make methods `virtual` |
 
 ---
 
@@ -719,7 +723,7 @@ public partial class OrderHandlerTests
 
 - [Getting Started](getting-started.md) — IoCTools introduction
 - [Attribute Reference](attributes.md) — All IoCTools attributes
-- [Diagnostics Reference](diagnostics.md) — All diagnostics including TDIAG01 through TDIAG08
+- [Diagnostics Reference](diagnostics.md) — All diagnostics including TDIAG01 through TDIAG09
 - [FluentValidation Diagnostics](diagnostics.md#fluentvalidation-diagnostics) — IOC100-IOC102
 - [CLI Validator Commands](cli-reference.md#validators) — Inspect validators from command line
 

@@ -25,6 +25,20 @@ public class TestFixtureDiagnosticsTests
         DiagnosticDescriptors.FixtureMemberCollision.Id.Should().Be("TDIAG06");
         DiagnosticDescriptors.SetupAfterSutAccess.Id.Should().Be("TDIAG07");
         DiagnosticDescriptors.CouldUseCoverAttribute.Id.Should().Be("TDIAG08");
+        DiagnosticDescriptors.ForceMockNonVirtual.Id.Should().Be("TDIAG09");
+    }
+
+    [Fact]
+    public void TDIAG09_ForceMockNonVirtual_Has_Correct_Properties()
+    {
+        // Act & Assert
+        var descriptor = DiagnosticDescriptors.ForceMockNonVirtual;
+        descriptor.Id.Should().Be("TDIAG09");
+        descriptor.Title.ToString().Should().Contain("ForceMock");
+        descriptor.Category.Should().Be("IoCTools.Testing");
+        descriptor.DefaultSeverity.Should().Be(DiagnosticSeverity.Warning);
+        descriptor.IsEnabledByDefault.Should().BeTrue();
+        descriptor.Description.ToString().Should().Contain("virtual");
     }
 
     [Fact]
@@ -113,7 +127,8 @@ public class TestFixtureDiagnosticsTests
             DiagnosticDescriptors.TestClassNotPartial,
             DiagnosticDescriptors.FixtureMemberCollision,
             DiagnosticDescriptors.SetupAfterSutAccess,
-            DiagnosticDescriptors.CouldUseCoverAttribute
+            DiagnosticDescriptors.CouldUseCoverAttribute,
+            DiagnosticDescriptors.ForceMockNonVirtual
         };
 
         foreach (var descriptor in descriptors)
@@ -137,7 +152,8 @@ public class TestFixtureDiagnosticsTests
             DiagnosticDescriptors.TestClassNotPartial,
             DiagnosticDescriptors.FixtureMemberCollision,
             DiagnosticDescriptors.SetupAfterSutAccess,
-            DiagnosticDescriptors.CouldUseCoverAttribute
+            DiagnosticDescriptors.CouldUseCoverAttribute,
+            DiagnosticDescriptors.ForceMockNonVirtual
         };
 
         foreach (var descriptor in descriptors)
@@ -859,6 +875,129 @@ public class ManualTests
         tdiag08.Should().NotBeEmpty("manual construction should emit TDIAG08 when property is set");
         tdiag08.Should().AllSatisfy(d => d.Severity.Should().Be(DiagnosticSeverity.Warning),
             "IoCToolsTestingDiagnosticSeverity=Warning should escalate TDIAG08 from Info to Warning");
+    }
+
+    #endregion
+
+    #region TDIAG09 Emission Tests — ForceMock against non-virtual concrete
+
+    [Fact]
+    public void TDIAG09_Fires_WhenForceMockTargetsConcreteWithNonVirtualMethods()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+[DependsOn<Collaborator>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        var tdiag09 = result.Diagnostics.Where(d => d.Id == "TDIAG09").ToList();
+
+        tdiag09.Should().ContainSingle("ForceMock on a concrete with only non-virtual methods cannot be intercepted by Moq");
+        tdiag09[0].Severity.Should().Be(DiagnosticSeverity.Warning);
+        tdiag09[0].GetMessage().Should().Contain("Collaborator");
+        tdiag09[0].GetMessage().Should().Contain("MyService");
+    }
+
+    [Fact]
+    public void TDIAG09_DoesNotFire_WhenConcreteHasVirtualMethod()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public virtual int Compute(int x) => x + 1;
+}
+
+[DependsOn<Collaborator>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().BeEmpty(
+            "a virtual method is interceptable by Moq, so ForceMock is safe");
+    }
+
+    [Fact]
+    public void TDIAG09_DoesNotFire_WhenDependencyIsInterface()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public interface ICollaborator { int Compute(int x); }
+
+[DependsOn<ICollaborator>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().BeEmpty(
+            "interface members are always interceptable by Moq");
+    }
+
+    [Fact]
+    public void TDIAG09_DoesNotFire_WhenConcreteHandlingIsAuto()
+    {
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Collaborator
+{
+    public int Compute(int x) => x + 1;
+}
+
+[DependsOn<Collaborator>]
+public partial class MyService { }
+
+[Cover<MyService>]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().BeEmpty(
+            "default Auto mode constructs a real instance, not a Mock<T>, so the footgun does not apply");
+    }
+
+    [Fact]
+    public void TDIAG09_Fires_ForPocoWithOnlyProperties()
+    {
+        // A POCO whose surface is properties only has no overridable *methods*; its property
+        // accessors are not mockable behavior. Per the issue, ForceMock on a type with zero
+        // overridable public instance methods is the footgun.
+        var source = @"
+using IoCTools.Abstractions.Annotations;
+using IoCTools.Testing.Annotations;
+
+public partial class Settings
+{
+    public string Name { get; set; } = string.Empty;
+}
+
+[DependsOn<Settings>]
+public partial class MyService { }
+
+[Cover<MyService>(ConcreteHandling = ConcreteHandling.ForceMock)]
+public partial class MyServiceTests { }";
+
+        var result = CompileWithCover(source);
+        result.Diagnostics.Where(d => d.Id == "TDIAG09").Should().ContainSingle(
+            "a property-only POCO has no overridable methods for Moq to intercept");
     }
 
     #endregion
